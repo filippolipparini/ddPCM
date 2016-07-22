@@ -61,3 +61,5 @@ are used, the following reference should also be included:
 
 Written by Filippo Lipparini, October 2015.
 
+Please report problems and bug to filippo.lipparini@gmail.com
+
