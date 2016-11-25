@@ -69,7 +69,7 @@ use ddcosmo
 ! grids by D. Laikov and C. van Wuellen, as publicly available on CCL. If the routines
 ! are used, the following reference should also be included:
 !
-! [6] V.I. Lebedev, and D.N. Laikov
+! [6] V.I. Lebedev, and D.nsph. Laikov
 !     "A quadrature formula for the sphere of the 131st
 !      algebraic order of accuracy"
 !     Doklady Mathematics, Vol. 59, No. 3, 1999, pp. 477-481.
@@ -91,7 +91,7 @@ use ddcosmo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 implicit none
 !
-integer :: i, n, istatus
+integer :: i, istatus
 real*8  :: tobohr, esolv
 real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
@@ -102,11 +102,11 @@ real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
 real*8, allocatable :: x(:), y(:), z(:), rvdw(:), charge(:)
 !
-! - electrostatic potential phi(ncav) and psi vector psi(nbasis,n)
+! - electrostatic potential phi(ncav) and psi vector psi(nbasis,nsph)
 !
 real*8, allocatable :: phi(:), psi(:,:)
 !
-! - ddcosmo solution sigma (nbasis,n) and adjoint solution s(nbasis,n)
+! - ddcosmo solution sigma (nbasis,nsph) and adjoint solution s(nbasis,nsph)
 !
 real*8, allocatable :: sigma(:,:), s(:,:)
 !
@@ -138,28 +138,33 @@ memmax = 0
       read(10,*) ngrid       ! number of lebedev points
       read(10,*) iconv       ! 10^(-iconv) is the convergence threshold for the iterative solver
       read(10,*) igrad       ! whether to compute (1) or not (0) forces
+      read(10,*) iscrf       ! whether to use cosmo (0) or pcm (1)
       read(10,*) eps         ! dielectric constant of the solvent
-      read(10,*) eta         ! regularization parameter
+      read(10,*) iunit       ! whether to convert to bohr (0) or not (1)
+      read(10,*) eta, se     ! regularization parameter
       close(10)
+!
+      call reset_ngrid
 !
 !     read atoms file
 !     ---------------
       open( unit=10, file=args(2) )
-      read(10,*) n           ! number of atoms
+      read(10,*) nsph           ! number of atoms
 !
-      allocate( x(n), y(n), z(n), rvdw(n), charge(n) , stat=istatus )
+      allocate( x(nsph), y(nsph), z(nsph), rvdw(nsph), charge(nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
         write(*,*)'main : failed allocation !'
         stop
       endif
 !
-      memuse = memuse + 5*n
+      memuse = memuse + 5*nsph
       memmax = max(memmax,memuse)
 !
-      do i = 1, n
+      do i = 1, nsph
         read(10,*) charge(i), x(i), y(i), z(i), rvdw(i)
       end do
-      tobohr = 1.0d0/toang
+      tobohr = 1.0d0
+      if (iunit.eq.0) tobohr = 1.0d0/toang
       x    = x*tobohr
       y    = y*tobohr
       z    = z*tobohr
@@ -174,10 +179,10 @@ memmax = 0
 ! harmonics functions used for the expansion of the various ddcosmo quantities;
 ! both are computed by ddinit and defined as common variables in ddcosmo.mod.
 !
-call ddinit(n,x,y,z,rvdw)
-allocate (phi(ncav),psi(nbasis,n))
-memuse = memuse + ncav + nbasis*n
-memmax = max(memmax,memuse)
+      call ddinit(nsph,x,y,z,rvdw)
+      allocate (phi(ncav),psi(nbasis,nsph))
+      memuse = memuse + ncav + nbasis*nsph
+      memmax = max(memmax,memuse)
 !
 ! --------------------------   modify here  --------------------------  
 !
@@ -189,15 +194,18 @@ memmax = max(memmax,memuse)
 ! here, we compute the potential and the psi vector using the supplied routine mkrhs,
 ! which needs to be replaced by your routine.
 !
-call mkrhs(n,charge,x,y,z,ncav,ccav,phi,nbasis,psi)
+write(6,*) 'nsph, ncav:', nsph, ncav
+call mkrhs(nsph,charge,x,y,z,ncav,ccav,phi,nbasis,psi)
+write(6,*) 'phi:'
+write(6,'(10d12.4)') phi
 !
 ! --------------------------   end modify   --------------------------  
 !
 ! now, call the ddcosmo solver
 !
-allocate (sigma(nbasis,n))
+allocate (sigma(nbasis,nsph))
 !
-memuse = memuse + nbasis*n
+memuse = memuse + nbasis*nsph
 memmax = max(memmax,memuse)
 !
 call itsolv(.false.,phi,psi,sigma,esolv)
@@ -210,9 +218,9 @@ write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', e
 !
 if (igrad.eq.1) then
   write(6,*)
-  allocate (s(nbasis,n))
-  allocate (fx(3,n))
-  memuse = memuse + nbasis*n + 3*n
+  allocate (s(nbasis,nsph))
+  allocate (fx(3,nsph))
+  memuse = memuse + nbasis*nsph + 3*nsph
   memmax = max(memmax,memuse)
   call itsolv(.true.,phi,psi,s,esolv)
 !
@@ -221,13 +229,13 @@ if (igrad.eq.1) then
 ! therefore to be personalized by the user. it is included in this sample program as
 ! forces.f90.
 !
-   call forces(n,charge,phi,sigma,s,fx)
+   call forces(nsph,charge,phi,sigma,s,fx)
 end if
 !
 ! clean up:
 !
 deallocate (x,y,z,rvdw,charge,phi,psi,sigma)
-memuse = memuse - 5*n - ncav - 2*n*nbasis
+memuse = memuse - 5*nsph - ncav - 2*nsph*nbasis
 memmax = max(memmax,memuse)
 !
 if (igrad.eq.1) deallocate (s,fx)

@@ -96,8 +96,8 @@ real*8,  parameter :: zero=0.d0, pt5=0.5d0, one=1.d0, two=2.d0, four=4.d0
 !    eta    - regularization parameter
 !
 integer :: nsph, ngrid, ncav, lmax, nbasis, iconv, igrad, &
-           iprint, nproc, memuse, memmax
-real*8  :: eps, eta, pi, sq2
+           iprint, nproc, memuse, memmax, iunit, iscrf
+real*8  :: eps, eta, se, pi, sq2
 logical :: grad
 !
 integer, allocatable :: inl(:), nl(:)
@@ -163,6 +163,53 @@ contains
 ! subroutine  fdoga
 !
 !
+subroutine reset_ngrid
+! 
+      implicit none
+      integer, parameter, dimension(32) :: nG0 = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
+                                                    146, 170, 194, 230, 266, 302, 350, 434,  &
+                                                    590, 770, 974,1202,1454,1730,2030,2354,  &
+                                                   2702,3074,3470,3890,4334,4802,5294,5810/)
+      integer, parameter :: nLLG = 32
+      integer :: iGrid, iG
+!
+!-----------------------------------------------------------------------------------
+!
+!     initialize to largest grid
+      iGrid=nLLG
+
+!     loop over grids
+      do iG=1,nLLG
+!
+!       if number of points has exceeded threshold, then exit
+        if ( nG0(iG).ge.ngrid ) then
+!                
+          iGrid=iG
+          exit
+!          
+        endif
+!        
+      enddo
+!      
+!     adjust ngrid
+      ngrid=nG0(iGrid)
+!
+      return
+!
+endsubroutine reset_ngrid
+!
+!----------------------------------------------------------------------------------
+!
+subroutine set_pi
+!
+      implicit none
+!      
+      pi  = four*atan(one)
+      sq2 = sqrt(two)
+!
+!
+endsubroutine set_pi
+!----------------------------------------------------------------------------------
   subroutine readin
   implicit none
 
@@ -176,16 +223,11 @@ contains
   integer,               intent(in) :: n
   real*8,  dimension(n), intent(in) :: x, y, z, rvdw
   !
-  integer :: isph, jsph, i, ii, lnl, l, ind, m, igrid, inear, jnear
+  integer :: isph, jsph, i, ii, lnl, l, ind, m, igrid, inear, jnear, istatus
   real*8  :: fac, fl, ffl, fnorm, d2, r2, v(3), vv, t, xt, swthr
   !
   real*8,  allocatable :: vcos(:), vsin(:), vplm(:)
-  integer, parameter   :: nllg=32
   !
-  ! number of Lebedev integration points
-  integer, dimension(nllg) :: ng0
-  data ng0/6,14,26,38,50,74,86,110,146,170,194,230,266,302,350,434,590,770,974, &
-           1202,1454,1730,2030,2354,2702,3074,3470,3890,4334,4802,5294,5810/
 !
 !-------------------------------------------------------------------------------
 !
@@ -196,32 +238,7 @@ contains
 !$ call omp_set_num_threads(nproc)
 !
 ! set some constants 
-  pi   = four*atan(one)
-  sq2  = sqrt(two)
-  nsph = n
-!
-!
-! choose the lebedev grid with number of points closest to ngrid
-! --------------------------------------------------------------
-!
-! initialize integration rule 
-  igrid = 0
-!
-! initialize to huge
-  inear = 100000
-!
-! loop over integration rules
-  do i = 1, nllg
-    jnear = iabs(ng0(i)-ngrid)
-    if (jnear.lt.inear) then
-      inear = jnear
-      igrid = i
-    end if
-  end do
-!
-! select "nearest" integration rule
-  ngrid = ng0(igrid)
-!
+  call set_pi
 !
 ! print a nice header
 ! -------------------
@@ -238,17 +255,23 @@ contains
 ! number of basis function per atom
   nbasis = (lmax+1)*(lmax+1)
 !
-! radii and centers for atoms
-  allocate (rsph(nsph),csph(3,nsph))
-!
-! integration weights, points, evaluation of basis functions
-  allocate (w(ngrid),grid(3,ngrid),basis(nbasis,ngrid))
-!
-!
-  allocate (inl(nsph+1),nl(nsph*nngmax))
-  allocate (fi(ngrid,nsph),ui(ngrid,nsph))
-  if (grad) allocate(zi(3,ngrid,nsph))
-  allocate (fact(2*lmax+1),facl(nbasis),facs(nbasis))
+  allocate( rsph(nsph), &
+            csph(3,nsph), &
+            w(ngrid), &
+            grid(3,ngrid), &
+            basis(nbasis,ngrid), &
+            inl(nsph+1), &
+            nl(nsph*nngmax), &
+            fi(ngrid,nsph), &
+            ui(ngrid,nsph), &
+            zi(3,ngrid,nsph), &
+            fact(2*lmax+1), &
+            facl(nbasis), &
+            facs(nbasis) , stat=istatus )
+  if ( istatus .ne. 0 ) then
+    write(*,*)'readin : allocation failed!'
+    stop
+  endif
 !
   memuse = memuse + 4*nsph + 4*ngrid + nbasis*ngrid + nsph+1 + nsph*nngmax + &
            2*ngrid*nsph + 2*lmax+1 + 2*nbasis
