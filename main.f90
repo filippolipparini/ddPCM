@@ -91,7 +91,7 @@ use ddcosmo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 implicit none
 !
-integer :: i, n
+integer :: i, n, istatus
 real*8  :: tobohr, esolv
 real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
@@ -116,46 +116,55 @@ real*8, allocatable :: fx(:,:)
 !
 ! - for qm solutes, fock matrix contribution.
 !
+character(len=64), dimension(2) :: args
+!
+!-----------------------------------------------------------
 ! here, we read all the ddcosmo parameters from a file named Input.txt
 !
 memuse = 0
 memmax = 0
 !
-open (unit=100,file='Input.txt',form='formatted',access='sequential')
+      if ( iargc().ne.2 ) stop
+      do i = 1,iargc()
+        call getarg( i, args(i) )
+      enddo
 !
-! scalar parameters. the variables are defined in the ddcosmo module and are common to
-! all the ddcosmo routines (no need to declare them if ddcosmo.mod is loaded.)
+!     read control parameters
+!     -----------------------
+      open( unit=10, file=args(1) )
+      read(10,*) iprint      ! printing flag
+      read(10,*) nproc       ! number of openmp threads
+      read(10,*) lmax        ! max angular momentum of spherical harmonics basis
+      read(10,*) ngrid       ! number of lebedev points
+      read(10,*) iconv       ! 10^(-iconv) is the convergence threshold for the iterative solver
+      read(10,*) igrad       ! whether to compute (1) or not (0) forces
+      read(10,*) eps         ! dielectric constant of the solvent
+      read(10,*) eta         ! regularization parameter
+      close(10)
 !
-read(100,*) iprint      ! printing flag
-read(100,*) nproc       ! number of openmp threads
-read(100,*) lmax        ! max angular momentum of spherical harmonics basis
-read(100,*) ngrid       ! number of lebedev points
-read(100,*) iconv       ! 10^(-iconv) is the convergence threshold for the iterative solver
-read(100,*) igrad       ! whether to compute (1) or not (0) forces
-read(100,*) eps         ! dielectric constant of the solvent
-read(100,*) eta         ! regularization parameter
+!     read atoms file
+!     ---------------
+      open( unit=10, file=args(2) )
+      read(100,*) n           ! number of atoms
+      allocate( x(n), y(n), z(n), rvdw(n), charge(n) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*)'main : failed allocation !'
+        stop
+      endif
 !
-read(100,*) n           ! number of atoms
+      memuse = memuse + 5*n
+      memmax = max(memmax,memuse)
 !
-allocate (x(n),y(n),z(n),rvdw(n),charge(n))
+      do i = 1, n
+        read(10,*) charge(i), x(i), y(i), z(i), rvdw(i)
+      end do
+      tobohr = 1.0d0/toang
+      x    = x*tobohr
+      y    = y*tobohr
+      z    = z*tobohr
+      rvdw = rvdw*tobohr
 !
-memuse = memuse + 5*n
-memmax = max(memmax,memuse)
-!
-! we also read from the same file the charges, coordinates and vdw radii.
-! in this example, the coordinates and radii are read in angstrom and
-! converted in bohr before calling ddinit.
-!
-do i = 1, n
-  read(100,*) charge(i), x(i), y(i), z(i), rvdw(i)
-end do
-tobohr = 1.0d0/toang
-x    = x*tobohr
-y    = y*tobohr
-z    = z*tobohr
-rvdw = rvdw*tobohr
-!
-close (100)
+      close (10)
 !
 ! call the initialization routine. this routine allocates memory, computes some
 ! quantities for internal use and creates and fills an array ccav(3,ncav) with
