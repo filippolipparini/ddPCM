@@ -145,7 +145,8 @@ memmax = 0
 !     read atoms file
 !     ---------------
       open( unit=10, file=args(2) )
-      read(100,*) n           ! number of atoms
+      read(10,*) n           ! number of atoms
+!
       allocate( x(n), y(n), z(n), rvdw(n), charge(n) , stat=istatus )
       if ( istatus.ne.0 ) then
         write(*,*)'main : failed allocation !'
