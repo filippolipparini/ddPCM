@@ -1,4 +1,4 @@
-subroutine iefpcm( phi, psi, en, sigma_g )
+subroutine iefpcm( phi, psi, sigma_g )
 !
       use  ddcosmo
 !      
@@ -6,7 +6,6 @@ subroutine iefpcm( phi, psi, en, sigma_g )
 !
       real*8, dimension( ngrid,nsph), intent(in)    :: phi
       real*8, dimension(nbasis,nsph), intent(in)    :: psi
-      real*8, dimension( ngrid,nsph), intent(in)    :: en
       real*8, dimension(nbasis,nsph), intent(inout) :: sigma_g
 !      
 !     P. Gatto, Nov 2016      

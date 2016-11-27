@@ -104,7 +104,7 @@ real*8, allocatable :: x(:), y(:), z(:), rvdw(:), charge(:)
 !
 ! - electrostatic potential phi(ncav) and psi vector psi(nbasis,nsph)
 !
-real*8, allocatable :: phi(:), psi(:,:)
+real*8, allocatable :: phi(:), psi(:,:), g(:,:)
 !
 ! - ddcosmo solution sigma (nbasis,nsph) and adjoint solution s(nbasis,nsph)
 !
@@ -180,7 +180,7 @@ memmax = 0
 ! both are computed by ddinit and defined as common variables in ddcosmo.mod.
 !
       call ddinit(nsph,x,y,z,rvdw)
-      allocate (phi(ncav),psi(nbasis,nsph))
+      allocate (phi(ncav),psi(nbasis,nsph),g(ngrid,nsph))
       memuse = memuse + ncav + nbasis*nsph
       memmax = max(memmax,memuse)
 !
@@ -194,22 +194,24 @@ memmax = 0
 ! here, we compute the potential and the psi vector using the supplied routine mkrhs,
 ! which needs to be replaced by your routine.
 !
-write(6,*) 'nsph, ncav:', nsph, ncav
-call mkrhs(nsph,charge,x,y,z,ncav,ccav,phi,nbasis,psi)
-write(6,*) 'phi:'
-write(6,'(10d12.4)') phi
+      call mkrhs(nsph,charge,x,y,z,ncav,ccav,phi,nbasis,psi)
 !
 ! --------------------------   end modify   --------------------------  
 !
 ! now, call the ddcosmo solver
 !
-allocate (sigma(nbasis,nsph))
+      allocate (sigma(nbasis,nsph))
 !
-memuse = memuse + nbasis*nsph
-memmax = max(memmax,memuse)
+      memuse = memuse + nbasis*nsph
+      memmax = max(memmax,memuse)
 !
-call itsolv(.false.,phi,psi,sigma,esolv)
-write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+      if (iscrf.eq.0) then
+        call itsolv(.false.,phi,psi,sigma,esolv)
+        write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+      else
+        call wghpot(phi,g)
+        call iefpcm(g,psi,sigma)
+      end if
 !
 ! this is all for the energy. if the forces are also required, call the solver for
 ! the adjoint problem. 
