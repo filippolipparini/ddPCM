@@ -424,7 +424,7 @@ endsubroutine set_pi
 !                   jk
 !       compute \chi
 !                   n
-        xt  = fsw(t,eta*rsph(jsph))
+        xt  = fsw(t,se,eta*rsph(jsph))
 !        
         swthr  = one - eta*rsph(jsph)
         if (grad .and. (t.lt.one .and. t.gt.swthr)) then
@@ -525,24 +525,37 @@ endsubroutine set_pi
   return
   end function sprod
   !
-  real*8 function fsw(t,eta)
-  implicit none
-  real*8, intent(in) :: t, eta
-  !
-  real*8 :: a, b, flow
-  real*8, parameter :: f6=6.0d0, f10=10.d0, f12=12.d0, f15=15.d0
-  flow = one - eta
-  if (t.ge.one) then
-    fsw = zero
-  else if (t.le.flow) then
-    fsw = one
-  else
-    a = f15*eta - f12
-    b = f10*eta*eta - f15*eta + f6
-    fsw = ((t-one)*(t-one)*(one-t)*(f6*t*t + a*t + b))/(eta**5)
-  end if
-  return
-  end function fsw
+real*8 function fsw(t,s,eta)
+!
+! Remark : a step-function symmetrically squeeshing around x = 1
+!
+! The "s" variable is totally redundant. In fact :
+!
+!   x = t - eta*s  ==> y = x - 0.5*eta = t - (0.5 + s)*eta
+!
+! Thus :
+!
+!   x >= f_hi  ==>  t >= 1 + (0.5 + s)*eta
+!   . . .           t <= 1 - (0.5 + s)*eta
+!
+implicit none
+real*8, intent(in) :: t, s, eta
+real*8 :: a, b, x, y, f_hi, f_low
+real*8, parameter :: zero=0.0d0, pt5=0.5d0, one=1.0d0, two=2.0d0, f6=6.0d0, f10=10.d0, &
+                     f12=12.d0, f15=15.d0
+x    = t - eta*s 
+y    = x - pt5*eta
+f_low = one - pt5*eta
+f_hi  = one + pt5*eta
+if (x.ge.f_hi) then
+  fsw = zero
+else if (x.le.f_low) then
+  fsw = one
+else
+  fsw = ((y-one)*(y-one)*(y-one+two*eta)*(y-one+two*eta))/(eta**4)
+end if
+return
+end function fsw
   !
   real*8 function dfsw(t,eta)
   implicit none
@@ -688,16 +701,18 @@ endsubroutine set_pi
         vij  = csph(:,isph) + rsph(isph)*grid(:,ig) - csph(:,jsph)
         vvij = sqrt(dot_product(vij,vij))
         tij  = vvij/rsph(jsph) 
+        sij  = vij/vvij
+        xij  = fsw(tij,se,eta*rsph(jsph))
+        if (fi(ig,isph).gt.one) then
+          oij = xij/fi(ig,isph)
+        else
+          oij = xij
+        end if
+        call ylmbas(sij,basloc,vplm,vcos,vsin)
         if (tij.lt.one) then
-          sij  = vij/vvij
-          xij  = fsw(tij,eta*rsph(jsph))
-          if (fi(ig,isph).gt.one) then
-            oij = xij/fi(ig,isph)
-          else
-            oij = xij
-          end if
-          call ylmbas(sij,basloc,vplm,vcos,vsin)
           pot(ig) = pot(ig) + oij*intmlp(tij,sigma(:,jsph),basloc)
+        else 
+          pot(ig) = pot(ig) + oij*cstmlp(    sigma(:,jsph),basloc)
         end if
       end do
     end if
@@ -1353,7 +1368,7 @@ endsubroutine set_pi
       tji  = vvji/rsph(isph)
       if (tji.lt.one) then
         sji = vji/vvji
-        xji = fsw(tji,eta*rsph(isph))
+        xji = fsw(tji,se,eta*rsph(isph))
         if (fi(ig,jsph).gt.one) then
           oji = xji/fi(ig,jsph)
         else
@@ -1554,7 +1569,7 @@ endsubroutine set_pi
         t = t*tij
       end do
       beta = intmlp(tij,sigma(:,jsph),basloc)
-      xij = fsw(tij,eta*rsph(jsph))
+      xij = fsw(tij,se,eta*rsph(jsph))
       if (fi(ig,isph).gt.one) then
         oij = xij/fi(ig,isph)
         f2  = -oij/fi(ig,isph)
@@ -1616,7 +1631,7 @@ endsubroutine set_pi
         end do
         t = t*tji
       end do
-      xji = fsw(tji,eta*rsph(isph))
+      xji = fsw(tji,se,eta*rsph(isph))
       if (fi(ig,jsph).gt.one) then
         oji = xji/fi(ig,jsph)
       else
@@ -1642,7 +1657,7 @@ endsubroutine set_pi
                 sjk  = vjk/vvjk
                 call ylmbas(sjk,basloc,vplm,vcos,vsin)
                 g1  = intmlp(tjk,sigma(:,ksph),basloc)
-                xjk = fsw(tjk,eta*rsph(ksph))
+                xjk = fsw(tjk,se,eta*rsph(ksph))
                 b   = b + g1*xjk
               end if
             end if
@@ -1698,4 +1713,402 @@ endsubroutine set_pi
   return 
   end subroutine fdoga
 !
+!
+!-------------------------------------------------------------------------------
+!
+!
+!
+!-------------------------------------------------------------------------------
+real*8 function extmlp(t,sigma,basloc)
+implicit none
+real*8, intent(in) :: t
+real*8, dimension(nbasis), intent(in) :: sigma, basloc
+!
+integer :: l, ind
+real*8  :: tt, ss, fac
+!
+tt = one/t
+ss = zero
+do l = 0, lmax
+  ind = l*l + l + 1
+  fac = tt/facl(ind)
+  ss = ss + fac*dot_product(basloc(ind-l:ind+l),sigma(ind-l:ind+l))
+  tt = tt/t
+end do
+extmlp = ss
+return
+endfunction extmlp
+!---------------------------------------------------------------------
+!
+!
+!
+!---------------------------------------------------------------------
+! Purpose : compute l,m-th row of L_jj * X_j vector.
+!
+!               m           mm'        m'
+!   [ L_jj X_j ]  = [ L_jj ]    [ X_j ]   
+!               l           ll'        ll'
+!                                                
+!                                                            m'
+!                 =  sum   4pi/(2l'+1) * Y_l'^m'(s_n) * [X_j]
+!                   l',m'                                    l'
+!
+!---------------------------------------------------------------------
+real*8 function cstmlp( sigma, basloc )
+!
+      implicit none
+      real*8, dimension(nbasis), intent(in) :: sigma, basloc
+!
+      real*8  :: ss
+!
+!---------------------------------------------------------------------
+!
+      ss = dot_product( basloc(:)/facl(:), sigma(:) )
+      cstmlp = ss
+!      
+      return
+!      
+endfunction cstmlp
+!---------------------------------------------------------------------
+!
+!
+!
+!---------------------------------------------------------------------
+! Purpose : compute
+!
+!      lmax     l      m      m
+!   sum      sum      c (t)  Y
+!      l=0      m=-l   l      l
+!
+!---------------------------------------------------------------------
+!
+real*8 function dtslm( t, nu, basloc )
+!
+      implicit none
+      real*8,                    intent(in) :: t
+      real*8, dimension(nbasis), intent(in) :: nu, basloc
+!
+      integer :: l, ind, m
+      real*8  :: fl, fac, ss, tt
+!
+!---------------------------------------------------------------------
+!
+!     initialize
+      ss = zero
+      tt = one
+!
+!     loop over degree "l" of spherical harmonics 
+      do l = 0, lmax
+!      
+!       index of Y_l^0 spherical harmonic
+        ind = l*l + l + 1
+!        
+        fl  = dble(l)
+        fac = four*pi*(fl+one)/(two*fl + one)*tt
+!
+!       loop over order "m" of spherical harmonics
+        do m = -l, l
+!
+!         accumulate
+          ss = ss + fac*nu(ind+m)*basloc(ind+m)
+!          
+        end do
+        tt = tt*t
+      end do
+      dtslm = ss
+!
+      return
+!
+!
+end function dtslm
+!
+real*8 function dtslm2(t,nu,basloc)
+implicit none
+real*8, intent(in) :: t
+real*8, intent(in), dimension(nbasis) :: nu, basloc
+!
+integer :: l, ind, m
+real*8  :: fl, fac, ss, tt
+!
+ss = zero
+tt = one/t
+do l = 0, lmax
+  ind = l*l + l + 1
+  fl  = dble(l)
+! fac = four*pi*(fl+one)/(two*fl + one)*tt
+  fac = four*pi*fl/(two*fl + one)*tt
+  do m = -l, l
+    ss = ss + fac*nu(ind+m)*basloc(ind+m)
+  end do
+  tt = tt/t
+end do
+dtslm2 = ss
+!
+return
+end function dtslm2
+!
+subroutine itsolv2(star,iefpcm,phi,psi,sigma,ene)
+implicit none
+logical,                        intent(in)    :: star, iefpcm
+real*8, dimension(nbasis,nsph), intent(in)    :: phi, psi
+real*8,                         intent(inout) :: ene
+real*8, dimension(nbasis,nsph), intent(inout) :: sigma
+!
+! local arrays:
+!
+real*8, allocatable :: g(:,:), pot(:), sigold(:,:), vlm(:), xi(:,:)
+!
+! scratch arrays:
+!
+real*8, allocatable :: basloc(:), vplm(:), vcos(:), vsin(:)
+real*8, allocatable :: delta(:), norm(:)
+!
+! diis arrays:
+!
+real*8, allocatable :: xdiis(:,:,:), ediis(:,:,:), bmat(:)
+!
+! local variables:
+!
+integer :: it, isph, nmat, lenb, ig, c1, c2, cr, istatus
+real*8  :: tol, drms, dmax, fep
+logical :: dodiis, first
+!
+integer, parameter :: nitmax=300
+real*8,  parameter :: ten=10.d0, tredis=1.0d-2
+!
+! initialize the timer:
+!
+call system_clock(count_rate=cr)
+call system_clock(count=c1)
+!
+! allocate local variables and set convergence parameters
+!
+fep = one
+if (.not. iefpcm) fep = (eps-one)/eps
+!
+tol = ten**(-iconv)
+allocate (g(ngrid,nsph),pot(ngrid),vlm(nbasis),sigold(nbasis,nsph))
+sigold = zero
+allocate (delta(nbasis),norm(nsph))
+allocate(vplm(nbasis),basloc(nbasis),vcos(lmax+1),vsin(lmax+1))
+if (star) allocate(xi(ngrid,nsph))
+memuse = memuse + ngrid*nsph + ngrid*nproc + 2*nbasis*nproc + nbasis*nsph + &
+         2*nbasis*nproc + 2*(lmax+1)*nproc + nsph
+if (star) memuse = memuse + nsph*ngrid
+memmax = max(memmax,memuse)
+!
+! set up diis:
+!
+dodiis = .false.
+nmat   = 1
+lenb   = ndiis + 1
+allocate (xdiis(nbasis,nsph,ndiis),ediis(nbasis,nsph,ndiis),bmat(lenb*lenb))
+memuse = memuse + 2*nbasis*nsph*ndiis + lenb*lenb
+memmax = max(memmax,memuse)
+!
+! solve the direct equations
+!
+if (.not. star) then
+!
+! build g:
+!
+  call wghpot(phi,g)
+  do it = 1, nitmax
+    first = it.eq.1
+    vlm   = zero
+!$omp parallel do default(shared) private(basloc,vcos,vsin,vplm) &
+!$omp private(isph,pot,vlm,delta) schedule(dynamic,10) 
+    do isph = 1, nsph
+      call calcv2( first, isph, pot, sigold, basloc, vplm, vcos, vsin )
+      call intrhs(isph,pot,vlm)
+      vlm(:) = vlm(:) + phi(:,isph)
+      call solve(isph,vlm,sigma(:,isph))
+      delta = sigma(:,isph) - sigold(:,isph)
+      call hsnorm(delta,norm(isph))
+    end do
+!$omp end parallel do
+    call rmsvec(nsph,norm,drms,dmax)
+    if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
+    if (dodiis) then
+      xdiis(:,:,nmat) = sigma
+      ediis(:,:,nmat) = sigma - sigold
+      call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
+    end if
+    if (iprint.gt.1) then
+      ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
+      write(iout,1000) it, ene, drms, dmax
+    end if
+    if (drms.le.tol) goto 900
+    sigold = sigma
+  end do
+  write(iout,1020) 
+  stop
+900 continue
+  ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
+!
+else
+!
+! solve the adjoint equations:
+!
+  do it = 1, nitmax
+    first = it.eq.1
+    if (.not. first) then
+      xi = zero
+!$omp parallel do default(shared) private(isph,ig)
+      do isph = 1, nsph
+        do ig = 1, ngrid
+          xi(ig,isph) = dot_product(sigold(:,isph),basis(:,ig))
+        end do
+      end do
+!$omp end parallel do
+    end if
+!$omp parallel do default(shared) private(basloc,vcos,vsin,vplm) &
+!$omp private(isph,vlm,delta) schedule(dynamic,10)
+    do isph = 1, nsph
+      call adjrhs(first,isph,psi(:,isph),xi,vlm,basloc,vplm,vcos,vsin)
+      call solve(isph,vlm,sigma(:,isph))
+      delta = sigma(:,isph) - sigold(:,isph)
+      call hsnorm(delta,norm(isph))
+    end do
+!$omp end parallel do
+    call rmsvec(nsph,norm,drms,dmax)
+    if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
+    if (dodiis) then
+      xdiis(:,:,nmat) = sigma
+      ediis(:,:,nmat) = sigma - sigold
+      call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
+    end if
+    if (iprint.gt.1) then
+      write(iout,1000) it, zero, drms, dmax
+    end if
+    if (drms.le.tol) goto 910
+    sigold = sigma
+  end do
+  write(iout,1020) 
+  stop
+910 continue
+end if
+!
+! free the memory:
+!
+if (iprint.gt.1) write(iout,*)
+if (star) deallocate(xi)
+deallocate (g,pot,vlm,sigold)
+deallocate (delta,norm)
+deallocate (vplm,basloc,vcos,vsin)
+deallocate (xdiis,ediis,bmat)
+memuse = memuse - ngrid*nsph - ngrid*nproc - 2*nbasis*nproc - nbasis*nsph - &
+         2*nbasis*nproc - 2*(lmax+1)*nproc - nsph
+memuse = memuse - 2*nbasis*nsph*ndiis - lenb*lenb
+!
+call system_clock(count=c2)
+if (iprint.gt.0) then
+  if (star) then
+    write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
+  else
+    write(iout,1010) '', dble(c2-c1)/dble(cr)
+  end if
+  write(iout,*)
+end if
+if (iprint.ge.3) then
+  if (star) then
+    call prtsph('solution to the ddcosmo adjoint equations:',nsph,0,sigma)
+  else
+    call prtsph('solution to the ddcosmo equations:',nsph,0,sigma)
+  end if
+end if
+1000 format(' energy at iteration ',i4,': ',f14.7,' error (rms,max):',2f14.7)
+1010 format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
+1020 format(' ddCOSMO did not converge! Aborting...')
+return
+!
+end subroutine itsolv2
+!
+subroutine calcv2(first,isph,pot,sigma,basloc,vplm,vcos,vsin)
+!
+      logical,                        intent(in)    :: first
+      integer,                        intent(in)    :: isph
+      real*8, dimension(nbasis,nsph), intent(in)    :: sigma
+      real*8, dimension(ngrid),       intent(inout) :: pot
+      real*8, dimension(nbasis),      intent(inout) :: basloc
+      real*8, dimension(nbasis),      intent(inout) :: vplm
+      real*8, dimension(lmax+1),      intent(inout) :: vcos
+      real*8, dimension(lmax+1),      intent(inout) :: vsin
+!
+      integer :: its, ij, jsph
+      real*8  :: vij(3), sij(3)
+      real*8  :: vvij, tij, xij, oij, stslm, stslm2, stslm3
+!
+!------------------------------------------------------------------------
+!
+!     initialize
+      pot(:) = zero
+!
+!     if 1st iteration of Jacobi method, then done!
+      if ( first ) return
+!
+!     loop over grid points
+      do its = 1,ngrid
+!
+!       grid point belongs to N(s)
+        if ( ui(its,isph).lt.one ) then
+!
+!         loop over column indices
+          do ij = inl(isph),inl(isph+1)-1
+!
+!           column index
+            jsph = nl(ij)
+!            
+!           vv_n^k
+            vij  = csph(:,isph) + rsph(isph)*grid(:,its) - csph(:,jsph)
+!
+!           v_n^k
+            vvij = sqrt( dot_product( vij, vij ) )
+!                       
+!           t_n^jk
+            tij  = vvij / rsph(jsph) 
+!
+!           ss_n^jk
+            sij  = vij / vvij
+!            
+!           chi_n^jk
+            xij  = fsw( tij, se, eta*rsph(jsph) )
+!
+!           omega_n^jk = chi_n^jk / f_n^j = chi_n^jk / sum_k chi_n^jk
+            if ( fi(its,isph).gt.one ) then
+!
+              oij = xij / fi(its,isph)
+!
+            else
+!
+              oij = xij
+!
+            end if
+!
+!           compute SH's "basloc" as point "sij"
+            call ylmbas( sij, basloc, vplm, vcos, vsin )
+!
+            if ( tij.lt.one ) then
+!                    
+!             compute l,m-th row of L_jk * X_k vector
+              pot(its) = pot(its) + oij * intmlp( tij, sigma(:,jsph), basloc )
+!                    
+            else
+!                    
+!             compute l,m-th row of L_jj * X_j vector
+              pot(its) = pot(its) + oij * cstmlp(      sigma(:,jsph), basloc )
+!                    
+      !       pot(its) = pot(its) + oij*extmlp(tij,sigma(:,jsph),basloc)
+      !       pot(its) = pot(its) + oij*stslm2(lmax,tij,sigma(:,jsph),basloc)
+      !       pot(its) = pot(its) + oij*stslm3(lmax,tij,sigma(:,jsph),basloc)
+!                    
+            end if
+          end do
+        end if
+      end do
+!      
+      return
+!      
+!      
+endsubroutine calcv2
 end module ddcosmo
