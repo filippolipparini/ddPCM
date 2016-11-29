@@ -1,0 +1,254 @@
+\documentclass[12pt,letterpaper,oneside]{article}
+
+
+%\usepackage{mathpazo}
+%\usepackage{mathptmx}
+%\usepackage{avant}
+%\usepackage{fourier}
+
+\usepackage{layout}
+%\usepackage[italian]{babel}
+\usepackage{makeidx}
+\usepackage{amsthm}
+%\usepackage{mathabx}
+\usepackage{amsmath}
+\usepackage{amscd}
+\usepackage{mathrsfs}
+\usepackage{bbold}
+\usepackage{geometry} 
+\geometry{letterpaper} 
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{titletoc}
+%\usepackage{xymatrix}
+%\usepackage{pictexwd,dcpic}
+\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{subfigure}
+%\usepackage{epstopdf}
+%\usepackage[arrsy]{kuvio}
+\usepackage[all]{xy}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+%\usepackage{diagrams}
+
+
+%\renewcommand{\arraystretch}{0.7}
+\swapnumbers
+
+
+\newcommand{\blob}{
+ \rule[.0ex]{1ex}{1ex}
+}
+
+
+\newtheoremstyle{plain}
+{3pt}
+{3pt}
+{\itshape}
+{}
+{\bf}
+{.}
+{.7em}
+{}
+
+\newtheoremstyle{definition}
+{5pt}
+{5pt}
+{}
+{}
+{\bf}
+{.}
+{.7em}
+{}
+
+\swapnumbers
+
+\theoremstyle{definition}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{axiom}[theorem]{Axiom}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{cor}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Def\mbox{}inition}
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{ass}[theorem]{Assignment}
+
+
+%\theoremstyle{definition}
+\newtheorem{result}[theorem]{Result}
+\newtheorem{ex}[theorem]{Example}
+\newtheorem{remark}[theorem]{Remark}
+%\newtheorem{oss}[theorem]{Osservazione}
+
+
+\renewcommand{\deg}{\operatorname{\emph{deg}}}
+\newcommand{\dive}{\operatorname{div}}
+\newcommand{\alt}{\operatorname{Alt}}
+\newcommand{\dist}{\operatorname{dist}}
+\newcommand{\diag}{\operatorname{diag}}
+\renewcommand{\dist}{\operatorname{dist}}
+\newcommand{\Cof}{\operatorname{Cof}}
+\newcommand{\id}{\operatorname{id}}
+\newcommand{\sign}{\operatorname{sign}}
+\newcommand{\Prod}{\operatorname{Prod}}
+\newcommand{\Sum}{\operatorname{Sum}}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\vol}{\operatorname{vol}}
+\newcommand{\area}{\operatorname{area}}
+\newcommand{\matr}{\operatorname{Matr}}
+\newcommand{\spa}{\operatorname{span}}
+\newcommand{\sinc}{\operatorname{sinc}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\curl}{\operatorname{curl}}
+\newcommand{\inte}{\operatorname{int}}
+\newcommand{\dom}{\operatorname{dom}}
+\newcommand{\diam}{\operatorname{diam}}
+\newcommand{\bcurl}{\operatorname{\mathbf{curl}}}
+\newcommand{\F}{\boldsymbol{\mathrm{F}}}
+\newcommand{\A}{\boldsymbol{\mathsf{A}}}
+\newcommand{\B}{\boldsymbol{\mathsf{B}}}
+\newcommand{\M}{\boldsymbol{\mathsf{M}}}
+\newcommand{\N}{\boldsymbol{\mathsf{N}}}
+\newcommand{\n}{\boldsymbol{\mathrm{n}}}
+\newcommand{\tril}{\mathsf{Tril}(\hat{K})}
+\renewcommand{\u}{\boldsymbol{u}}
+\newcommand{\Hu}{\hat{\boldsymbol{u}}}
+\renewcommand{\v}{\boldsymbol{v}}
+\newcommand{\Hv}{\hat{\boldsymbol{v}}}
+\newcommand{\Piolai}{\operatorname{\mathsf{P}_{\F_i}}}
+\newcommand{\Piola}{\operatorname{\mathsf{P}_{\F}}}
+\newcommand{\Piolaiinv}{\operatorname{\mathsf{P}_{\F_i}^{-1}}}
+\newcommand{\Piolainv}{\operatorname{\mathsf{P}_{\F}^{-1}}}
+\newcommand{\Pioladivi}{\operatorname{\mathsf{T}_{\F_i}}}
+\newcommand{\Pioladiv}{\operatorname{\mathsf{T}_{\F}}}
+\newcommand{\Pioladiviinv}{\operatorname{\mathsf{T}_{\F_i}^{-1}}}
+\newcommand{\Pioladivinv}{\operatorname{\mathsf{T}_{\F}^{-1}}}
+\newcommand{\Res}{\mathrm{Res}}
+\renewcommand{\L}{L^1(\mathbb{R}^d)}
+\newcommand{\Lp}{L^p(\mathbb{R}^d)}
+\newcommand{\Lq}{L^q(\mathbb{R}^d)}
+\newcommand{\Linf}{L^\infty(\mathbb{R}^d)}
+\newcommand{\Ltwo}{L^2(\mathbb{R}^d)}
+\newcommand{\range}{\operatorname{\mathrm{range}}}
+\renewcommand{\graph}{\operatorname{\mathrm{graph}}}
+
+
+%\renewcommand{\qed}{\hf\mbox{}ill \mbox{\raggedright \rule{.07in}{.1in}}}
+\renewcommand{\qedsymbol}{\blob}
+
+%\renewenvironment{proof}{\vspace{-0.5ex}\noindent{\sc Dimostrazione.} \hspace{0em}}
+%	{\quad \qedsymbol \vspace{0.5ex}}
+
+%\newcommand{\appsection}[1]{\let\oldthesection\thesection
+%\renewcommand{\thesection}{Appendix \oldthesection}
+%\section{#1}\let\thesection\oldthesection}
+
+
+  
+  
+  
+
+%\author{Paolo Gatto}
+\title{Notes for ddCOSMO/ddPCM}
+
+
+%\doublespacing
+
+
+\begin{document}
+\maketitle
+
+\section{Intro}
+Let $\{\boldsymbol{r}_j \}_j$ be the centers of domains, and $\{ \rho_j\}_j$ be the radii. Let us set
+\[
+U_j^n = U_j(\boldsymbol{r}_j + \rho_j\boldsymbol{s}_n)
+\]
+so that:
+\begin{align*}
+{[A_{jj}]}_{\ell \ell'}^{mm'}& = 2\pi \frac{\varepsilon + 1}{\varepsilon - 1}\, \delta_{\ell \ell'} \delta_{m m'} - \frac{2\pi}{2 \ell' + 1} \sum_n w_n \,Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \, Y_{\ell'}^{m'}(\boldsymbol{s}_n) \\
+{[A_{jk}]}_{\ell \ell'}^{mm'}& = -  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \, \bigg( \frac{\rho_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)
+\end{align*}
+The action of $A$ is obtained as:
+\[
+[A \phi \,_j]_\ell^m = \sum_k \sum_{\ell',m'} [A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'} = \sum_{k\ne j} \sum_{\ell',m'} [A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'} + \sum_{\ell',m'} [A_{jj}]_{\ell \ell'}^{m m'} \, [\phi_j]_{\ell'}^{m'}
+\]
+Let us set $\partial_{i,\alpha} = \partial/\partial r_{i,\alpha}$. Since the entries of ${[A_{jj}]}_{\ell \ell'}^{mm'}$ are functions of $\boldsymbol{r}_j$ only, we obtain:
+\begin{align*}
+\partial_{i,\alpha} [A \phi \,_j]_\ell^m & = \sum_{k\ne j} \sum_{\ell',m'} \partial_{i,\alpha}[A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'}  & i  &\ne j \\
+\partial_{j,\alpha} [A \phi \,_j]_\ell^m & = \sum_{k\ne j} \sum_{\ell',m'} \partial_{j,\alpha}[A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'} + \sum_{\ell',m'} \partial_{j,\alpha} [A_{jj}]_{\ell \ell'}^{m m'} \, [\phi_j]_{\ell'}^{m'} & &
+\end{align*}
+Then, in the case $i\ne j$, we have:
+\begin{align*}
+\partial_{i,\alpha} [A \phi\,_j]_\ell^m = & -\sum_{k\ne j}\sum_{\ell',m'}  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \times \\
+& \qquad \quad \partial_{i,\alpha} \bigg[ \bigg( \frac{\rho_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) \bigg] \, [\phi_k]_{\ell '}^{m '} \\ \\
+= & -\sum_{\ell',m'}  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \times \\
+& \qquad \quad \sum_{k\ne j} \partial_{i,\alpha} \bigg[ \bigg( \frac{\rho_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) \bigg] \, [\phi_k]_{\ell '}^{m '} \\ \\
+= & -\sum_{\ell',m'}  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \times \\
+& \qquad \quad \partial_{i,\alpha} \bigg[ \bigg( \frac{\rho_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg) \bigg] \, [\phi_i]_{\ell '}^{m '}
+\end{align*}
+Similarly, when $i = j$, we obtain:
+\begin{align*}
+\partial_{j,\alpha} [A \phi \,_j]_\ell^m  = & - \sum_{k\ne j} \sum_{\ell',m'}\frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \times \\
+& \qquad \quad \partial_{j,\alpha} \bigg[ U_j^n  \, \bigg( \frac{\rho_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) \bigg] \,  [\phi_k]_{\ell'}^{m'} +  \\  \\
+& - \sum_{\ell',m'} \frac{2\pi}{2 \ell'+1}  \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, \partial_{j,\alpha} U_j^n \, Y_{\ell'}^{m'}(\boldsymbol{s}_n) \, [\phi_j]_{\ell '}^{m '} 
+\end{align*}
+Notice that:
+\begin{align*}
+\partial_{i,\alpha} \bigg( \frac{\rho_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg)^{\ell'+1} & =  (\ell'+1) \, (\: \cdot \: )^{\ell'} \rho_i \frac{ r_{j,\alpha} + \rho_j s_{n,\alpha} - r_{i,\alpha}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |^3}  \\
+\partial_{j,\alpha} \bigg( \frac{\rho_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg)^{\ell'+1} & =  - (\ell'+1) \, (\: \cdot \: )^{\ell'} \rho_k \frac{ r_{j,\alpha} + \rho_j s_{n,\alpha} - r_{k,\alpha}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |^3}
+\end{align*}
+Let $\boldsymbol{s} \in \mathbb{S}^2$. Using index notation we have that:
+\[
+\partial_{i,\alpha} Y= \frac{\partial Y}{\partial s_\beta} \frac{\partial s_\beta}{\partial r_{i,\alpha}}
+\]
+Then:
+\begin{multline*}
+\frac{\partial s_\beta}{\partial r_{i,\alpha}} = \frac{\partial}{\partial r_{i,\alpha}}  \bigg( \frac{{r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{i,\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg) = \\
+-\frac{\delta_{\alpha\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} + \frac{({r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{i,\beta})({r}_{j,\alpha} + \rho_j {s}_{n,\alpha} - {r}_{i,\alpha})}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |^3}
+\end{multline*}
+and:
+\begin{multline*}
+\frac{\partial s_\beta}{\partial r_{j,\alpha}} = \frac{\partial}{\partial r_{j,\alpha}}  \bigg( \frac{{r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{k,\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) = \\
+\frac{\delta_{\alpha\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} - \frac{({r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{k,\beta})({r}_{j,\alpha} + \rho_j {s}_{n,\alpha} - {r}_{k,\alpha})}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |^3}
+\end{multline*}
+
+%\partial_{i,\alpha}  \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} & = 0 \\
+%\partial_{j,\alpha} \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} & = 0
+%\end{align*}
+%Then:
+%\begin{align*}
+%\partial_{i,\alpha} [A \phi\,_j]_\ell^m = & -\sum_{\ell',m'}  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \times \\
+%& \qquad \quad \partial_{i,\alpha} \bigg[ \bigg( \frac{\rho_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg) \bigg] \, [\phi_i]_{\ell '}^{m '}
+%\end{align*}
+
+
+
+
+
+%\begin{figure}[t]
+%\begin{center}
+%\subfigure[Optimal mesh ($\varepsilon = 0.0091$), $\# \, \text{dof} = 5817$.]{
+%\includegraphics[scale=0.5]{figs/mesh_025.png}\label{fig30}
+%}\\
+%\vspace{1cm}
+%\subfigure[Convergence of error and error indicator.]{
+%\includegraphics[scale=0.45]{figs/conv_025}\label{fig31}
+%}
+%\caption{Numerical results for $s=0.25$. The colors of the optimal mesh represent the orders of approximation of the elements, see Figure \ref{fig1}.}\label{fig3}
+%\end{center}
+%\end{figure}
+
+
+
+
+
+\appendix
+
+\section{Appendix}\label{app:1}
+
+
+
+
+
+\end{document}
