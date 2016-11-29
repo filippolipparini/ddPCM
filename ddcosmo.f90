@@ -1113,6 +1113,7 @@ end function fsw
   !
   integer, parameter :: nitmax=300
   real*8,  parameter :: ten=10.d0, tredis=1.0d-2
+  integer :: istatus
   !
   !-------------------------------------------------------------------------------
   !
@@ -1129,15 +1130,38 @@ end function fsw
 ! threshold for solver
   tol = ten**(-iconv)
 !
-  allocate (g(ngrid,nsph),pot(ngrid),vlm(nbasis),sigold(nbasis,nsph))
+  allocate( g(ngrid,nsph), pot(ngrid), vlm(nbasis), sigold(nbasis,nsph) , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'itsolv : [1] failed allocation !'
+    stop
+  endif
 !  
-  sigold = zero
+! initialize
+  sigold(:,:)=zero
 !  
-  allocate (delta(nbasis),norm(nsph))
-  allocate(vplm(nbasis),basloc(nbasis),vcos(lmax+1),vsin(lmax+1))
+  allocate( delta(nbasis), norm(nsph) , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'itsolv : [2] failed allocation !'
+    stop
+  endif
+!
+! initialize
+  norm(:)=zero
+!
+  allocate( vplm(nbasis), basloc(nbasis), vcos(lmax+1), vsin(lmax+1) , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'itsolv : [3] failed allocation !'
+    stop
+  endif
 !
 ! adjoint equation
-  if (star) allocate(xi(ngrid,nsph))
+  if (star) then
+    allocate( xi(ngrid,nsph) , stat=istatus )
+    if ( istatus.ne.0 ) then
+      write(*,*)'itsolv : [4] failed allocation !'
+      stop
+    endif
+  endif
 !
 ! update memory usage
   memuse = memuse + ngrid*nsph + ngrid*nproc + 2*nbasis*nproc + nbasis*nsph + &
@@ -1150,7 +1174,11 @@ end function fsw
   dodiis = .false.
   nmat   = 1
   lenb   = ndiis + 1
-  allocate (xdiis(nbasis,nsph,ndiis),ediis(nbasis,nsph,ndiis),bmat(lenb*lenb))
+  allocate( xdiis(nbasis,nsph,ndiis), ediis(nbasis,nsph,ndiis), bmat(lenb*lenb) , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'itsolv : [5] failed allocation !'
+    stop
+  endif
 !
 ! update memory usage
   memuse = memuse + 2*nbasis*nsph*ndiis + lenb*lenb
@@ -1189,10 +1217,10 @@ end function fsw
         call solve(isph,vlm,sigma(:,isph))
 !
 !       compute error
-        delta = sigma(:,isph) - sigold(:,isph)
+        delta(:) = sigma(:,isph) - sigold(:,isph)
 !
 !       energy norm of error      
-        call hsnorm(delta,norm(isph))
+        call hsnorm( delta(:), norm(isph) )
 !
       end do
 !    

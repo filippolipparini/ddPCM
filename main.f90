@@ -153,7 +153,7 @@ memmax = 0
 !
       allocate( x(nsph), y(nsph), z(nsph), rvdw(nsph), charge(nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
-        write(*,*)'main : failed allocation !'
+        write(*,*)'main : [1] failed allocation !'
         stop
       endif
 !
@@ -180,7 +180,12 @@ memmax = 0
 ! both are computed by ddinit and defined as common variables in ddcosmo.mod.
 !
       call ddinit(nsph,x,y,z,rvdw)
-      allocate (phi(ncav),psi(nbasis,nsph),g(ngrid,nsph))
+      allocate( phi(ncav), psi(nbasis,nsph), g(ngrid,nsph) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*)'main : [2] failed allocation !'
+        stop
+      endif
+!
       memuse = memuse + ncav + nbasis*nsph
       memmax = max(memmax,memuse)
 !
@@ -200,7 +205,12 @@ memmax = 0
 !
 ! now, call the ddcosmo solver
 !
-      allocate (sigma(nbasis,nsph))
+      allocate( sigma(nbasis,nsph) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*)'main : [3] failed allocation !'
+        stop
+      endif
+
 !
       memuse = memuse + nbasis*nsph
       memmax = max(memmax,memuse)
@@ -220,8 +230,11 @@ memmax = 0
 !
 if (igrad.eq.1) then
   write(6,*)
-  allocate (s(nbasis,nsph))
-  allocate (fx(3,nsph))
+  allocate( s(nbasis,nsph), fx(3,nsph) , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'main : [4] failed allocation !'
+    stop
+  endif 
   memuse = memuse + nbasis*nsph + 3*nsph
   memmax = max(memmax,memuse)
   call itsolv(.true.,phi,psi,s,esolv)
@@ -236,11 +249,23 @@ end if
 !
 ! clean up:
 !
-deallocate (x,y,z,rvdw,charge,phi,psi,sigma)
+deallocate( x, y, z, rvdw, charge, phi, psi, sigma , stat=istatus)
+if ( istatus.ne.0 ) then
+  write(*,*)'main : [1] failed deallocation !'
+  stop
+endif 
+
 memuse = memuse - 5*nsph - ncav - 2*nsph*nbasis
 memmax = max(memmax,memuse)
 !
-if (igrad.eq.1) deallocate (s,fx)
+if (igrad.eq.1) then
+  deallocate( s, fx , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'main : [2] failed deallocation !'
+    stop
+  endif 
+
+endif
 call memfree
 !
 write(6,*) 'maximum quantity of memory allocated:', memmax
