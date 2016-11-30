@@ -269,7 +269,7 @@ endsubroutine set_pi
             facl(nbasis), &
             facs(nbasis) , stat=istatus )
   if ( istatus .ne. 0 ) then
-    write(*,*)'readin : allocation failed!'
+    write(*,*)'readin : [1] allocation failed!'
     stop
   endif
 !
@@ -311,10 +311,14 @@ endsubroutine set_pi
   rsph      = rvdw
 !
 ! load a lebedev grid
-  call llgrid(ngrid,w,grid)
+  call llgrid( ngrid, w, grid )
 !
 ! allocate workspace arrays
-  allocate (vplm(nbasis),vcos(lmax+1),vsin(lmax+1))
+  allocate( vplm(nbasis), vcos(lmax+1), vsin(lmax+1) , stat=istatus )
+  if ( istatus .ne. 0 ) then
+    write(*,*)'readin : [2] allocation failed!'
+    stop
+  endif
 !
 ! update memory usage
   memuse = memuse + nproc*(nbasis + 2*lmax + 2)
@@ -328,13 +332,18 @@ endsubroutine set_pi
 !  
 ! loop over integration points
   do i = 1, ngrid
-    call ylmbas(grid(:,i),basis(:,i),vplm,vcos,vsin)
+    call ylmbas( grid(:,i), basis(:,i), vplm(:), vcos(:), vsin(:) )
   end do
 !  
   !$omp end parallel do
 !  
 ! deallocate service arrays
-  deallocate (vplm,vcos,vsin)
+  deallocate( vplm, vcos, vsin , stat=istatus )
+  if ( istatus .ne. 0 ) then
+    write(*,*)'readin : [1] deallocation failed!'
+    stop
+  endif
+!
 !
 ! update memory usage
   memuse = memuse - nproc*(nbasis + 2*lmax + 2)
@@ -1191,7 +1200,8 @@ end function fsw
   if (.not. star) then
 !
 !   build g
-    call wghpot(phi,g)
+    g(:,:) = zero
+    call wghpot( phi, g )
 !
 !   iterate
     do it = 1, nitmax
@@ -1208,13 +1218,13 @@ end function fsw
       do isph = 1, nsph
 !
 !       compute (sparse) matrix/vector product
-        call calcv(first,isph,g(:,isph),pot,sigold,basloc,vplm,vcos,vsin)
+        call calcv( first, isph, g(:,isph), pot, sigold, basloc, vplm, vcos, vsin )
 !      
 !       numerical integration of rhs
-        call intrhs(isph,pot,vlm)
+        call intrhs( isph, pot, vlm )
 !      
 !       solve
-        call solve(isph,vlm,sigma(:,isph))
+        call solve( isph, vlm, sigma(:,isph) )
 !
 !       compute error
         delta(:) = sigma(:,isph) - sigold(:,isph)
@@ -1296,10 +1306,30 @@ end function fsw
   !
   if (iprint.gt.1) write(iout,*)
   if (star) deallocate(xi)
-  deallocate (g,pot,vlm,sigold)
-  deallocate (delta,norm)
-  deallocate (vplm,basloc,vcos,vsin)
-  deallocate (xdiis,ediis,bmat)
+  deallocate( g, pot, vlm, sigold , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'itsolv : [1] failed deallocation !'
+    stop
+  endif
+!
+  deallocate( delta, norm , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'itsolv : [2] failed deallocation !'
+    stop
+  endif
+!
+  deallocate( vplm, basloc, vcos, vsin , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'itsolv : [3] failed deallocation !'
+    stop
+  endif
+!
+  deallocate( xdiis, ediis, bmat , stat=istatus )
+  if ( istatus.ne.0 ) then
+    write(*,*)'itsolv : [4] failed deallocation !'
+    stop
+  endif
+!
   memuse = memuse - ngrid*nsph - ngrid*nproc - 2*nbasis*nproc - nbasis*nsph - &
            2*nbasis*nproc - 2*(lmax+1)*nproc - nsph
   memuse = memuse - 2*nbasis*nsph*ndiis - lenb*lenb
