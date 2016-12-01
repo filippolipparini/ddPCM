@@ -160,27 +160,32 @@
 \maketitle
 
 \section{Intro}
-Let $\{\boldsymbol{r}_j \}_j$ be the centers of domains, and $\{ \rho_j\}_j$ be the radii. Let us set
+Let $\{\boldsymbol{r}_j \}_{1\le j \le M}$ be the centers of domains, and $\{ \rho_j\}_{1\le j \le M}$ be the radii. Let us set
 \[
 U_j^n = U_j(\boldsymbol{r}_j + \rho_j\boldsymbol{s}_n)
 \]
-so that:
+and define:
 \begin{align*}
 {[A_{jj}]}_{\ell \ell'}^{mm'}& = 2\pi \frac{\varepsilon + 1}{\varepsilon - 1}\, \delta_{\ell \ell'} \delta_{m m'} - \frac{2\pi}{2 \ell' + 1} \sum_n w_n \,Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \, Y_{\ell'}^{m'}(\boldsymbol{s}_n) \\
 {[A_{jk}]}_{\ell \ell'}^{mm'}& = -  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \, \bigg( \frac{\rho_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)
 \end{align*}
-The action of $A$ is obtained as:
+Let us set $\partial_{i,\alpha} = \partial/\partial r_{i,\alpha}$. The action of $A$ is obtained as:
 \[
-[A \phi \,_j]_\ell^m = \sum_k \sum_{\ell',m'} [A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'} = \sum_{k\ne j} \sum_{\ell',m'} [A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'} + \sum_{\ell',m'} [A_{jj}]_{\ell \ell'}^{m m'} \, [\phi_j]_{\ell'}^{m'}
+[A \phi \,_j]_\ell^m = \sum_k \sum_{\ell',m'} [A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'}
+% = \sum_{k\ne j} \sum_{\ell',m'} [A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'} + \sum_{\ell',m'} [A_{jj}]_{\ell \ell'}^{m m'} \, [\phi_j]_{\ell'}^{m'}
 \]
-Let us set $\partial_{i,\alpha} = \partial/\partial r_{i,\alpha}$. Since the entries of ${[A_{jj}]}_{\ell \ell'}^{mm'}$ are functions of $\boldsymbol{r}_j$ only, we obtain:
+and its partial derivative is:
+\[
+\partial_{i,\alpha} [A\phi \,_j]_l^m = [ (\partial_{i,\alpha} A) \phi \,_j]_l^m + [ (A \, \partial_{i,\alpha} \phi) \,_j]_l^m
+\]
+Let us focus on the first term in the sum. Since the entries of ${[A_{jj}]}_{\ell \ell'}^{mm'}$ are functions of $\boldsymbol{r}_j$ only, we obtain:
 \begin{align*}
-\partial_{i,\alpha} [A \phi \,_j]_\ell^m & = \sum_{k\ne j} \sum_{\ell',m'} \partial_{i,\alpha}[A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'}  & i  &\ne j \\
-\partial_{j,\alpha} [A \phi \,_j]_\ell^m & = \sum_{k\ne j} \sum_{\ell',m'} \partial_{j,\alpha}[A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'} + \sum_{\ell',m'} \partial_{j,\alpha} [A_{jj}]_{\ell \ell'}^{m m'} \, [\phi_j]_{\ell'}^{m'} & &
+[(\partial_{i,\alpha} A) \phi \,_j]_\ell^m & = \sum_{k\ne j} \sum_{\ell',m'} \partial_{i,\alpha}[A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'}  & i  &\ne j \\
+[(\partial_{j,\alpha} A) \phi \,_j]_\ell^m & = \sum_{k\ne j} \sum_{\ell',m'} \partial_{j,\alpha}[A_{jk}]_{\ell \ell'}^{m m'} \, [\phi_k]_{\ell'}^{m'} + \sum_{\ell',m'} \partial_{j,\alpha} [A_{jj}]_{\ell \ell'}^{m m'} \, [\phi_j]_{\ell'}^{m'} & &
 \end{align*}
 Then, in the case $i\ne j$, we have:
 \begin{align*}
-\partial_{i,\alpha} [A \phi\,_j]_\ell^m = & -\sum_{k\ne j}\sum_{\ell',m'}  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \times \\
+[(\partial_{i,\alpha} A) \phi\,_j]_\ell^m = & -\sum_{k\ne j}\sum_{\ell',m'}  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \times \\
 & \qquad \quad \partial_{i,\alpha} \bigg[ \bigg( \frac{\rho_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) \bigg] \, [\phi_k]_{\ell '}^{m '} \\ \\
 = & -\sum_{\ell',m'}  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \times \\
 & \qquad \quad \sum_{k\ne j} \partial_{i,\alpha} \bigg[ \bigg( \frac{\rho_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) \bigg] \, [\phi_k]_{\ell '}^{m '} \\ \\
@@ -189,7 +194,7 @@ Then, in the case $i\ne j$, we have:
 \end{align*}
 Similarly, when $i = j$, we obtain:
 \begin{align*}
-\partial_{j,\alpha} [A \phi \,_j]_\ell^m  = & - \sum_{k\ne j} \sum_{\ell',m'}\frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \times \\
+[(\partial_{j,\alpha} A) \phi \,_j]_\ell^m  = & - \sum_{k\ne j} \sum_{\ell',m'}\frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \times \\
 & \qquad \quad \partial_{j,\alpha} \bigg[ U_j^n  \, \bigg( \frac{\rho_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) \bigg] \,  [\phi_k]_{\ell'}^{m'} +  \\  \\
 & - \sum_{\ell',m'} \frac{2\pi}{2 \ell'+1}  \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, \partial_{j,\alpha} U_j^n \, Y_{\ell'}^{m'}(\boldsymbol{s}_n) \, [\phi_j]_{\ell '}^{m '} 
 \end{align*}
@@ -198,20 +203,40 @@ Notice that:
 \partial_{i,\alpha} \bigg( \frac{\rho_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg)^{\ell'+1} & =  (\ell'+1) \, (\: \cdot \: )^{\ell'} \rho_i \frac{ r_{j,\alpha} + \rho_j s_{n,\alpha} - r_{i,\alpha}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |^3}  \\
 \partial_{j,\alpha} \bigg( \frac{\rho_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg)^{\ell'+1} & =  - (\ell'+1) \, (\: \cdot \: )^{\ell'} \rho_k \frac{ r_{j,\alpha} + \rho_j s_{n,\alpha} - r_{k,\alpha}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |^3}
 \end{align*}
-Let $\boldsymbol{s} \in \mathbb{S}^2$. Using index notation we have that:
+Let $\boldsymbol{s} = \boldsymbol{r} / |\boldsymbol{r}| \in \mathbb{S}^2$. Using index notation we have that:
 \[
-\partial_{i,\alpha} Y= \frac{\partial Y}{\partial s_\beta} \frac{\partial s_\beta}{\partial r_{i,\alpha}}
+\partial_{i,\alpha} Y= \frac{\partial Y}{\partial s_\beta} \frac{\partial s_\beta}{\partial r_{\gamma}} \frac{\partial r_\gamma}{\partial r_{i,\alpha}}
 \]
-Then:
-\begin{multline*}
-\frac{\partial s_\beta}{\partial r_{i,\alpha}} = \frac{\partial}{\partial r_{i,\alpha}}  \bigg( \frac{{r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{i,\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg) = \\
--\frac{\delta_{\alpha\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} + \frac{({r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{i,\beta})({r}_{j,\alpha} + \rho_j {s}_{n,\alpha} - {r}_{i,\alpha})}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |^3}
-\end{multline*}
 and:
+\[
+\frac{\partial s_\beta}{ \partial r_\gamma} = \frac{\delta_{\beta \gamma}}{|\boldsymbol{r}|} - \frac{r_\beta r_\gamma}{|\boldsymbol{r}|^3}
+\]
+%Let us consider the two cases:
+%\[
+%r_\gamma = r_{j,\gamma} + \rho_j {s}_{n,\gamma} - {r}_{i,\gamma} \qquad , \qquad r_\gamma = r_{j,\gamma} + \rho_j {s}_{n,\gamma} - {r}_{k,\gamma}
+%\]
+Finally, we have that:
 \begin{multline*}
-\frac{\partial s_\beta}{\partial r_{j,\alpha}} = \frac{\partial}{\partial r_{j,\alpha}}  \bigg( \frac{{r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{k,\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) = \\
-\frac{\delta_{\alpha\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} - \frac{({r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{k,\beta})({r}_{j,\alpha} + \rho_j {s}_{n,\alpha} - {r}_{k,\alpha})}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |^3}
+\partial_{i,\alpha} \bigg[ Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg) \bigg] = \frac{\partial Y_{\ell'}^{m'} }{\partial s_\beta} \bigg( \frac{\delta_{\beta \gamma}}{|\boldsymbol{r}|} - \frac{r_\beta r_\gamma}{|\boldsymbol{r}|^3} \bigg)(-\delta_{\gamma \alpha}) 
+= \frac{\partial Y_{\ell'}^{m'} }{\partial s_\beta} \bigg( \frac{r_\beta r_\alpha}{|\boldsymbol{r}|^3} -\frac{\delta_{\beta \alpha}}{|\boldsymbol{r}|} \bigg) = \\ \\ =
+\frac{\partial Y_{\ell'}^{m'} }{\partial s_\beta} \bigg( \frac{({r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{i,\beta})({r}_{j,\alpha} + \rho_j {s}_{n,\alpha} - {r}_{i,\alpha})}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |^3}  -\frac{\delta_{\alpha\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |}\bigg)
 \end{multline*}
+and
+\begin{multline*}
+\partial_{j,\alpha} \bigg[ Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) \bigg] = \frac{\partial Y_{\ell'}^{m'} }{\partial s_\beta} \bigg( \frac{\delta_{\beta \gamma}}{|\boldsymbol{r}|} - \frac{r_\beta r_\gamma}{|\boldsymbol{r}|^3} \bigg)\delta_{\gamma \alpha} = \frac{\partial Y_{\ell'}^{m'} }{\partial s_\beta} \bigg( \frac{\delta_{\beta \alpha}}{|\boldsymbol{r}|} - \frac{r_\beta r_\alpha}{|\boldsymbol{r}|^3} \bigg) = \\ \\
+= \frac{\partial Y_{\ell'}^{m'} }{\partial s_\beta} \bigg( \frac{\delta_{\alpha\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} - \frac{({r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{k,\beta})({r}_{j,\alpha} + \rho_j {s}_{n,\alpha} - {r}_{k,\alpha})}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |^3}\bigg)
+\end{multline*}
+
+
+%\begin{multline*}
+%\frac{\partial s_\beta}{\partial r_{i,\alpha}} = \frac{\partial}{\partial r_{i,\alpha}}  \bigg( \frac{{r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{i,\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} \bigg) = \\
+%-\frac{\delta_{\alpha\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} + \frac{({r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{i,\beta})({r}_{j,\alpha} + \rho_j {s}_{n,\alpha} - {r}_{i,\alpha})}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |^3}
+%\end{multline*}
+%and:
+%\begin{multline*}
+%\frac{\partial s_\beta}{\partial r_{j,\alpha}} = \frac{\partial}{\partial r_{j,\alpha}}  \bigg( \frac{{r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{k,\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) = \\
+%\frac{\delta_{\alpha\beta}}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} - \frac{({r}_{j,\beta} + \rho_j {s}_{n,\beta} - {r}_{k,\beta})({r}_{j,\alpha} + \rho_j {s}_{n,\alpha} - {r}_{k,\alpha})}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |^3}
+%\end{multline*}
 
 %\partial_{i,\alpha}  \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i}{| \boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_i |} & = 0 \\
 %\partial_{j,\alpha} \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} & = 0
