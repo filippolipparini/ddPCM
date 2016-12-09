@@ -215,12 +215,21 @@ memmax = 0
       memuse = memuse + nbasis*nsph
       memmax = max(memmax,memuse)
 !
+!     COSMO
+!     =====
       if (iscrf.eq.0) then
-        call itsolv(.false.,phi,psi,sigma,esolv)
+!1              
+!       compute \sigma and solvation energy
+        call itsolv( .false., phi, psi, sigma, esolv )
         write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+!
+!     PCM        
+!     ===
       else
+!              
         call wghpot(phi,g)
         call iefpcm(g,psi,sigma)
+!        
       end if
 !
 ! this is all for the energy. if the forces are also required, call the solver for

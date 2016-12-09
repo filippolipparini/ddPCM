@@ -13,10 +13,10 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
       implicit none
       logical,                        intent(in   ) :: star
       logical,                        intent(in   ) :: iefpcm
-      real*8,                         intent(inout) :: ene
       real*8, dimension(nbasis,nsph), intent(in   ) :: phi
       real*8, dimension(nbasis,nsph), intent(in   ) :: psi
       real*8, dimension(nbasis,nsph), intent(inout) :: sigma
+      real*8,                         intent(inout) :: ene
 !
 !     local arrays
       real*8, allocatable :: pot(:), sigold(:,:), vlm(:)

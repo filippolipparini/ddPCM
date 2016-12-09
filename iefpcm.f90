@@ -1,3 +1,21 @@
+!-------------------------------------------------------------------------------
+! Purpose : solve PCM equation R_eps S \sigma = -R_oo \Phi by solving the 
+!           system :
+!
+!             { R_eps \Phi_eps = R_oo \Phi
+!             {
+!             {       S \sigma = -\Phi_eps    ( <== COSMO )
+!
+!           After numerical discretization, we obtain linear systems 
+!
+!             { A_eps W = A_oo g
+!             {
+!             {     L X = -W
+!
+! Arguments :
+!
+!   -sigma_g 
+!-------------------------------------------------------------------------------
 subroutine iefpcm( phi, psi, sigma_g )
 !
       use  ddcosmo
@@ -63,18 +81,25 @@ subroutine iefpcm( phi, psi, sigma_g )
       endif
 !
 !
-!     STEP 1 : compute rhs R_oo Phi
-!     -----------------------------
+!===================================================================================
+! PCM                                                                              |
+!===================================================================================
+!
+!     STEP 1 : compute rhs phi = A_oo g
+!     ---------------------------------
 !
 !     loop over atoms
       do isph = 1,nsph
 !      
-!       compute SH expansion of phi
+!       compute SH expansion glm of phi
         call intrhs( isph, phi(:,isph), glm(:,isph) )
 !        
       end do
 !
-!     initial guess for solver
+!     P. Gatto, Dec 2016 : why is it not initialized with philm ???
+!
+!                         0
+!     initial residual : r  = g - A_eps * 0 = g
       vold(:,:) = glm(:,:)
 !      
       !$omp parallel do default(shared) private(isph,xlm,x,basloc,vplm,vcos,vsin)
@@ -82,7 +107,7 @@ subroutine iefpcm( phi, psi, sigma_g )
 !     loop over atoms
       do isph = 1,nsph
 !     
-!       phi_l^m = R_oo g_l^m
+!       phi = A_oo g
         call mkrvec( isph, zero, glm, philm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
 !        
       end do
@@ -90,19 +115,21 @@ subroutine iefpcm( phi, psi, sigma_g )
       !$omp parallel do default(shared) private(isph)
 !      
 !      
-!     STEP 2 : build preconditioner
+!     STEP 2 : solve A_eps W = phi
 !     -----------------------------
 !    
 !     loop over atoms
       do isph = 1,nsph
 !
+!       compute inverse of diagonal block A_eps,ii
         call mkprec( isph, .true., prec(:,:,isph), precm1(:,:,isph) )
 !        
       end do
 !
 !
-!     STEP 3 : solve R_eps Phi_eps = R_oo Phi 
-!     ---------------------------------------
+!                                   n
+!     STEP 2.1 : Jacobi method for W
+!     -------------------------------
 !
 !     main loop
       write(iout,1000)
@@ -110,7 +137,7 @@ subroutine iefpcm( phi, psi, sigma_g )
  1000 format('   first loop: computing V(eps)')
  1010 format('   it        error        err-00')
 !      
-!     loop until the max number of iterations
+!     Jacobi iteration
       do it = 1,nitmax
 !      
 !       initialize to zero
@@ -118,35 +145,41 @@ subroutine iefpcm( phi, psi, sigma_g )
 !
       !$omp parallel do default(shared) private(isph,xlm,x,basloc,vplm,vcos,vsin)
 !
-!       STEP 3.1 : compute action of R_eps
-!       ----------------------------------
+!                                              n                           n-1
+!       STEP 2.2 : compute rhs of  A_eps,ii W_i  = Phi_i - sum A_eps,ij W_j
+!                                                           j
+!
+!                                           n
+!       STEP 2.2 : apply A_eps to residual R
+!       ----------------------------------------------------------------------
 !
 !       loop over atoms
         do isph = 1,nsph
 !
-!         w_l^m = R_eps v_old
           call mkrvec( isph, eps, vold, wlm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
 !          
         end do
 !
-!       compute b - A*x
+!       R^n = Phi - A_eps * R^n 
         wlm(:,:) = philm(:,:) - wlm(:,:)
 !
-!       STEP 3.2 : apply preconditioner
-!       -------------------------------
+!                                n          
+!       STEP 2.3 : solve for  W_i  = A_eps,ii^-1 ( ... )
+!       ------------------------------------------------
 !
 !       loop over atoms
         do isph = 1,nsph
 !
-!         x_l^m = precm1 * w_l^m
+!         apply inverse
           call DGEMV( 'N', nbasis, nbasis, one, precm1(:,:,isph), nbasis, wlm(:,isph), 1, zero, xlm, 1 )
 !
-!         update w_l^m
+!         update : W_i^n = Phi_i - A_eps,ii W^n-1 
           wlm(:,isph) = vold(:,isph) + xlm(:)
 !          
         end do
 !
-!       update v_old
+!               n-1    n
+!       update W    = W
         vold = vold - wlm
 !
 !
@@ -201,7 +234,12 @@ subroutine iefpcm( phi, psi, sigma_g )
 !
 !     compute charge distribution and energy
 !
-!     call to ddCOSMO
+!     STEP 4 : call to ddCOSMO
+!     ------------------------
+!
+!     solve L X = Phi
+!
+!
       sigma_g = zero
       call itsolv2( .false., .true., wlm, psi, sigma_g, ene )
 !
@@ -217,24 +255,20 @@ subroutine iefpcm( phi, psi, sigma_g )
 !
 !
 endsubroutine iefpcm
-!-------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------
 !
 !
-!
-!-------------------------------------------------------------------------------
 !
 !----------------------------------------------------------------------------------------
 ! Purpose : compute action of operator
 !
-!             2pi (eps+1) / (eps-1) Id - sum D_ji
-!                                         j
+!                                                  ~
+!             2pi (eps+1) / (eps-1) Id - D_i - sum D_ji
+!                                               j
 !
 !           on the fly.
 !
-! Remark : when eps_s=0, the eps=oo case is triggered, i.e.,
-!
-!            2pi Id - D
-!
+! Remark : when eps_s=0, the eps=oo case is triggered, i.e., 2pi Id - D_i - ...
 !----------------------------------------------------------------------------------------
 !
 subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
@@ -264,10 +298,10 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !     initialize
       x(:) = zero
 !
-!     loop over grid points
+!     loop over grid points of i-sphere 
       do its = 1, ngrid
 ! 
-!       positive contribution from integration point
+!       integration point also belongs to neighboring sphere
         if ( ui(its,isph).gt.zero ) then
 !
 !         loop over spheres
@@ -334,6 +368,12 @@ endsubroutine mkrvec
 !-------------------------------------------------------------------------------
 !
 !
+!
+!-------------------------------------------------------------------------------
+! Purpose : compute A_eps,ii^-1.
+!
+! Remark : this is a bit more than a preconditioner... in fact, it is the
+!          exact (numerical) inverse. 
 !
 !-------------------------------------------------------------------------------
 !
