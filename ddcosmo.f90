@@ -103,7 +103,7 @@ logical :: grad
 integer, allocatable :: inl(:), nl(:)
 real*8,  allocatable :: rsph(:), csph(:,:), ccav(:,:)
 real*8,  allocatable :: w(:), grid(:,:), basis(:,:)
-real*8,  allocatable :: fact(:), facl(:), facs(:)
+real*8,  allocatable :: fact(:), facl(:), facs(:), facll(:)
 real*8,  allocatable :: fi(:,:), ui(:,:), zi(:,:,:)
 !
 contains
@@ -267,6 +267,7 @@ endsubroutine set_pi
             zi(3,ngrid,nsph), &
             fact(2*lmax+1), &
             facl(nbasis), &
+            facll(nbasis), &
             facs(nbasis) , stat=istatus )
   if ( istatus .ne. 0 ) then
     write(*,*)'readin : [1] allocation failed!'
@@ -274,7 +275,7 @@ endsubroutine set_pi
   endif
 !
   memuse = memuse + 4*nsph + 4*ngrid + nbasis*ngrid + nsph+1 + nsph*nngmax + &
-           2*ngrid*nsph + 2*lmax+1 + 2*nbasis
+           2*ngrid*nsph + 2*lmax+1 + 3*nbasis
   if (grad) memuse = memuse + 3*ngrid*nsph
   memmax = max(memmax,memuse)
 !
@@ -294,7 +295,8 @@ endsubroutine set_pi
     ind = l*l + l + 1
     fl  = (two*dble(l) + one)/(four*pi)
     ffl = sqrt(fl)
-    facl(ind-l:ind+l) = fl
+    facl( ind-l:ind+l) = fl
+    facll(ind-l:ind+l) = four*pi*dble(l)/(two*dble(l)+one)
     facs(ind) = ffl
     do m = 1, l
       fnorm = sq2*ffl*sqrt(fact(l-m+1)/fact(l+m+1))
@@ -435,6 +437,7 @@ endsubroutine set_pi
 !                   n
         xt  = fsw(t,se,eta*rsph(jsph))
 !        
+!       compute dU_j^n 
         swthr  = one - eta*rsph(jsph)
         if (grad .and. (t.lt.one .and. t.gt.swthr)) then
           fac = dfsw(t,eta*rsph(jsph))/rsph(jsph)
@@ -452,6 +455,7 @@ endsubroutine set_pi
 !     compute U 
 !              n
       if (fi(i,isph).le.one) ui(i,isph) = one - fi(i,isph)
+!
     end do
   end do
 !  
@@ -508,13 +512,14 @@ endsubroutine set_pi
   if(allocated(nl))    deallocate(nl)    
   if(allocated(fact))  deallocate(fact)  
   if(allocated(facl))  deallocate(facl)  
+  if(allocated(facll))  deallocate(facll)  
   if(allocated(facs))  deallocate(facs)  
   if(allocated(ui))    deallocate(ui)
   if(allocated(fi))    deallocate(fi)
   if(allocated(zi))    deallocate(zi)
   !
   memuse = memuse - 4*nsph - 4*ngrid - nbasis*ngrid - nsph-1 - nsph*nngmax - &
-           2*ngrid*nsph - 2*lmax-1 - 2*nbasis
+           2*ngrid*nsph - 2*lmax-1 - 3*nbasis
   if (grad) memuse = memuse - 3*ngrid*nsph
   end subroutine memfree
   !
@@ -1998,7 +2003,13 @@ real*8 function dtslm( t, nu, basloc )
 !
 !
 end function dtslm
+!---------------------------------------------------------------------
 !
+!
+!
+!
+!
+!---------------------------------------------------------------------
 real*8 function dtslm2(t,nu,basloc)
 implicit none
 real*8, intent(in) :: t

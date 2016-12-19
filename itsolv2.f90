@@ -1,5 +1,14 @@
-!-----------------------------------------------------------------------------------------
-! Purpose : compute charge "sigma" and energy "ene" 
+!=========================================================================================
+! WARNING!!! This is a duplicate routine! The one actually used is in module ddscosmo.f90.
+!=========================================================================================
+! Purpose : solve :
+!
+!   L sigma = Phi
+!
+! compute :
+!
+!   E = < Psi, sigma >
+!
 !-----------------------------------------------------------------------------------------
 !
 subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
@@ -60,7 +69,7 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
         stop
       endif
 !
-!     initialize sigma^Jac,n-1
+!     initialize sigma^N-1
       sigold = zero
 !
 !
@@ -83,18 +92,19 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
 !         loop over atoms
           do isph = 1,nsph
 !              
+!           compute action -L sigma^N-1
             call calcv2( first, isph, pot, sigold, basloc, vplm, vcos, vsin )
 !            
-!           integrate rhs against spherical harmonic Y_l^m
+!           integrate against spherical harmonic Y_l^m
             call intrhs( isph, pot, vlm )
 !
-!           add potential 
+!           compute rhs
             vlm(:) = vlm(:) + phi(:,isph)
 !            
-!           solve for sigma^Jac,n
+!           solve for sigma^N
             call solve( isph, vlm, sigma(:,isph) )
 
-!           compute || sigma^n - sigma^n-1 ||_{ S^2 , -1/2 }
+!           compute || sigma^N - sigma^N-1 ||_{ S^2 , -1/2 }
             delta(:) = sigma(:,isph) - sigold(:,isph)
             call HSNorm( lmax, delta, norm(isph) )
 !            
@@ -120,7 +130,7 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
           end if
 !            
 !         printing
-          if (iprint.ge.1) then
+          if ( iprint.ge.1 ) then
             ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
             write(iout,1000) it, ene, drms, dmax
           end if
@@ -128,14 +138,14 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
 !         desired tolerance has been achieved
           if ( drms.le.tol )  goto 900
 !
-!         update sigma
+!         update sigma^N-1 = sigma^N
           sigold = sigma
 !          
         end do
 !          
   900   continue
 !          
-!       compute energy = < psi, sigma >
+!       compute energy = < Psi, sigma >
         ene = sprod( nbasis*nsph, sigma, psi )
 !
 !
