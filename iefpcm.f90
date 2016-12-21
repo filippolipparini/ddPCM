@@ -592,7 +592,8 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !                      
             else
 !
-              xlm(:) = -pt5 * vlm(:,isph) / facl(:)
+!!!              xlm(:) = -pt5 * vlm(:,isph) / facl(:)
+              xlm(:) = pt5 * vlm(:,isph) / facl(:)
 !
 !             accumulate for x
               x(its) = x(its) + dot_product( basis(:,its), xlm(:) )
@@ -671,8 +672,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
       integer :: n, jsph, l, m, ind
       real*8 :: vij(3), s_ijn(3), fep
       real*8 :: vvij, t_ijn, tt, ss
-      real*8 :: dij_vlm(nbasis), dii_vlm(nbasis), di_vlm(nbasis), dj_vlm(nbasis), &
-                f1(nbasis)
+      real*8 :: dijvlm(nbasis),f1(nbasis)
 !
 !----------------------------------------------------------------------------------------
 !
@@ -683,18 +683,20 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !     initialize [ this is just a DUMMY variable ]
       x(:) = zero
 !
+!     initialize
+      dvlm(:)=zero
+!
 !     loop over grid points of i-sphere 
       do n = 1,ngrid
 !
 !       initialize
-        dij_vlm(:)=zero ; dii_vlm(:)=zero
-!
+        dijvlm(:)=zero
+
 !       loop over spheres
         do jsph = 1,nsph
 !          
 !         non-null contribution from integration point 
           if ( ui(n,jsph).gt.zero ) then
-!
 !
 !           action of D~_ij
 !           ---------------
@@ -713,8 +715,8 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !             compute Y_l^m(s_ijn)
               call ylmbas( s_ijn, basloc, vplm, vcos, vsin )
 !              
-!             compute f1(lm) = t_ijn^l+1 Y_l^m(s_ijn)
-              if ( t_ijn.lt.one ) then
+!             compute f1(lm) = 2l t_ijn^l+1 Y_l^m(s_ijn)
+              if ( t_ijn.le.one ) then
 
 !               initialize t_ijn^l+1 factor
                 tt = one
@@ -728,17 +730,14 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !                  
                   do m = -l,l
 !                   
-                    f1(ind+m) = tt * basloc(ind+m)
+                    f1(ind+m) = two*l * tt * basloc(ind+m)
 !                    
                   enddo
                 enddo
               endif
 !
-!             compute f1(lm) = U_j^n t_ijn^l+1 Y_l^m(s_ijn) * ss
-              f1(:) = ui(n,jsph) * f1(:) * ss
-!
 !             accumulate over j
-              dij_vlm(:) = dij_vlm(:) + f1(:)
+              dijvlm(:) = dijvlm(:) + ui(n,jsph) * f1(:) * ss
 !                      
 !                      
 !           action of D_ii
@@ -750,7 +749,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
               ss = dot_product( basis(:,n), vlm(:,isph) )
 !              
 !             compute U_i^n Y_l^m(s_n) * ss              
-              dii_vlm(:) = ui(n,isph) * basis(:,n) * ss
+              dijvlm(:) = dijvlm(:) + ui(n,isph) * basis(:,n) * ss
 !              
             endif
 !
@@ -758,8 +757,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
         enddo
 !        
 !       accumulate over n
-        dj_vlm(:) = dj_vlm(:) + w(n) * dij_vlm(:)
-        di_vlm(:) = di_vlm(:) + w(n) * dii_vlm(:)
+        dvlm(:) = dvlm(:) + w(n) * dijvlm(:)
 !
       enddo
 !
@@ -767,9 +765,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !     add action of 2pi * f(eps) * Id
 !     -------------------------------
 !
-      dvlm(:) = fep*vlm(:,isph) - pt5/facl(:)*di_vlm(:) - facll(:)*dj_vlm(:)
-!
-      return
+      dvlm(:) = fep*vlm(:,isph) - pt5/facl(:)*dvlm(:)
 !
 !
 endsubroutine ADJvec
