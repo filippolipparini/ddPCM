@@ -402,7 +402,7 @@ A_\varepsilon \Phi_\varepsilon = A_\infty \Phi
 \]
 The entries are given by:
 \begin{align*}
-{[A_{jj}^\varepsilon]}_{\ell \ell'}^{mm'}& = 2\pi \frac{\varepsilon + 1}{\varepsilon - 1}\, \delta_{\ell \ell'} \delta_{m m'} - \frac{2\pi}{2 \ell' + 1} \sum_n w_n \,Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \, Y_{\ell'}^{m'}(\boldsymbol{s}_n) \\
+{[A_{jj}^\varepsilon]}_{\ell \ell'}^{mm'}& = 2\pi \frac{\varepsilon + 1}{\varepsilon - 1}\, \delta_{\ell \ell'} \delta_{m m'} + \frac{2\pi}{2 \ell' + 1} \sum_n w_n \,Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \, Y_{\ell'}^{m'}(\boldsymbol{s}_n) \\
 {[A_{jk}^\varepsilon]}_{\ell \ell'}^{mm'}& = -  \frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, U_j^n \, \bigg( \frac{\rho_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)
 \end{align*}
 where, for convenience, we set
@@ -446,7 +446,7 @@ Similarly, when $i = j$, we obtain:
 \begin{align*}
 [(\partial_{j,\alpha} A) \phi \,_j]_\ell^m  = & - \sum_{k\ne j} \sum_{\ell',m'}\frac{4 \pi \ell'}{2 \ell'+1} \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \times \\
 & \qquad \quad \partial_{j,\alpha} \bigg[ U_j^n  \, \bigg( \frac{\rho_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k|} \bigg)^{\ell'+1} \, Y_{\ell'}^{m'} \bigg( \frac{\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k}{|\boldsymbol{r}_j + \rho_j \boldsymbol{s}_n - \boldsymbol{r}_k |} \bigg) \bigg] \,  [\phi_k]_{\ell'}^{m'} +  \\  \\
-& - \sum_{\ell',m'} \frac{2\pi}{2 \ell'+1}  \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, \partial_{j,\alpha} U_j^n \, Y_{\ell'}^{m'}(\boldsymbol{s}_n) \, [\phi_j]_{\ell '}^{m '} 
+& + \sum_{\ell',m'} \frac{2\pi}{2 \ell'+1}  \sum_n w_n \, Y_\ell^m(\boldsymbol{s}_n) \, \partial_{j,\alpha} U_j^n \, Y_{\ell'}^{m'}(\boldsymbol{s}_n) \, [\phi_j]_{\ell '}^{m '} 
 \end{align*}
 Notice that:
 \begin{align*}

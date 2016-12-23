@@ -49,6 +49,9 @@ subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
 !
 !-------------------------------------------------------------------------------------
 !
+      call ADJcheck
+
+
 !     STEP 1 : solve adjoint problem (A_eps L)^T s = Psi
 !     --------------------------------------------------
 !   
@@ -56,7 +59,6 @@ subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
       call itsolv2( star, .true., Psi, Psi, y, rvoid )
 !
 !     solve A_eps^T s = y
-!      s = y
       call ADJpcm( y, s )
 !
 !
@@ -140,10 +142,38 @@ subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
 !
 !
 endsubroutine compute_forces
-
-
 !------------------------------------------------------------------------------      
-! compute f = f + < s , A' x >
+!
+!
+!
+!
+!------------------------------------------------------------------------------      
+! Compute contraction :
+!
+!   f =+ < s , dA/dr_i x > = 
+!
+!     =+ sum s_j ( sum (d_i A)_jk x_k )
+!         j         k
+!
+! Recall that (d_i A)_jj = 0 for i \ne j . Then :
+!
+!     =+ sum s_j (   sum  (d_i A)_jk x_k + (d_i A)_jj x_j )
+!         j        k \ne j
+!
+!     =+ sum s_j    sum  (d_i A)_jk x_k + sum s_j (d_i A)_jj x_j
+!         j       k \ne j                  j
+!
+!     =+ sum s_j    sum  (d_i A)_jk x_k + s_i (d_i A)_ii x_i
+!         j       k \ne j 
+!
+!     =+   sum   s_j   sum   (d_i A)_jk x_k + s_i   sum   (d_i A)_ik x_k +  s_i (d_i A)_ii x_i
+!        j \ne i     k \ne j                      k \ne i
+!
+! Finally, since (d_i A)_jk = 0 for k \ne i and j \ne i , then :
+!
+!     =+   sum   s_j (d_i A)_ji x_i + s_i   sum   (d_i A)_ik x_k +  s_i (d_i A)_ii x_i
+!        j \ne i                          k \ne i
+!
 !------------------------------------------------------------------------------      
 subroutine service_routine1( s, x, isph, f )
 !
@@ -161,13 +191,13 @@ subroutine service_routine1( s, x, isph, f )
       real*8,  dimension(lmax+1) :: vcos, vsin
       real*8, dimension(3) :: f4,vij,s_ijn,dt_ijn,f2
       real*8, dimension(3,3) :: ds_ijn
-      real*8 :: vvij,t_ijn,f3
+      real*8 :: vvij,t_ijn,f3!!,err
       integer :: n,icomp,jcomp,jsph,ksph
 !      
 !------------------------------------------------------------------------------      
 !
-!     case j \ne i
-!     ============
+!     case j \ne i : I_1
+!     ==================
 !
 !     loop over integration points
       do n = 1,ngrid
@@ -179,7 +209,7 @@ subroutine service_routine1( s, x, isph, f )
         do jsph = 1,nsph
 !
           if ( jsph.ne.isph ) then
-
+!
 !           non-zero contribution
             if ( ui(n,jsph).gt.zero ) then
 !
@@ -193,30 +223,39 @@ subroutine service_routine1( s, x, isph, f )
               t_ijn    = rsph(isph)/vvij 
               s_ijn(:) =     vij(:)/vvij
 !
-!             compute derivatives of t_ijn
+!             compute derivatives \grad_i t_ijn
               dt_ijn(1:3) = rsph(isph) * vij(1:3) / vvij**3
 !
-!             compute derivatives of s_ijn
+!             compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
               do icomp = 1,3
                 do jcomp = 1,3
 !
-                  ds_ijn(icomp,jcomp) = - vij(icomp)*vij(jcomp) / vvij**3
+                  ds_ijn(icomp,jcomp) = vij(icomp)*vij(jcomp) / vvij**3
 !
-                  if ( icomp.eq. jcomp ) then
+                  if ( icomp.eq.jcomp ) then
 !
-                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) + one / vvij
+                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) - one / vvij
 !
                   endif
 !                  
                 enddo
               enddo
+
+!!!              err=zero
+!!!              do icomp=1,3
+!!!              do jcomp=1,3
+!!!                err = err + (ds_ijn(icomp,jcomp)-ds_ijn(jcomp,icomp))**2
+!!!              enddo
+!!!              enddo
+!!!              write(*,*)'err = ',sqrt(err)
+
 !             
 !             compute Y_ll^mm(s_ijn)
               call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
 !
 !             compute f2(j,n)
 !             ---------------
-              call compute_f2_jn( t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,jsph), f2(1:3) )
+              call compute_f2_jn( t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,isph), f2(1:3) )
 !                      
 !             accumulate for f4(n)
 !             --------------------
@@ -233,8 +272,8 @@ subroutine service_routine1( s, x, isph, f )
       enddo  
 !
 !
-!     case j \eq i [1]
-!     ================
+!     case j \eq i : I_2,1
+!     ====================
 !
 !     loop over integration points
       do n = 1,ngrid
@@ -251,16 +290,16 @@ subroutine service_routine1( s, x, isph, f )
 !           ---------------
             f3 = dot_product( basis(:,n), s(:,isph) )
 !
-!           compute s_ikn, t_ikn
+!           compute s_kjn, t_kjn
             vij    = csph(:,isph) + rsph(isph)*grid(:,n) - csph(:,ksph)
             vvij   = sqrt(dot_product(vij,vij))
             t_ijn  = rsph(ksph)/vvij 
             s_ijn  =        vij/vvij
 !
-!           compute derivatives of t_ikn
+!           compute derivatives \grad_j t_kjn
             dt_ijn(1:3) = - rsph(ksph) * vij(1:3) / vvij**3
 !
-!           compute derivatives of s_ikn
+!           compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
             do icomp = 1,3
               do jcomp = 1,3
 !
@@ -275,7 +314,7 @@ subroutine service_routine1( s, x, isph, f )
               enddo
             enddo
 !           
-!           compute Y_ll^mm(s_ikn)
+!           compute Y_ll^mm(s_kjn)
             call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
 !
 !           compute f2(j,n)
@@ -296,14 +335,11 @@ subroutine service_routine1( s, x, isph, f )
       enddo  
 !
 !
-!     case j \eq i [2]
-!     ================
+!     case j \eq i : I_2,2
+!     ====================
 !
 !     loop over integration points
       do n = 1,ngrid
-!
-!       initialize f4(n)
-        f4(1:3) = zero
 !
 !       compute f3(n) [ store in f2 for convenience ]
 !       ---------------------------------------------
@@ -312,17 +348,12 @@ subroutine service_routine1( s, x, isph, f )
 !       compute f2(n) [ store in f3 for convenience ]
 !       ---------------------------------------------
         call compute_f2_n( basloc, x(:,isph), f3 )
-!                
-!       accumulate for f4(n)
-!       --------------------
-        f4(1:3) = f4(1:3) + f2(1:3) * f3
 !
 !       accumulate for f
 !       ----------------
-        f(1:3) = f(1:3) + w(n) * f4(1:3)
+        f(1:3) = f(1:3) + w(n) * f2(1:3) * f3
 !
       enddo  
-
 !
 !
 endsubroutine service_routine1
@@ -352,11 +383,11 @@ subroutine compute_f2_jn( t, dt, ds, basloc, dbsloc, x, f2 )
 !----------------------------------------------------------------------------------
 ! Recall :
 !
-!   f1(1:3,lm) = \grad [ t^l+1 * Y(s) ]
+!   f1(1:3,lm) = \grad_i [ t^l+1 * Y(s) ]
 !
-!              = t^l [ (l+1) \grad t Y(s) + t ( \grad s )^T \grad Y(s) ]
+!              = t^l  [ (l+1) \grad_i t Y(s) + t ( \grad_i s )^T \grad Y(s) ]
 !
-!              = tt [ (l+1) s1(1:3,lm) + s2(1:3,lm) ]
+!              = tt   [ (l+1) s1(1:3,lm)     + s2(1:3,lm)                   ]
 !
 ! and :
 !
@@ -391,7 +422,7 @@ subroutine compute_f2_jn( t, dt, ds, basloc, dbsloc, x, f2 )
 !       accumulate
         do jcomp = 1,3
 !
-          s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(icomp,jcomp)
+          s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(jcomp,icomp)
 !
         enddo
 !
@@ -407,7 +438,7 @@ subroutine compute_f2_jn( t, dt, ds, basloc, dbsloc, x, f2 )
 !
 !       build factor : 4pi*l / (2l+1)
         fl = dble(l)
-        fac = four*pi*(fl+one)/(two*fl+one)
+        fac = four*pi*fl / (two*fl+one)
 !
 !       build f1
         f1(1:3,1:nbasis) = tt * ( (fl+one)*s1(1:3,1:nbasis) + s2(1:3,1:nbasis) )
@@ -465,7 +496,7 @@ subroutine compute_f2_kn( ksph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !
 !   f1(1:3,lm) = \grad [ U * t^l+1 * Y(s) ]
 !
-!              = ( \grad U ) t^l+1 * Y(s) + U * t^l [ (l+1) \grad t Y(s) + t ( \grad s )^T \grad Y(s) ]
+!              = (\grad U) t^l+1 * Y(s) + U * t^l [ (l+1) (\grad t) Y(s) + t ( \grad s )^T \grad Y(s) ]
 !
 !              = t^l [ (l+1) (\grad t) U * Y + t [ (\grad U) Y + U ( \grad s )^T \grad Y ] ]
 !
@@ -492,7 +523,7 @@ subroutine compute_f2_kn( ksph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !     compute s1
       do icomp = 1,3
 !      
-        s1(icomp,1:nbasis) = dt(icomp)*basloc(1:nbasis)
+        s1(icomp,1:nbasis) = dt(icomp) * basloc(1:nbasis) * ui(n,ksph)
 !        
       enddo
 !
@@ -504,7 +535,7 @@ subroutine compute_f2_kn( ksph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !       accumulate
         do jcomp = 1,3
 !
-          s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(icomp,jcomp)
+          s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(jcomp,icomp)
 !
         enddo
 !
@@ -520,7 +551,7 @@ subroutine compute_f2_kn( ksph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !
 !       build factor : 4pi*l / (2l+1)
         fl = dble(l)
-        fac = four*pi*(fl+one)/(two*fl+one)
+        fac = four*pi*fl / (two*fl+one)
 !
 !       build f1
         f1(1:3,1:nbasis) = tt * ( (fl+one)*s1(1:3,1:nbasis) + t*s2(1:3,1:nbasis) )
@@ -584,7 +615,7 @@ subroutine compute_f2_n( basloc, x, f2 )
 !     contract over l
       do l = 0,lmax
 !
-!       build factor : 4pi*l / (2l+1)
+!       build factor : 2pi / (2l+1)
         fl = dble(l)
         fac = two*pi/(two*fl+one)
 !
@@ -625,6 +656,7 @@ subroutine compute_dphi( dphi )
 !
       if ( iflag.eq.0 ) then
         write(*,*)'compute_dphi : DUMMY routine !'      
+        write(*,*)''
         iflag=1
       endif
 
@@ -633,3 +665,351 @@ subroutine compute_dphi( dphi )
 !
 !
 endsubroutine compute_dphi
+!----------------------------------------------------------------------------------
+!
+!
+!
+!
+!----------------------------------------------------------------------------------
+subroutine ADJcheck
+!       
+      use ddcosmo , only : nbasis,nsph,ngrid,lmax,zero,one,two,csph,rsph,memfree, &
+                           ddinit,ui
+!
+      implicit none
+      real*8 :: f(nbasis,nsph),Af( nbasis)
+      real*8 :: e(nbasis,nsph),ATe(nbasis)
+      real*8 :: A(nbasis*nsph,nbasis*nsph),AT(nbasis*nsph,nbasis*nsph)
+      real*8 :: dA1(nbasis*nsph,nbasis*nsph),dA2(nbasis*nsph,nbasis*nsph)
+      real*8 :: dA3(nbasis*nsph,nbasis*nsph)
+      real*8 :: dA(nbasis*nsph,nbasis*nsph,nsph,3)
+      real*8 :: A_plus(nbasis*nsph,nbasis*nsph,nsph,3)
+      real*8 :: xlm(nbasis),xx(ngrid),vplm(nbasis),vcos(lmax+1),vsin(lmax+1), &
+                basloc(nbasis)
+      integer :: isph,jsph,i,j,ibeg,iend,nsph_save,icomp,ksph,iter
+      real*8 :: eps,s1,s2,eeps,err
+      integer, parameter :: niter = 4
+      real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), s3(3)
+      real*8 :: x(nsph), y(nsph), z(nsph), iwork(nsph*3,2), rwork(niter,nsph*3)
+!
+!--------------------------------------------------------------------------------
+!
+!     print A, A^T
+!     ------------
+      eps=two
+!
+      do isph = 1,nsph
+!
+        do jsph = 1,nsph
+          do j = 1,nbasis
+!
+!           set basis vector
+            e(:,   :) = zero
+            e(j,jsph) = one
+!
+!           compute A  _i e_j
+            ibeg = (isph-1)*nbasis+1
+            iend = (isph-1)*nbasis+nbasis
+            call mkrvec( isph, eps, e, A( ibeg:iend,(jsph-1)*nbasis+j), xlm, xx, basloc, vplm, vcos, vsin )
+!
+!           compute A^T_i e_j
+            call ADJvec( isph, eps, e, AT(ibeg:iend,(jsph-1)*nbasis+j), xlm, xx, basloc, vplm, vcos, vsin )
+!        
+          enddo
+        enddo
+      enddo
+!
+      write(*,*) 'A = '
+      do isph = 1,nsph
+        do i = 1,nbasis
+          write(*,"(4x,300(e12.5,2x))") ( A((isph-1)*nbasis+i,j), j=1,nbasis*nsph )
+        enddo
+      enddo
+      write(*,*)''
+!
+      write(*,*) '(A^T)^T = '
+      do isph = 1,nsph
+        do i = 1,nbasis
+          write(*,"(4x,300(e12.5,2x))") ( AT(j,(isph-1)*nbasis+i), j=1,nbasis*nsph )
+        enddo
+      enddo
+      write(*,*)''
+!
+!
+!     check < A^T e , f > = < e , A f >
+!     ---------------------------------
+!
+!     initialize random number generator
+      call random_seed
+!      
+!     build e, f
+      s1=zero ; s2=zero
+      do isph = 1,nsph
+        do j = 1,nbasis
+!        
+          call random_number( e(j,isph) )
+          call random_number( f(j,isph) )
+!          
+          s1 = s1 + e(j,isph)**2
+          s2 = s2 + f(j,isph)**2
+!          
+        enddo
+      enddo
+      e(:,:)=e(:,:)/sqrt(s1)
+      f(:,:)=f(:,:)/sqrt(s2)
+!
+!     initialize
+      Af( :)=zero
+      ATe(:)=zero
+      s1=zero
+      s2=zero
+!      
+      do isph = 1,nsph
+!
+!       compute A_i f 
+        call mkrvec( isph, eps, f, Af( :), xlm, xx, basloc, vplm, vcos, vsin )
+!
+!       compute A^T_i e
+        call ADJvec( isph, eps, e, ATe(:), xlm, xx, basloc, vplm, vcos, vsin )
+!
+!       accumulate < e, A f >
+        s1 = s1 + dot_product( e(:,isph), Af( :) )
+!        
+!       accumulate < A^T e, f >
+        s2 = s2 + dot_product( f(:,isph), ATe(:) )
+!        
+      enddo
+!      
+      write(*,1000) abs(s1-s2) / abs(s1)
+ 1000 format(' | <e,Af> - <A^T f,e> | / |<e,Af>| = ', e12.5)
+      write(*,*) ''
+!
+!
+!     check derivatives
+!     -----------------
+!
+!     1. compute analytical derivatives
+      do ksph = 1,nsph 
+        do isph = 1,nsph
+          do i = 1,nbasis
+            do jsph = 1,nsph
+              do j = 1,nbasis
+!
+                e(:,:)=zero
+                f(:,:)=zero
+                e(i,isph)=one
+                f(j,jsph)=one
+!
+!               compute < e, dA/dr_k f > 
+                s3=zero
+                call service_routine1( e(:,:), f(:,:), ksph, s3 )
+!
+!               store
+                do icomp = 1,3
+!
+                  dA( (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp ) = s3(icomp)
+!            
+                enddo
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+!
+!     save initial DS
+      nsph_save = nsph
+      x_save = csph(1,:)
+      y_save = csph(2,:)
+      z_save = csph(3,:)
+      r_save = rsph(  :)
+!
+!     set increment initial
+      eeps=0.5d0
+!
+!     loop over increments
+      do iter = 1,niter
+!        
+!       compute A^+
+        do ksph = 1,nsph
+!
+          do icomp = 1,3
+!
+!           deallocate DS      
+            call memfree
+!
+!           perturb     
+            x = x_save
+            y = y_save
+            z = z_save
+            select case(icomp)
+            case(1) ; x(ksph) = x_save(ksph) + eeps
+            case(2) ; y(ksph) = y_save(ksph) + eeps
+            case(3) ; z(ksph) = z_save(ksph) + eeps
+            endselect
+!
+!           allocate new DS      
+            call ddinit( nsph_save, x, y, z, r_save )
+!
+!           initialize
+            err=zero
+            A_plus(:,:,ksph,icomp)=zero
+!
+!           build A^+
+            do isph = 1,nsph
+              do jsph = 1,nsph
+                do j = 1,nbasis
+!
+                  e(:,:   )=zero
+                  e(j,jsph)=one
+!
+!                 compute A^+_i e_j
+                  ibeg = (isph-1)*nbasis+1
+                  iend = (isph-1)*nbasis+nbasis
+                  call mkrvec( isph, eps, e, A_plus( ibeg:iend,(jsph-1)*nbasis+j,ksph,icomp ), xlm, xx, basloc, vplm, vcos, vsin )
+!
+!                 accumulate error
+
+!!!                  if ( ksph.ne.isph ) then
+           !!!       if ( ( ksph.eq.isph ).and. (ksph.eq.jsph) ) then
+                  if ( ( ( isph.eq.1 ).and. ( jsph.eq.2 ) ) ) then
+!!                       ( ( isph.eq.2 ).and. ( jsph.eq.1 ) ) ) then
+                  do i = 1,nbasis
+                    err = err + ( ( A_plus((isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) -           &
+                                    A(     (isph-1)*nbasis+i,(jsph-1)*nbasis+j           ) ) / eeps -  &
+                                    dA(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) )**2
+!
+                  enddo
+                  endif
+                enddo
+              enddo
+            enddo
+!            
+!!!!           numerical derivatives
+!!!            write(*,1007) ksph,icomp
+!!! 1007       format(' A(r+r_',i2,',',i1,') =')
+!!!! 
+!!!            do isph = 1,nsph
+!!!              do i = 1,nbasis
+!!!                write(*,"(4x,300(e12.5,2x))") ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) , j=1,nbasis*nsph )
+!!!              enddo
+!!!            enddo
+!!!            write(*,*)''
+!!!!            
+!!!            write(*,1008) ksph,icomp
+!!! 1008       format(' A(r+r_',i2,',',i1,') - A(r) =')
+!!!! 
+!!!            do isph = 1,nsph
+!!!              do i = 1,nbasis
+!!!                write(*,"(4x,300(e12.5,2x))") ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) - &
+!!!                                                     A((isph-1)*nbasis+i,j) , j=1,nbasis*nsph )
+!!!              enddo
+!!!            enddo
+!!!            write(*,*)''
+!
+!           store error
+            rwork(iter,(ksph-1)*3+icomp) = sqrt( err )
+
+          enddo
+        enddo
+!
+!       update increment
+        eeps = eeps/2.d0
+!        
+      enddo
+!
+!
+!     printing
+      do iter = 1,niter
+!
+        write(*,"(' iter = ',i1'; ',300(e12.5,2x))") iter, ( rwork(iter,j) , j=1,3*nsph)
+!        
+      enddo
+      write(*,*) ''
+!
+!     printing
+      do ksph = 1,nsph
+        do icomp = 1,3
+!        
+!         analytical derivatives
+          write(*,1005) ksph,icomp
+ 1005     format(' dA / dr_',i2,',',i1,' =')
+!
+          do isph = 1,nsph
+            do i = 1,nbasis
+              write(*,"(4x,300(e12.5,2x))") ( dA((isph-1)*nbasis+i,j,ksph,icomp), j=1,nbasis*nsph )
+            enddo
+          enddo
+!          
+!         numerical derivatives
+          write(*,1006) ksph,icomp
+ 1006     format(' ( A(r+r_',i2,',',i1,') - A(r) ) / eps =')
+! 
+          do isph = 1,nsph
+            do i = 1,nbasis
+              write(*,"(4x,300(e12.5,2x))") &
+              ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp)- &
+                       A((isph-1)*nbasis+i,j) ) / eeps , j=1,nbasis*nsph )
+            enddo
+          enddo
+          write(*,*)''
+! 
+        enddo
+      enddo
+!
+      return
+!
+!     2. compute numerical derivatives
+      do ksph = 1,nsph
+!
+        do icomp = 1,3
+!
+!         deallocate DS      
+          call memfree
+!
+!         perturb     
+          x = x_save
+          y = y_save
+          z = z_save
+          select case(icomp)
+          case(1) ; x(ksph) = x_save(ksph) + eeps
+          case(2) ; y(ksph) = y_save(ksph) + eeps
+          case(3) ; z(ksph) = z_save(ksph) + eeps
+          endselect
+!
+!         allocate new DS      
+          call ddinit( nsph_save, x, y, z, r_save )
+!  
+!         compute < e, A(r+eps) f >
+          s2=zero      
+          do isph = 1,nsph
+!
+            call mkrvec( isph, eps, f, Af( :), xlm, xx, basloc, vplm, vcos, vsin )
+            s2 = s2 + dot_product( e(:,isph), Af(:) )
+!
+          enddo
+!
+!         store
+          iwork((ksph-1)*3+icomp,1) = (s2-s1)/eps
+!
+        enddo
+      enddo
+!
+!     print
+      do isph = 1,nsph
+        do icomp = 1,3
+!        
+          write(*,1001) isph,icomp,iwork((isph-1)*3+icomp,1)
+          write(*,1002)            iwork((isph-1)*3+icomp,2)
+!          
+ 1001     format('isph, icomp, ( A(r+eps)-A(r) ) / eps = ',i2,2x,i2,'; 'e12.5)     
+ 1002     format('                               dA(r) = '8x,e12.5)     
+!          
+        enddo
+      enddo
+!
+!     restore DS
+      call memfree
+      call ddinit( nsph_save, x_save, y_save, z_save, r_save )
+!
+!
+endsubroutine ADJcheck

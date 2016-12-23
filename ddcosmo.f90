@@ -265,7 +265,7 @@ endsubroutine set_pi
             fi(ngrid,nsph), &
             ui(ngrid,nsph), &
             zi(3,ngrid,nsph), &
-            fact(2*lmax+1), &
+            fact(max(2*lmax+1,2)), &
             facl(nbasis), &
             facll(nbasis), &
             facs(nbasis) , stat=istatus )

@@ -592,8 +592,7 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !                      
             else
 !
-!!!              xlm(:) = -pt5 * vlm(:,isph) / facl(:)
-              xlm(:) = pt5 * vlm(:,isph) / facl(:)
+              xlm(:) = -pt5 * vlm(:,isph) / facl(:)
 !
 !             accumulate for x
               x(its) = x(its) + dot_product( basis(:,its), xlm(:) )
@@ -749,7 +748,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
               ss = dot_product( basis(:,n), vlm(:,isph) )
 !              
 !             compute U_i^n Y_l^m(s_n) * ss              
-              dijvlm(:) = dijvlm(:) + ui(n,isph) * basis(:,n) * ss
+              dijvlm(:) = dijvlm(:) - ui(n,isph) * basis(:,n) * ss
 !              
             endif
 !
@@ -923,7 +922,7 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
       real*8, dimension(nbasis,nbasis), intent(inout) :: prec
       real*8, dimension(nbasis,nbasis), intent(inout) :: precm1
 !
-      integer :: l, m, ind, l1, m1, ind1, info, its, istatus
+      integer :: l, m, ind, l1, m1, ind1, info, its, istatus, iiprint
       real*8  :: f, f1
 !
       integer, allocatable :: ipiv(:)
@@ -968,7 +967,7 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
               do m1 = -l1, l1
 !                
 !               accumulate
-                prec(ind1+m1,ind+m) = prec(ind1+m1,ind+m) + f * basis(ind1+m1,its)
+                prec(ind+m,ind1+m1) = prec(ind+m,ind1+m1) + f * basis(ind1+m1,its)
 !                
               end do
             end do
@@ -992,10 +991,27 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
           f = two * pi * (eps+one) / (eps-one)
 !
 !         accumulate
-          prec(ind+m,ind+m) = -prec(ind+m,ind+m) + f
+          prec(ind+m,ind+m) = prec(ind+m,ind+m) + f
 !          
         end do
       end do
+!
+!     print to screen
+      iiprint=0
+      if ( iiprint.ne.0 ) then
+      write(*,1000) isph
+ 1000 format(' Preconditioner for isph = ',i2)     
+      write(*,*)''
+!      
+      write(*,*) 'M = '
+      do l= 1,nbasis
+!      
+        write(*,"(4x,300(e12.5,2x))") ( prec(l,l1), l1=1,nbasis )
+!
+      enddo
+      write(*,*)''
+      endif
+!
 !      
 !
 !     STEP 3 : invert preconditioner
