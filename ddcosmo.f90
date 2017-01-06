@@ -442,6 +442,7 @@ endsubroutine set_pi
         if (grad .and. (t.lt.one .and. t.gt.swthr)) then
           fac = dfsw(t,eta*rsph(jsph))/rsph(jsph)
           zi(:,i,isph) = zi(:,i,isph) + fac*v(:)/vv
+          write(*,*)'i,isph,zi(:) = ',i,isph,zi(:,i,isph)
         end if
 !
 !                j
@@ -958,97 +959,145 @@ end subroutine calcv
   return
   end subroutine ylmbas
   !
-  subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
-  implicit none
-  real*8, dimension(3),        intent(in)    :: x
-  real*8, dimension(nbasis),   intent(inout) :: basloc, vplm
-  real*8, dimension(3,nbasis), intent(inout) :: dbsloc
-  real*8, dimension(lmax+1),   intent(inout) :: vcos, vsin
-  !
-  integer :: l, m, ind
-  real*8  :: cthe, sthe, cphi, sphi, plm, fln, pp1, pm1, pp
-  real*8  :: et(3), ep(3)
-  !
-  ! get cos(\theta), sin(\theta), cos(\phi) and sin(\phi) from the cartesian
-  ! coordinates of x.
-  !
-  cthe = x(3)
-  sthe = sqrt(one - cthe*cthe)
-  if (sthe.ne.zero) then
-    cphi = x(1)/sthe
-    sphi = x(2)/sthe
-  else
-    cphi = zero
-    sphi = zero
-  end if
-  !
-  ! evaluate the dirivatives of theta and phi:
-  !
-  et(1) = cthe*cphi
-  et(2) = cthe*sphi
-  et(3) = -sthe
-  if(sthe.ne.zero) then
-    ep(1) = -sphi/sthe
-    ep(2) = cphi/sthe
-    ep(3) = zero
-  else
-    ep(1) = zero
-    ep(2) = zero
-    ep(3) = zero
-  endif
-  !
-  ! evaluate cos(m*phi) and sin(m*phi) arrays. notice that this is 
-  ! pointless if z = 1, as the only non vanishing terms will be the 
-  ! ones with m=0.
-  !
-  if(sthe.ne.zero) then
-    call trgev(cphi,sphi,vcos,vsin)
-  else
-    vcos = one
-    vsin = zero
-  end if
-  !
-  ! evaluate the generalized legendre polynomials.
-  !
-  call polleg(cthe,sthe,vplm)
-  !
-  ! now build the spherical harmonics. we will distinguish m=0,
-  ! m>0 and m<0:
-  !
-  basloc = zero
-  dbsloc = zero
-  do l = 0, lmax
-    ind = l*l + l + 1
-  ! m = 0
-    fln = facs(ind)
-    basloc(ind) = fln*vplm(ind)
-    if (l.gt.0) then
-      dbsloc(:,ind) = fln*vplm(ind+1)*et(:)
-    else
-      dbsloc(:,ind) = zero
-    end if
-  !dir$ simd
-    do m = 1, l
-      fln = facs(ind+m)
-      plm = fln*vplm(ind+m)
-      pp1 = zero
-      if (m.lt.l) pp1 = -pt5*vplm(ind+m+1)
-      pm1 = pt5*(dble(l+m)*dble(l-m+1)*vplm(ind+m-1))
-      pp  = pp1 + pm1
-  !
-  !   m > 0
-  !
-      basloc(ind+m)   = plm*vcos(m+1)
-      dbsloc(:,ind+m) = -fln*pp*vcos(m+1)*et(:) - dble(m)*plm*vsin(m+1)*ep(:)
-  !
-  !   m < 0
-  !
-      basloc(ind-m)   = plm*vsin(m+1)
-      dbsloc(:,ind-m) = -fln*pp*vsin(m+1)*et(:) + dble(m)*plm*vcos(m+1)*ep(:)
-    end do
-  end do
-  return
-  end subroutine dbasis
+subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
+!
+      implicit none
+      real*8, dimension(3),        intent(in)    :: x
+      real*8, dimension(nbasis),   intent(inout) :: basloc, vplm
+      real*8, dimension(3,nbasis), intent(inout) :: dbsloc
+      real*8, dimension(lmax+1),   intent(inout) :: vcos, vsin
+!
+      integer :: l, m, ind, VC, VS
+      real*8  :: cthe, sthe, cphi, sphi, plm, fln, pp1, pm1, pp
+      real*8  :: et(3), ep(3)
+!
+!------------------------------------------------------------------------------------
+!
+!     get cos(\theta), sin(\theta), cos(\phi) and sin(\phi) from the cartesian
+!     coordinates of x.
+      cthe = x(3)
+      sthe = sqrt(one - cthe*cthe)
+!    
+!     not ( NORTH or SOUTH pole )
+      if ( sthe.ne.zero ) then
+        cphi = x(1)/sthe
+        sphi = x(2)/sthe
+!    
+!     NORTH or SOUTH pole
+      else
+        !!!cphi = zero ! =one
+        cphi = one
+        sphi = zero
+      end if
+!
+!     evaluate the derivatives of theta and phi:
+!
+      et(1) = cthe*cphi
+      et(2) = cthe*sphi
+      et(3) = -sthe
+
+!     not ( NORTH or SOUTH pole )
+      if( sthe.ne.zero ) then
+        ep(1) = -sphi/sthe
+        ep(2) = cphi/sthe
+        ep(3) = zero
+!        
+!     NORTH or SOUTH pole
+      else
+        ep(1) = zero
+        !!!ep(2) = zero ! =one
+        ep(2) = one
+        ep(3) = zero
+!        
+      end if
+!
+!     evaluate cos(m*phi) and sin(m*phi) arrays. notice that this is 
+!     pointless if z = 1, as the only non vanishing terms will be the 
+!     ones with m=0.
+!
+!     not ( NORTH or SOUTH pole )
+      if ( sthe.ne.zero ) then
+!              
+        call trgev( cphi, sphi, vcos, vsin )
+!        
+!     NORTH or SOUTH pole
+      else
+!              
+        vcos = one
+        vsin = zero
+!        
+      end if
+      VC=zero
+      VS=cthe
+!
+!     evaluate the generalized legendre polynomials.
+!
+      call polleg( cthe, sthe, vplm )
+!
+!     now build the spherical harmonics. we will distinguish m=0,
+!     m>0 and m<0:
+!
+      basloc = zero
+      dbsloc = zero
+      do l = 0, lmax
+        ind = l*l + l + 1
+      ! m = 0
+        fln = facs(ind)
+        basloc(ind) = fln*vplm(ind)
+        if (l.gt.0) then
+          dbsloc(:,ind) = fln*vplm(ind+1)*et(:)
+        else
+          dbsloc(:,ind) = zero
+        end if
+      !dir$ simd
+        do m = 1, l
+          fln = facs(ind+m)
+          plm = fln*vplm(ind+m)
+          pp1 = zero
+          if (m.lt.l) pp1 = -pt5*vplm(ind+m+1)
+          pm1 = pt5*(dble(l+m)*dble(l-m+1)*vplm(ind+m-1))
+          pp  = pp1 + pm1
+!
+!         m > 0
+!         -----
+!
+          basloc(ind+m) = plm*vcos(m+1)
+!          
+!         not ( NORTH or SOUTH pole )
+          if ( sthe.ne.zero ) then
+ 
+            dbsloc(:,ind+m) = -fln*pp*vcos(m+1)*et(:) - dble(m)*plm*vsin(m+1)*ep(:)
+!            
+!         NORTH or SOUTH pole
+          else
+!                  
+            dbsloc(:,ind+m) = -fln*pp*vcos(m+1)*et(:) - pp*ep(:)*VC
+!
+          endif
+!
+!         m < 0
+!         -----
+!
+          basloc(ind-m) = plm*vsin(m+1)
+!          
+!         not ( NORTH or SOUTH pole )
+          if ( sthe.ne.zero ) then
+! 
+            dbsloc(:,ind-m) = -fln*pp*vsin(m+1)*et(:) + dble(m)*plm*vcos(m+1)*ep(:)
+!
+!         NORTH or SOUTH pole
+          else
+!                  
+            dbsloc(:,ind-m) = -fln*pp*vsin(m+1)*et(:) - pp*ep(:)*VS
+!            
+          endif
+!  
+        end do
+      end do
+      return
+!
+!
+endsubroutine dbasis
   !
   subroutine polleg(x,y,plm)
   implicit none
