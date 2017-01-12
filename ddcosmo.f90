@@ -400,6 +400,11 @@ endsubroutine set_pi
 ! build ui, fi and zi
 ! -------------------
 !
+! Characteristic function of \Gamma_i \cap \Gamma :
+!
+! u_i(s) = 1 - 1/|N_i(s)|  sum \chi_j(s)
+!                           j
+!
   fi = zero ; ui = zero
 !
 ! set "zi" to zero when computing forces
@@ -407,6 +412,8 @@ endsubroutine set_pi
 !  
   !$omp parallel do default(shared) private(isph,i,ii,jsph,v,vv,t,xt,swthr,fac)
 !  
+! Compute : u_i( r_i + \rho_j s_n )
+!
 ! loop over atoms
   do isph = 1, nsph
 !  
@@ -419,30 +426,23 @@ endsubroutine set_pi
 !       neighbor's number
         jsph = nl(ii)
 !        
-!       map back to unit ball
-        v(:)  = csph(:,isph) + rsph(isph)*grid(:,i) - csph(:,jsph)
+!       renormalize integration point over neighbor
+        v(:) = csph(:,isph) + rsph(isph)*grid(:,i) - csph(:,jsph)
+        vv   = sqrt(dot_product(v,v))
+        t    = vv/rsph(jsph)
 !
-!                jk
-!       compute v
-!                n
-        vv = sqrt(dot_product(v,v))
-!
-!                jk
-!       compute t
-!                n
-        t  = vv/rsph(jsph)
-!
-!                   jk
-!       compute \chi
-!                   n
-        xt  = fsw(t,se,eta*rsph(jsph))
+!       compute \chi( t )
+        xt = fsw( t, se, eta*rsph(jsph) )
 !        
 !       compute dU_j^n 
         swthr  = one - eta*rsph(jsph)
-        if (grad .and. (t.lt.one .and. t.gt.swthr)) then
-          fac = dfsw(t,eta*rsph(jsph))/rsph(jsph)
+        if ( grad .and. (t.lt.one .and. t.gt.swthr) ) then
+!                
+          fac = dfsw( t, se, eta*rsph(jsph) ) / rsph(jsph)
+!
+!         accumulate
           zi(:,i,isph) = zi(:,i,isph) + fac*v(:)/vv
-          write(*,*)'i,isph,zi(:) = ',i,isph,zi(:,i,isph)
+!          
         end if
 !
 !                j
@@ -456,6 +456,8 @@ endsubroutine set_pi
 !     compute U 
 !              n
       if (fi(i,isph).le.one) ui(i,isph) = one - fi(i,isph)
+
+!!!      write(*,*)'i,isph,zi(:) = ',i,isph,zi(:,i,isph)
 !
     end do
   end do
@@ -539,58 +541,203 @@ endsubroutine set_pi
   sprod = ss
   return
   end function sprod
-  !
-real*8 function fsw(t,s,eta)
+!------------------------------------------------------------------------------------------------
 !
-! Remark : a step-function symmetrically squeeshing around x = 1
 !
-! The "s" variable is totally redundant. In fact :
 !
-!   x = t - eta*s  ==> y = x - 0.5*eta = t - (0.5 + s)*eta
 !
-! Thus :
+!!!!------------------------------------------------------------------------------------------------
+!!!real*8 function fsw( t, s, eta )
+!!!!
+!!!! Remark : a step-function symmetrically squeeshing around x = 1
+!!!!
+!!!! The "s" variable is totally redundant. In fact :
+!!!!
+!!!!   x = t - eta*s  ==> y = x - 0.5*eta = t - (0.5 + s)*eta
+!!!!
+!!!! Thus :
+!!!!
+!!!!   x >= f_hi  ==>  t >= 1 + (0.5 + s)*eta
+!!!!   . . .           t <= 1 - (0.5 + s)*eta
+!!!!
+!!!
+!!!!      
+!!!!  s = \hat{s} eta ; eta \in [0,1]
+!!!!     
+!!!
+!!!!------------------------------------------------------------------------------------------------
+!!!!
+!!!      implicit none
+!!!      real*8, intent(in) :: t, s, eta
+!!!!      
+!!!      real*8 :: a, b, x, y, f_hi, f_low
+!!!      real*8, parameter :: zero=0.0d0, pt5=0.5d0, one=1.0d0, two=2.0d0, f6=6.0d0, f10=10.d0, &
+!!!                           f12=12.d0, f15=15.d0
+!!!!                           
+!!!!------------------------------------------------------------------------------------------------
+!!!!
+!!!      x = t - eta*s 
+!!!!
+!!!!     auxiliary variable for function \chi [ not really needed !!! ]
+!!!      y = x - pt5*eta
+!!!!
+!!!!     lower and upper bounds of transition area of function \chi
+!!!      f_low = one - pt5*eta
+!!!      f_hi  = one + pt5*eta
+!!!!      
+!!!!     construct smooth step function \chi(x)
+!!!      if     ( x.ge.f_hi  ) then
+!!!!              
+!!!        fsw = zero
+!!!!        
+!!!      elseif ( x.le.f_low ) then
+!!!!      
+!!!        fsw = one
+!!!!        
+!!!      else
+!!!!              
+!!!        fsw = ( (y-one)*(y-one) * (y-one+two*eta)*(y-one+two*eta) ) / (eta**4)
+!!!!              
+!!!      endif
+!!!!      
+!!!      return
+!!!!
+!!!!
+!!!endfunction fsw
+!!!!------------------------------------------------------------------------------------------------
 !
-!   x >= f_hi  ==>  t >= 1 + (0.5 + s)*eta
-!   . . .           t <= 1 - (0.5 + s)*eta
 !
-implicit none
-real*8, intent(in) :: t, s, eta
-real*8 :: a, b, x, y, f_hi, f_low
-real*8, parameter :: zero=0.0d0, pt5=0.5d0, one=1.0d0, two=2.0d0, f6=6.0d0, f10=10.d0, &
-                     f12=12.d0, f15=15.d0
-x    = t - eta*s 
-y    = x - pt5*eta
-f_low = one - pt5*eta
-f_hi  = one + pt5*eta
-if (x.ge.f_hi) then
-  fsw = zero
-else if (x.le.f_low) then
-  fsw = one
-else
-  fsw = ((y-one)*(y-one)*(y-one+two*eta)*(y-one+two*eta))/(eta**4)
-end if
-return
-end function fsw
-  !
-  real*8 function dfsw(t,eta)
-  implicit none
-  real*8, intent(in) :: t, eta
-  !
-  ! switching function derivative for ddCOSMO regularization.
-  !
-  real*8  flow
-  real*8, parameter :: f30=30.0d0
-  !
-  flow = one - eta
-  if (t.ge.one) then
-    dfsw = zero
-  else if (t.le.flow) then
-    dfsw = one
-  else
-    dfsw = f30*(one-t)*(t-one)*(t-one+eta)*(t-one+eta)/(eta**5)
-  endif
-  return
-  end function dfsw
+!
+!
+!------------------------------------------------------------------------------------------------
+real*8 function fsw( t, s, eta )
+!
+      implicit none
+      real*8, intent(in) :: t
+      real*8, intent(in) :: s
+      real*8, intent(in) :: eta
+!
+      real*8 :: a, b, flow, x
+      real*8, parameter :: f6=6.0d0, f10=10.d0, f12=12.d0, f15=15.d0
+!
+!------------------------------------------------------------------------------------------------
+!
+!     apply shift
+      x = t - s
+!      
+!     lower bound of switch region
+      flow = one - eta
+!      
+!     define switch function \chi
+      if     ( x.ge.one ) then
+!              
+        fsw = zero
+!        
+      elseif ( x.le.flow ) then
+!      
+        fsw = one
+!        
+      else
+!              
+        a = f15*eta - f12
+        b = f10*eta*eta - f15*eta + f6
+        fsw = ((x-one)*(x-one)*(one-x)*(f6*x*x + a*x + b))/(eta**5)
+!        
+      endif
+!
+!
+endfunction fsw
+!------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!------------------------------------------------------------------------------------------------
+real*8 function dfsw( t, s, eta )
+!
+      implicit none
+      real*8, intent(in) :: t
+      real*8, intent(in) :: s
+      real*8, intent(in) :: eta
+!      
+      real*8  flow, x
+      real*8, parameter :: f30=30.0d0
+!
+!------------------------------------------------------------------------------------------------
+!
+!     apply shift
+      x = t - s
+!
+!     lower bound of switch region
+      flow = one - eta
+!      
+!     define derivative of switch function \chi
+      if     ( x.ge.one ) then
+!              
+        dfsw = zero
+!              
+      elseif ( x.le.flow ) then
+!              
+        dfsw = zero
+!              
+      else
+!              
+        dfsw = f30*(one-x)*(x-one)*(x-one+eta)*(x-one+eta)/(eta**5)
+!              
+      endif
+!
+!
+endfunction dfsw
+!------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!
+!
+!!!!------------------------------------------------------------------------------------------------
+!!!!     switching function derivative for ddCOSMO regularization.
+!!!!
+!!!real*8 function dfsw( t, s, eta )
+!!!!
+!!!      implicit none
+!!!      real*8, intent(in) :: t, eta, s
+!!!!
+!!!      real*8  flow, fhi, x, y
+!!!      real*8, parameter :: f30=30.0d0
+!!!!      
+!!!!------------------------------------------------------------------------------------------------
+!!!!
+!!!      x = t - eta*s 
+!!!      y = x - pt5*eta
+!!!!
+!!!!!!      flow = one - eta
+!!!      flow = one - pt5*eta
+!!!      fhi  = one + pt5*eta
+!!!!      
+!!!!!!      if     ( t.ge.one ) then
+!!!      if     ( x.ge.fhi ) then
+!!!!              
+!!!        dfsw = zero
+!!!!        
+!!!      elseif ( x.le.flow ) then
+!!!!        
+!!!!!!        dfsw = one
+!!!        dfsw = zero
+!!!!        
+!!!      else
+!!!!        
+!!!!!!        dfsw = f30*(one-t)*(t-one)*(t-one+eta)*(t-one+eta) / (eta**5)
+!!!        dfsw = 4.d0 * (y - 1.d0 - 0.5d0*eta) * &
+!!!                      (y - 1.d0 + 0.5d0*eta) * &
+!!!                      (y - 1.d0 + 1.5d0*eta) / eta**4
+!!!!        
+!!!      endif
+!!!!        
+!!!      return
+!!!!        
+!!!!        
+!!!endfunction dfsw
   !
   subroutine ptcart(label,ncol,icol,x)
   implicit none
@@ -985,7 +1132,6 @@ subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
 !    
 !     NORTH or SOUTH pole
       else
-        !!!cphi = zero ! =one
         cphi = one
         sphi = zero
       end if
@@ -1005,7 +1151,6 @@ subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
 !     NORTH or SOUTH pole
       else
         ep(1) = zero
-        !!!ep(2) = zero ! =one
         ep(2) = one
         ep(3) = zero
 !        
@@ -1042,7 +1187,7 @@ subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
       do l = 0, lmax
         ind = l*l + l + 1
       ! m = 0
-        fln = facs(ind)
+        fln = facs(ind)   !  =>  fln (Fil) == vfac (Ben)
         basloc(ind) = fln*vplm(ind)
         if (l.gt.0) then
           dbsloc(:,ind) = fln*vplm(ind+1)*et(:)
@@ -1052,11 +1197,11 @@ subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
       !dir$ simd
         do m = 1, l
           fln = facs(ind+m)
-          plm = fln*vplm(ind+m)
+          plm = fln*vplm(ind+m)   !  =>  plm (Fil) == fln (Fil) * plm (Ben) 
           pp1 = zero
           if (m.lt.l) pp1 = -pt5*vplm(ind+m+1)
           pm1 = pt5*(dble(l+m)*dble(l-m+1)*vplm(ind+m-1))
-          pp  = pp1 + pm1
+          pp  = pp1 + pm1   !  =>  pp (Fil) == dPlm (Ben)
 !
 !         m > 0
 !         -----
@@ -1065,13 +1210,19 @@ subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
 !          
 !         not ( NORTH or SOUTH pole )
           if ( sthe.ne.zero ) then
- 
+! 
             dbsloc(:,ind+m) = -fln*pp*vcos(m+1)*et(:) - dble(m)*plm*vsin(m+1)*ep(:)
+!
+! Fil  =>                         fln           (-et              pp           vcos                         m ep               plm / fln   vsin                     )
+! Ben  =>   grad( sind,:,ind+m) = vfac(1,ind+m)*(-ethe( sind,:).*(dPlm( sind).*vcos( sind,m+1)*ones(1,3)) - m*ephi( sind,:).*( plm( sind).*vsin(sind,m+1)*ones(1,3)));
 !            
 !         NORTH or SOUTH pole
           else
 !                  
-            dbsloc(:,ind+m) = -fln*pp*vcos(m+1)*et(:) - pp*ep(:)*VC
+            dbsloc(:,ind+m) = -fln*pp*vcos(m+1)*et(:) - fln*pp*ep(:)*VC
+!
+! Fil =>                          fln           (-et              pp           vcos                           ep              pp                                    )
+! Ben =>    grad(~sind,:,ind+m) = vfac(1,ind+m)*(-ethe(~sind,:).*(dPlm(~sind).*vcos(~sind,m+1)*ones(1,3)) -   ephi(~sind,:).*(dPlm(~sind).*            VC*ones(1,3)));
 !
           endif
 !
@@ -1088,7 +1239,7 @@ subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
 !         NORTH or SOUTH pole
           else
 !                  
-            dbsloc(:,ind-m) = -fln*pp*vsin(m+1)*et(:) - pp*ep(:)*VS
+            dbsloc(:,ind-m) = -fln*pp*vsin(m+1)*et(:) - fln*pp*ep(:)*VS
 !            
           endif
 !  
@@ -1811,7 +1962,8 @@ end subroutine adjrhs
       f1 = oij/rsph(jsph)
       va(:) = va(:) + f1*alp(:) + beta*f2*zi(:,ig,isph)
       if (tij .gt. (one-eta*rsph(jsph))) then
-        f3 = beta*dfsw(tij,eta*rsph(jsph))/rsph(jsph)
+!!!        f3 = beta*dfsw(tij,eta*rsph(jsph))/rsph(jsph)
+        f3 = beta*dfsw(tij,se,eta*rsph(jsph))/rsph(jsph)
         if (fi(ig,isph).gt.one) f3 = f3/fi(ig,isph)
         va(:) = va(:) + f3*sij(:)
       end if
@@ -1894,7 +2046,8 @@ end subroutine adjrhs
             end if
           end do
           if (proc) then
-            g1 = di*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
+!!!            g1 = di*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
+            g1 = di*di*dfsw(tji,se,eta*rsph(isph))/rsph(isph)
             g2 = g1*xi(ig,jsph)*b
             vc = vc + g2*sji
           end if
@@ -1902,7 +2055,8 @@ end subroutine adjrhs
           di  = one
           fac = zero
         end if
-        f2 = (one-fac)*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
+!!!        f2 = (one-fac)*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
+        f2 = (one-fac)*di*dfsw(tji,se,eta*rsph(isph))/rsph(isph)
         vb = vb + f2*xi(ig,jsph)*beta*sji
       end if 
     end do
@@ -1935,7 +2089,8 @@ end subroutine adjrhs
       swthr = one - eta*rsph(isph)
       if (tji.lt.one .and. tji.gt.swthr .and. ui(ig,jsph).gt.zero) then
         sji = vji/vvji
-        fac = - dfsw(tji,eta*rsph(isph))/rsph(isph)
+!!!        fac = - dfsw(tji,eta*rsph(isph))/rsph(isph)
+        fac = - dfsw(tji,se,eta*rsph(isph))/rsph(isph)
         alp = alp + fac*phi(ig,jsph)*xi(ig,jsph)*sji
       end if
     end do
