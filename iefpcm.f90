@@ -493,11 +493,11 @@ endsubroutine ADJpcm
 !   dvlm_i =   sum   A_ij vl'm'_j + A_ii vl'm'_i =
 !            j \ne i
 !
-!                            4pi l'                             l'+1
+!                            4pi l'                              l'+1
 !          = -  sum     sum  ------ sum w_n  Y_l^m(s_n)  U_i^n  t      Y_l'^m'(s_ijn)  vl'm'_j
 !             j \ne i  l',m' 2l'+1   n
 !
-!                  eps+1                  2pi
+!                  eps+1                2pi
 !            + 2pi ----- vlm_i +  sum  -----  sum w_n  Y_l^m(s_n)  U_i^n  Y_l'^m'(s_n)  vl'm'_i
 !                  eps-1         l',m' 2l'+1   n      
 !
@@ -579,7 +579,10 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
               if ( tij.lt.one ) then
 !                      
 !               contract over l', m'; accumulate
-                x(its) = x(its) + dtslm(  tij, vlm(:,jsph), basloc )
+!!!                x(its) = x(its) + dtslm(  tij, vlm(:,jsph), basloc )
+
+!               FOR NOW ...
+                x(its) = x(its) + dtslm2( tij, vlm(:,jsph), basloc )
 !                      
 !             t is INSIDE j-th sphere
               else

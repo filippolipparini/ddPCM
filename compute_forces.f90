@@ -13,7 +13,7 @@
 !
 !   (A_eps L)^T s = Psi
 !
-! Since A_eps' is independent of eps, let just set A' = A_oo' = A_eps' , so that :
+! Since A_eps' is independent of eps, let's just set A' = A_oo' = A_eps' , so that :
 !
 !   F = < s , A' ( Phi - Phi_eps ) >  + < s , A_oo Phi' > + < s , A_eps L' sigma >
 !
@@ -331,7 +331,7 @@ subroutine service_routine1( s, x, isph, f )
 !
 !           compute f2(j,n)
 !           ---------------
-            call compute_f2_kn( ksph, n, t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,ksph), f2(1:3) )
+            call compute_f2_kn( isph, n, t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,ksph), f2(1:3) )
 !                    
 !           accumulate for f4(n)
 !           --------------------
@@ -395,16 +395,16 @@ subroutine compute_f2_jn( t, dt, ds, basloc, dbsloc, x, f2 )
 !----------------------------------------------------------------------------------
 ! Recall :
 !
-!   f1(1:3,lm) = \grad_i [ t^l+1 * Y(s) ]
+!   f1(1:3,lm) = \grad [ t^l+1 * Y(s) ]
 !
-!              = t^l  [ (l+1) \grad_i t Y(s) + t ( \grad_i s )^T \grad Y(s) ]
+!              = t^l  [ (l+1) \grad t Y(s) + t ( \grad s )^T \grad Y(s) ]
 !
-!              = tt   [ (l+1) s1(1:3,lm)     + s2(1:3,lm)                   ]
+!              = tt   [ (l+1) s1(1:3,lm)   + s2(1:3,lm)                 ]
 !
 ! and :
 !
 !                  4 pi l
-!   f2(1:3) = sum  ------  sum x(lm) * f(1:3,lm)
+!   f2(1:3) = sum  ------  sum x(lm) * f1(1:3,lm)
 !              l   2l + 1   m
 !
 !                  4 pi l
@@ -483,12 +483,12 @@ endsubroutine compute_f2_jn
 !
 !
 !----------------------------------------------------------------------------------
-subroutine compute_f2_kn( ksph, n, t, dt, ds, basloc, dbsloc, x, f2 )
+subroutine compute_f2_kn( jsph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !
       use ddcosmo , only : lmax, nbasis, zero, one, two, four, pi, ui, zi
 !
       implicit none
-      integer,                     intent(in)  :: ksph
+      integer,                     intent(in)  :: jsph
       integer,                     intent(in)  :: n
       real*8,                      intent(in)  :: t
       real*8, dimension(3  ),      intent(in)  :: dt
@@ -535,7 +535,7 @@ subroutine compute_f2_kn( ksph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !     compute s1
       do icomp = 1,3
 !      
-        s1(icomp,1:nbasis) = dt(icomp) * basloc(1:nbasis) * ui(n,ksph)
+        s1(icomp,1:nbasis) = dt(icomp) * basloc(1:nbasis) * ui(n,jsph)
 !        
       enddo
 !
@@ -551,7 +551,7 @@ subroutine compute_f2_kn( ksph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !
         enddo
 !
-        s2(icomp,1:nbasis) = ui(n,ksph)*s2(icomp,1:nbasis) + zi(icomp,n,ksph)*basloc(1:nbasis)
+        s2(icomp,1:nbasis) = ui(n,jsph)*s2(icomp,1:nbasis) + zi(icomp,n,jsph)*basloc(1:nbasis)
 !
       enddo
 !
@@ -700,7 +700,7 @@ subroutine ADJcheck
                 basloc(nbasis)
       integer :: isph,jsph,i,j,ibeg,iend,nsph_save,icomp,ksph,iter,n
       real*8 :: eps,s1,s2,eeps,err,rnorm
-      integer, parameter :: niter = 2
+      integer, parameter :: niter = 6
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), s3(3)
       real*8 :: x(nsph), y(nsph), z(nsph), iwork(nsph*3,2), rwork(niter,nsph*3)
 !
@@ -892,6 +892,8 @@ subroutine ADJcheck
                   iend = (isph-1)*nbasis+nbasis
                   call mkrvec( isph, eps, e, A_plus( ibeg:iend,(jsph-1)*nbasis+j,ksph,icomp ), xlm, xx, basloc, vplm, vcos, vsin )
 !
+!!!                  if ( ( isph.eq.2 ) .and. ( jsph.eq.1 ) ) then
+
 !                 accumulate error
                   do i = 1,nbasis
                     err = err + ( ( A_plus((isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) -           &
@@ -900,6 +902,9 @@ subroutine ADJcheck
                     rnorm = rnorm + (  dA(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) )**2
 !
                   enddo
+                
+!!!          endif
+
                 enddo
               enddo
             enddo
@@ -916,12 +921,12 @@ subroutine ADJcheck
 !!!            write(*,*)''
 !!!!            
 !!!            write(*,1008) ksph,icomp
-!!! 1008       format(' A(r+r_',i2,',',i1,') - A(r) =')
+!!! 1008       format('( A(r+r_',i2,',',i1,') - A(r) ) / eps =')
 !!!! 
 !!!            do isph = 1,nsph
 !!!              do i = 1,nbasis
-!!!                write(*,"(4x,300(e12.5,2x))") ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) - &
-!!!                                                     A((isph-1)*nbasis+i,j) , j=1,nbasis*nsph )
+!!!                write(*,"(4x,300(e12.5,2x))") ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) - &
+!!!                                                     A((isph-1)*nbasis+i,j))/eeps , j=1,nbasis*nsph )
 !!!              enddo
 !!!            enddo
 !!!            write(*,*)''
@@ -936,6 +941,8 @@ subroutine ADJcheck
         eeps = eeps/2.d0
 !        
       enddo
+
+      eeps = eeps*2.d0
 !
 !     printing
       do iter = 1,niter
@@ -967,7 +974,7 @@ subroutine ADJcheck
 !!!            do i = 1,nbasis
 !!!              write(*,"(4x,300(e12.5,2x))") &
 !!!              ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp)- &
-!!!                       A((isph-1)*nbasis+i,j) ) / eeps , j=1,nbasis*nsph )
+!!!                       A((isph-1)*nbasis+i,j)             ) / eeps , j=1,nbasis*nsph )
 !!!            enddo
 !!!          enddo
 !!!          write(*,*)''
