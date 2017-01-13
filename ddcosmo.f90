@@ -103,7 +103,7 @@ logical :: grad
 integer, allocatable :: inl(:), nl(:)
 real*8,  allocatable :: rsph(:), csph(:,:), ccav(:,:)
 real*8,  allocatable :: w(:), grid(:,:), basis(:,:)
-real*8,  allocatable :: fact(:), facl(:), facs(:), facll(:)
+real*8,  allocatable :: fact(:), facl(:), facs(:)
 real*8,  allocatable :: fi(:,:), ui(:,:), zi(:,:,:)
 !
 contains
@@ -197,9 +197,11 @@ subroutine reset_ngrid
       return
 !
 endsubroutine reset_ngrid
-!
 !----------------------------------------------------------------------------------
 !
+!
+!
+!----------------------------------------------------------------------------------
 subroutine set_pi
 !
       implicit none
@@ -210,295 +212,325 @@ subroutine set_pi
 !
 endsubroutine set_pi
 !----------------------------------------------------------------------------------
-  subroutine readin
-  implicit none
-
-  end subroutine readin
-  subroutine ddinit(n,x,y,z,rvdw)
-  implicit none
-  !
-  ! allocate the various arrays needed for ddcosmo,
-  ! assemble the cavity and the various associated geometrical quantities.
-  !
-  integer,               intent(in) :: n
-  real*8,  dimension(n), intent(in) :: x, y, z, rvdw
-  !
-  integer :: isph, jsph, i, ii, lnl, l, ind, m, igrid, inear, jnear, istatus
-  real*8  :: fac, fl, ffl, fnorm, d2, r2, v(3), vv, t, xt, swthr
-  !
-  real*8,  allocatable :: vcos(:), vsin(:), vplm(:)
-  !
+!
+!
+!
+!
+!----------------------------------------------------------------------------------
+! Purpose : allocate the various arrays needed for ddcosmo, assemble the cavity
+!           and the various associated geometrical quantities.
+!----------------------------------------------------------------------------------
+subroutine ddinit( n, x, y, z, rvdw )
+!
+      implicit none
+      integer,               intent(in) :: n
+      real*8,  dimension(n), intent(in) :: x, y, z, rvdw
+!
+      integer :: isph, jsph, i, ii, lnl, l, ind, m, igrid, inear, jnear, istatus
+      real*8  :: fac, fl, ffl, fnorm, d2, r2, v(3), vv, t, xt, swthr
+!
+      real*8,  allocatable :: vcos(:), vsin(:), vplm(:)
 !
 !-------------------------------------------------------------------------------
 !
-! openMP parallelization:
+!     STEP 1 : do stuff ...
+!     ---------------------
 !
-  if (nproc.eq.0) nproc = 1
-!
-!$ call omp_set_num_threads(nproc)
-!
-! set some constants 
-  call set_pi
-!
-! print a nice header
-! -------------------
-!
-  call header
-!
-!
-! allocate quantities
-! -------------------
-!
-! if .true. compute forces
-  grad   = igrad.ne.0
-!  
-! number of basis function per atom
-  nbasis = (lmax+1)*(lmax+1)
-!
-  allocate( rsph(nsph), &
-            csph(3,nsph), &
-            w(ngrid), &
-            grid(3,ngrid), &
-            basis(nbasis,ngrid), &
-            inl(nsph+1), &
-            nl(nsph*nngmax), &
-            fi(ngrid,nsph), &
-            ui(ngrid,nsph), &
-            zi(3,ngrid,nsph), &
-            fact(max(2*lmax+1,2)), &
-            facl(nbasis), &
-            facll(nbasis), &
-            facs(nbasis) , stat=istatus )
-  if ( istatus .ne. 0 ) then
-    write(*,*)'readin : [1] allocation failed!'
-    stop
-  endif
-!
-  memuse = memuse + 4*nsph + 4*ngrid + nbasis*ngrid + nsph+1 + nsph*nngmax + &
-           2*ngrid*nsph + 2*lmax+1 + 3*nbasis
-  if (grad) memuse = memuse + 3*ngrid*nsph
-  memmax = max(memmax,memuse)
-!
-!
-! precompute various quantities (diagonal blocks of ddcosmo matrix,
-! normalization factors for spherical harmonics, factorials)
-! ----------------------------------------------------------
-!
-! compute factorials
-  fact(1) = one ; fact(2) = one
-  do i = 3, 2*lmax + 1
-    fact(i) = dble(i-1)*fact(i-1)
-  end do
-!
-! compute factors for spherical harmonics
-  do l = 0, lmax
-    ind = l*l + l + 1
-    fl  = (two*dble(l) + one)/(four*pi)
-    ffl = sqrt(fl)
-    facl( ind-l:ind+l) = fl
-    facll(ind-l:ind+l) = four*pi*dble(l)/(two*dble(l)+one)
-    facs(ind) = ffl
-    do m = 1, l
-      fnorm = sq2*ffl*sqrt(fact(l-m+1)/fact(l+m+1))
-      if (mod(m,2).eq.1) fnorm = -fnorm
-      facs(ind+m) = fnorm
-      facs(ind-m) = fnorm
-    end do
-  end do
-!
-! set the centers and radii of the spheres
-  csph(1,:) = x
-  csph(2,:) = y
-  csph(3,:) = z
-  rsph      = rvdw
-!
-! load a lebedev grid
-  call llgrid( ngrid, w, grid )
-!
-! allocate workspace arrays
-  allocate( vplm(nbasis), vcos(lmax+1), vsin(lmax+1) , stat=istatus )
-  if ( istatus .ne. 0 ) then
-    write(*,*)'readin : [2] allocation failed!'
-    stop
-  endif
-!
-! update memory usage
-  memuse = memuse + nproc*(nbasis + 2*lmax + 2)
-  memmax = max(memmax,memuse)
-!  
-!  
-! build a basis of spherical harmonics at the gridpoints
-! ------------------------------------------------------
-!
-  !$omp parallel do default(shared) private(i,vplm,vcos,vsin)
-!  
-! loop over integration points
-  do i = 1, ngrid
-    call ylmbas( grid(:,i), basis(:,i), vplm(:), vcos(:), vsin(:) )
-  end do
-!  
-  !$omp end parallel do
-!  
-! deallocate service arrays
-  deallocate( vplm, vcos, vsin , stat=istatus )
-  if ( istatus .ne. 0 ) then
-    write(*,*)'readin : [1] deallocation failed!'
-    stop
-  endif
-!
-!
-! update memory usage
-  memuse = memuse - nproc*(nbasis + 2*lmax + 2)
-!
-!
-! build a neighbor list (CSR format)
-! ----------------------------------
-!
-! number of neighbors considered so far
-  ii  = 1
-
-! pointer to neighbor  
-  lnl = 0
-!
-! 1st loop over atoms
-  do isph = 1, nsph
-!
-!   position of 1st neighbor of isph-atom in "nl"
-    inl(isph) = lnl + 1
-!
-!   2nd loop over atoms
-    do jsph = 1, nsph
-!
-!     different atoms
-      if (isph.ne.jsph) then
-!
-!       distance square b/w atoms' centers
-        d2 = (csph(1,isph) - csph(1,jsph))**2 + (csph(2,isph) - csph(2,jsph))**2 + (csph(3,isph) - csph(3,jsph))**2
-!        
-!       sum square of atoms' radii
-        r2 = (rsph(isph) + rsph(jsph))**2
-!
-!       atoms intersect
-        if (d2.le.r2) then
-!
-!         record neighbor
-          nl(ii) = jsph
-!
-!         increment counters
-          ii  = ii + 1
-          lnl = lnl + 1
-        end if
-      end if
+!     openMP parallelization
+      if ( nproc.eq.0 )  nproc = 1
+!    
+!    $ call omp_set_num_threads(nproc)
+!    
+!     set pi
+      call set_pi
+!    
+!     print header
+      call header
+!    
+!     compute forces flag
+      grad = ( igrad.ne.0 )
 !      
-    end do
-  end do
-!  
-! last entry for consistency with CSR format
-  inl(nsph+1) = lnl+1
+!     number of basis function per atom
+      nbasis = (lmax+1)*(lmax+1)
+!    
+!     allocate quantities
+      allocate( rsph(nsph), &
+                csph(3,nsph), &
+                w(ngrid), &
+                grid(3,ngrid), &
+                basis(nbasis,ngrid), &
+                inl(nsph+1), &
+                nl(nsph*nngmax), &
+                fi(ngrid,nsph), &
+                ui(ngrid,nsph), &
+                zi(3,ngrid,nsph), &
+                fact(max(2*lmax+1,2)), &
+                facl(nbasis), &
+                facs(nbasis) , stat=istatus )
+      if ( istatus .ne. 0 ) then
+        write(*,*)'ddinit : [1] allocation failed!'
+        stop
+      endif
+!    
+!     update memory usage
+      memuse = memuse + 4*nsph + 4*ngrid + nbasis*ngrid + nsph+1 + nsph*nngmax + &
+               2*ngrid*nsph + 2*lmax+1 + 2*nbasis
+      if (grad) memuse = memuse + 3*ngrid*nsph
+      memmax = max(memmax,memuse)
+!    
+!     compute factorials
+      fact(1) = one ; fact(2) = one
+      do i = 3, 2*lmax + 1
+        fact(i) = dble(i-1)*fact(i-1)
+      end do
+!    
+!     compute factors for spherical harmonics
+      do l = 0, lmax
+        ind = l*l + l + 1
+        fl  = (two*dble(l) + one)/(four*pi)
+        ffl = sqrt(fl)
+        facl( ind-l:ind+l) = fl
+        facs(ind) = ffl
+        do m = 1, l
+          fnorm = sq2*ffl*sqrt(fact(l-m+1)/fact(l+m+1))
+          if (mod(m,2).eq.1) fnorm = -fnorm
+          facs(ind+m) = fnorm
+          facs(ind-m) = fnorm
+        end do
+      end do
+!    
+!     set the centers and radii of the spheres
+      csph(1,:) = x
+      csph(2,:) = y
+      csph(3,:) = z
+      rsph      = rvdw
+!    
+!     load a lebedev grid
+      call llgrid( ngrid, w, grid )
+!    
+!     allocate workspace arrays
+      allocate( vplm(nbasis), vcos(lmax+1), vsin(lmax+1) , stat=istatus )
+      if ( istatus .ne. 0 ) then
+        write(*,*)'ddinit : [2] allocation failed!'
+        stop
+      endif
+!    
+!     update memory usage
+      memuse = memuse + nproc*(nbasis + 2*lmax + 2)
+      memmax = max(memmax,memuse)
+!    
+      !$omp parallel do default(shared) private(i,vplm,vcos,vsin)
+!      
+!     loop over integration points
+      do i = 1, ngrid
 !
-!
-! build ui, fi and zi
-! -------------------
-!
-! Characteristic function of \Gamma_i \cap \Gamma :
-!
-! u_i(s) = 1 - 1/|N_i(s)|  sum \chi_j(s)
-!                           j
-!
-  fi = zero ; ui = zero
-!
-! set "zi" to zero when computing forces
-  if (grad) zi = zero
-!  
-  !$omp parallel do default(shared) private(isph,i,ii,jsph,v,vv,t,xt,swthr,fac)
-!  
-! Compute : u_i( r_i + \rho_j s_n )
-!
-! loop over atoms
-  do isph = 1, nsph
-!  
-!   loop over integration points
-    do i = 1, ngrid
-!
-!     loop over neighbors
-      do ii = inl(isph), inl(isph+1) - 1
-!
-!       neighbor's number
-        jsph = nl(ii)
-!        
-!       renormalize integration point over neighbor
-        v(:) = csph(:,isph) + rsph(isph)*grid(:,i) - csph(:,jsph)
-        vv   = sqrt(dot_product(v,v))
-        t    = vv/rsph(jsph)
-!
-!       compute \chi( t )
-        xt = fsw( t, se, eta*rsph(jsph) )
-!        
-!       compute dU_j^n 
-        swthr  = one - eta*rsph(jsph)
-        if ( grad .and. (t.lt.one .and. t.gt.swthr) ) then
-!                
-          fac = dfsw( t, se, eta*rsph(jsph) ) / rsph(jsph)
-!
-!         accumulate
-          zi(:,i,isph) = zi(:,i,isph) + fac*v(:)/vv
-!          
-        end if
-!
-!                j
-!       compute f
-!                n
-        fi(i,isph) = fi(i,isph) + xt
+!       compute spherical hamonics at grid point
+        call ylmbas( grid(:,i), basis(:,i), vplm(:), vcos(:), vsin(:) )
 !        
       end do
-!
-!              j
-!     compute U 
-!              n
-      if (fi(i,isph).le.one) ui(i,isph) = one - fi(i,isph)
-
-!!!      write(*,*)'i,isph,zi(:) = ',i,isph,zi(:,i,isph)
-!
-    end do
-  end do
-!  
-  !$omp end parallel do
-!
-!
-! count the number of external points and allocate the cavity
-! -----------------------------------------------------------
-!
-  ncav = 0
-!  
-! loop over atoms  
-  do isph = 1, nsph
-!
-!   loop over integration points
-    do i = 1, ngrid
-!    
-      if (ui(i,isph).gt.zero) ncav = ncav + 1
 !      
-    end do
-  end do
+      !$omp end parallel do
+!      
+!     deallocate service arrays
+      deallocate( vplm, vcos, vsin , stat=istatus )
+      if ( istatus .ne. 0 ) then
+        write(*,*)'ddinit : [1] deallocation failed!'
+        stop
+      endif
+!    
+!     update memory usage
+      memuse = memuse - nproc*(nbasis + 2*lmax + 2)
+!    
+!    
+!     STEP 2 : build neighbor list (CSR format)
+!     -----------------------------------------
+!    
+!     number of neighbors considered so far
+      ii  = 1
+
+!     pointer to neighbor  
+      lnl = 0
+!    
+!     1st loop over atoms
+      do isph = 1, nsph
+!    
+!       position of 1st neighbor of isph-atom in "nl"
+        inl(isph) = lnl + 1
+!    
+!       2nd loop over atoms
+        do jsph = 1, nsph
+!    
+!         different atoms
+          if (isph.ne.jsph) then
+!    
+!           distance square b/w atoms' centers
+            d2 = (csph(1,isph) - csph(1,jsph))**2 + (csph(2,isph) - csph(2,jsph))**2 + (csph(3,isph) - csph(3,jsph))**2
+!            
+!           sum square of atoms' radii
+            r2 = (rsph(isph) + rsph(jsph))**2
+!!!            r2 = ( rsph(isph)*(one + se) + rsph(jsph)*(one + se) )**2
+!    
+!           atoms intersect
+            if ( d2.le.r2 ) then
+!    
+!             record neighbor
+              nl(ii) = jsph
+!    
+!             increment counters
+              ii  = ii + 1
+              lnl = lnl + 1
+!              
+            end if
+          end if
+        end do
+      end do
+!      
+!     last entry for consistency with CSR format
+      inl(nsph+1) = lnl+1
+!    
+!    
+!-----------------------------------------------------------------------
+! Characteristic function of \Gamma_i \cap \Gamma :
 !
-  allocate (ccav(3,ncav))
+!   u_i(s) = 1 - 1/|N_i(s)|    sum    \chi_j(s)
+!                           j \in ...
 !
-! update memory usage
-  memuse = memuse + 3*ncav
-  memmax = max(memmax,memuse)
+! where :
 !
-! fill ccav with the coordinates of the external points:
-  ii = 0
-  do isph = 1, nsph
-    do i = 1, ngrid
-      if (ui(i,isph).gt.zero) then
-        ii = ii + 1
-        ccav(:,ii) = csph(:,isph) + rsph(isph)*grid(:,i)
-      end if
-    end do
-  end do
-  return
-  end subroutine ddinit
+!   \chi_j(s) = \chi ( | s - r_j | / \rho_j )
+!
+! Set :
+!
+!   fi(  n,i) = sum_j  \chi_j( r_i + \rho_i s_n )
+!   zi(:,n,i) = sum_j d\chi_j( r_i + \rho_i s_n ) / dr_i
+!   ui(  n,i) = ...
+!
+!-----------------------------------------------------------------------
+!    
+!     STEP 3 : build arrays ui, fi and zi
+!     -----------------------------------
+!
+!     initialize
+      fi = zero ; ui = zero ; if ( grad )  zi = zero
+!      
+      !$omp parallel do default(shared) private(isph,i,ii,jsph,v,vv,t,xt,swthr,fac)
+!    
+!     loop over atoms
+      do isph = 1, nsph
+!      
+!       loop over integration points
+        do i = 1, ngrid
+!    
+!         loop over neighbors
+          do ii = inl(isph), inl(isph+1) - 1
+!    
+!           neighbor's number
+            jsph = nl(ii)
+!            
+!           compute t = | r_i + \rho_i s_n - r_j | / \rho_j
+            v(:) = csph(:,isph) + rsph(isph)*grid(:,i) - csph(:,jsph)
+            vv   = sqrt(dot_product(v,v))
+            t    = vv/rsph(jsph)
+!    
+!           compute \chi( t )
+            xt = fsw( t, se, eta*rsph(jsph) )
+!            
+!           upper bound of switch region
+            swthr = one - eta*rsph(jsph)
+!            
+!           if t belongs to switch region
+            if ( grad .and. ( t.lt.one .and. t.gt.swthr ) ) then
+!                    
+              fac = dfsw( t, se, eta*rsph(jsph) ) / rsph(jsph)
+!    
+!             accumulate sum_j d\chi_j / dr_i
+              zi(:,i,isph) = zi(:,i,isph) + fac*v(:)/vv
+!              
+            end if
+!    
+!           accumulate sum_j \chi_j
+            fi(i,isph) = fi(i,isph) + xt
+!            
+          end do
+!    
+!         
+          if ( fi(i,isph).le.one )  ui(i,isph) = one - fi(i,isph)
+
+!    !!      write(*,*)'i,isph,zi(:) = ',i,isph,zi(:,i,isph)
+!    
+        end do
+      end do
+!      
+      !$omp end parallel do
+!    
+!    
+!     STEP 4 : build cavity array
+!     ---------------------------
+!
+!     STEP 4.1 : number of integration points on the cavity's boundary
+!     ----------------------------------------------------------------
+!    
+!     initialize
+      ncav = 0
+!      
+!     loop over atoms  
+      do isph = 1, nsph
+!    
+!       loop over integration points
+        do i = 1, ngrid
+!        
+!         positive contribution from integration point
+          if ( ui(i,isph).gt.zero ) then
+!
+!           accumulate
+            ncav = ncav + 1
+!                  
+          end if
+        end do
+      end do
+!    
+!     allocate cavity array
+      allocate( ccav(3,ncav) , stat=istatus )
+      if ( istatus .ne. 0 ) then
+        write(*,*)'ddinit : [3] allocation failed!'
+        stop
+      endif
+!
+!    
+!     update memory usage
+      memuse = memuse + 3*ncav
+      memmax = max(memmax,memuse)
+!    
+!     STEP 4.2 : fill cavity array with integration points
+!     ----------------------------------------------------
+!
+!     initialize cavity array index
+      ii = 0
+!
+!     loop over spheres
+      do isph = 1, nsph
+!
+!       loop over integration points
+        do i = 1, ngrid
+!
+!         positive contribution from integration point
+          if ( ui(i,isph).gt.zero ) then
+!
+!           advance array index
+            ii = ii + 1
+!
+!           compute integration point
+            ccav(:,ii) = csph(:,isph) + rsph(isph)*grid(:,i)
+!            
+          end if
+        end do
+      end do
+      return
+!
+!
+endsubroutine ddinit
+!---------------------------------------------------------------------------------
+!
   !
   subroutine memfree
   implicit none
@@ -515,7 +547,6 @@ endsubroutine set_pi
   if(allocated(nl))    deallocate(nl)    
   if(allocated(fact))  deallocate(fact)  
   if(allocated(facl))  deallocate(facl)  
-  if(allocated(facll))  deallocate(facll)  
   if(allocated(facs))  deallocate(facs)  
   if(allocated(ui))    deallocate(ui)
   if(allocated(fi))    deallocate(fi)
@@ -2442,31 +2473,27 @@ subroutine calcv2(first,isph,pot,sigma,basloc,vplm,vcos,vsin)
 !     loop over grid points
       do its = 1,ngrid
 !
-!       grid point belongs to N(s)
+!       ???? grid point belongs to N(s) [check this]
         if ( ui(its,isph).lt.one ) then
 !
-!         loop over column indices
+!         loop over neighbors
           do ij = inl(isph),inl(isph+1)-1
 !
-!           column index
+!           neighbor's number
             jsph = nl(ij)
 !            
-!           vv_n^k
+!           compute t = | r_i + \rho_i s_n - r_j | / \rho_j
             vij  = csph(:,isph) + rsph(isph)*grid(:,its) - csph(:,jsph)
-!
-!           v_n^k
             vvij = sqrt( dot_product( vij, vij ) )
-!                       
-!           t_n^jk
             tij  = vvij / rsph(jsph) 
 !
-!           ss_n^jk
-            sij  = vij / vvij
+!           compute s = ( r_i + \rho_i s_n - r_j ) / | ... |
+            sij = vij / vvij
 !            
-!           chi_n^jk
-            xij  = fsw( tij, se, eta*rsph(jsph) )
+!           compute \chi( t )
+            xij = fsw( tij, se, eta*rsph(jsph) )
 !
-!           omega_n^jk = chi_n^jk / f_n^j = chi_n^jk / sum_k chi_n^jk
+!           ???? omega_n^jk = chi_n^jk / f_n^j = chi_n^jk / sum_k chi_n^jk [check this]
             if ( fi(its,isph).gt.one ) then
 !
               oij = xij / fi(its,isph)
@@ -2477,7 +2504,7 @@ subroutine calcv2(first,isph,pot,sigma,basloc,vplm,vcos,vsin)
 !
             end if
 !
-!           compute SH's "basloc" as point "sij"
+!           compute spherical harmonics at s
             call ylmbas( sij, basloc, vplm, vcos, vsin )
 !
             if ( tij.lt.one ) then

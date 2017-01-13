@@ -657,7 +657,7 @@ endsubroutine mkrvec
 subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
       use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, ui, facl, &
-                            facll, two, pi, one, zero, pt5, w, ylmbas
+                            two, pi, one, zero, pt5, w, ylmbas
 !      
       implicit none
       integer,                         intent(in   ) :: isph
