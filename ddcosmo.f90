@@ -2191,19 +2191,21 @@ endfunction cstmlp
 !
 !
 !---------------------------------------------------------------------
-! Purpose : compute
+! Purpose : compute :
 !
-!      lmax     l      m      m
-!   sum      sum      c (t)  Y
-!      l=0      m=-l   l      l
+!        4 pi (l+1)
+!   sum  ----------  t^l  \nu_l^m  Y_l^m
+!   l,m    2l + 1
 !
+! Remark : this expression is used for EXTENSION of potential
+!          outside sphere. Index l starts from 0 !
 !---------------------------------------------------------------------
-!
 real*8 function dtslm( t, nu, basloc )
 !
       implicit none
       real*8,                    intent(in) :: t
-      real*8, dimension(nbasis), intent(in) :: nu, basloc
+      real*8, dimension(nbasis), intent(in) :: nu
+      real*8, dimension(nbasis), intent(in) :: basloc
 !
       integer :: l, ind, m
       real*8  :: fl, fac, ss, tt
@@ -2211,65 +2213,97 @@ real*8 function dtslm( t, nu, basloc )
 !---------------------------------------------------------------------
 !
 !     initialize
-      ss = zero
-      tt = one
+      ss = zero ; tt = one
 !
-!     loop over degree "l" of spherical harmonics 
+!     loop over degree of spherical harmonics 
       do l = 0, lmax
 !      
-!       index of Y_l^0 spherical harmonic
+!       index associated to Y_l^0
         ind = l*l + l + 1
 !        
+!       compute factor
         fl  = dble(l)
         fac = four*pi*(fl+one)/(two*fl + one)*tt
 !
-!       loop over order "m" of spherical harmonics
+!       loop over order of spherical harmonics
         do m = -l, l
 !
 !         accumulate
           ss = ss + fac*nu(ind+m)*basloc(ind+m)
 !          
         end do
+!
+!       compute t^l
         tt = tt*t
+!        
       end do
+!      
+!     return value
       dtslm = ss
 !
-      return
 !
-!
-end function dtslm
+endfunction dtslm
 !---------------------------------------------------------------------
 !
 !
 !
+!---------------------------------------------------------------------
+! Purpose : compute :
+!
+!        4 pi l
+!   sum  ------  1/t^(l+1)  \nu_l^m  Y_l^m
+!   l,m  2l + 1
+!
+! Remark : index l starts from 0 !
+!---------------------------------------------------------------------
+real*8 function dtslm2( t, nu, basloc )
+!
+      implicit none
+      real*8, intent(in) :: t
+      real*8, intent(in), dimension(nbasis) :: nu
+      real*8, intent(in), dimension(nbasis) :: basloc
+!
+      integer :: l, ind, m
+      real*8  :: fl, fac, ss, tt
+!      
+!---------------------------------------------------------------------
+!
+!     initialize
+      ss = zero ; tt = one/t
+
+!     loop over degree of spherical harmonics 
+      do l = 0, lmax
+!
+!       index associated to Y_l^0
+        ind = l*l + l + 1
+!
+!       compute factor
+        fl  = dble(l)
+      ! fac = four*pi*(fl+one)/(two*fl + one)*tt
+        fac = four*pi*fl/(two*fl + one)*tt
+!
+!       loop over order of spherical harmonics        
+        do m = -l, l
+!
+!         accumulate
+          ss = ss + fac*nu(ind+m)*basloc(ind+m)
+!          
+        end do
+!
+!       compute 1/t^(l+1)
+        tt = tt/t
+      end do
+!
+!     return value
+      dtslm2 = ss
+!
+!
+endfunction dtslm2
+!---------------------------------------------------------------------
+!
 !
 !
 !---------------------------------------------------------------------
-real*8 function dtslm2(t,nu,basloc)
-implicit none
-real*8, intent(in) :: t
-real*8, intent(in), dimension(nbasis) :: nu, basloc
-!
-integer :: l, ind, m
-real*8  :: fl, fac, ss, tt
-!
-ss = zero
-tt = one/t
-do l = 0, lmax
-  ind = l*l + l + 1
-  fl  = dble(l)
-! fac = four*pi*(fl+one)/(two*fl + one)*tt
-  fac = four*pi*fl/(two*fl + one)*tt
-  do m = -l, l
-    ss = ss + fac*nu(ind+m)*basloc(ind+m)
-  end do
-  tt = tt/t
-end do
-dtslm2 = ss
-!
-return
-end function dtslm2
-!
 subroutine itsolv2(star,iefpcm,phi,psi,sigma,ene)
 implicit none
 logical,                        intent(in)    :: star, iefpcm
