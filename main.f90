@@ -1,5 +1,5 @@
-program main
-use ddcosmo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
 ! 
 !      888      888  .d8888b.   .d88888b.   .d8888b.  888b     d888  .d88888b.  
 !      888      888 d88P  Y88b d88P" "Y88b d88P  Y88b 8888b   d8888 d88P" "Y88b 
@@ -89,49 +89,59 @@ use ddcosmo
 ! his/her routines to compute the molecular electrostatic quantities.          !
 !                                                                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-implicit none
 !
-integer :: i, istatus
-real*8  :: tobohr, esolv
-real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
-! quantities to be allocated by the user.
-! - solute's parameters, such as coordinates, vdw radii and
-!   point charges used to model the solute (or multipoles, or
-!   qm density...)
+program main
 !
-real*8, allocatable :: x(:), y(:), z(:), rvdw(:), charge(:)
+      use ddcosmo
+!      
+      implicit none
 !
-! - electrostatic potential phi(ncav) and psi vector psi(nbasis,nsph)
+      integer :: i, istatus
+      real*8  :: tobohr, esolv
+      real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
-real*8, allocatable :: phi(:), psi(:,:), g(:,:)
+!     quantities to be allocated by the user.
+!     - solute's parameters, such as coordinates, vdw radii and
+!       point charges used to model the solute (or multipoles, or
+!       qm density...)
 !
-! - ddcosmo solution sigma (nbasis,nsph) and adjoint solution s(nbasis,nsph)
+      real*8, allocatable :: x(:), y(:), z(:), rvdw(:), charge(:)
 !
-real*8, allocatable :: sigma(:,:), s(:,:)
+!     - electrostatic potential phi(ncav) and psi vector psi(nbasis,nsph)
 !
-! - forces:
+      real*8, allocatable :: phi(:), psi(:,:), g(:,:)
 !
-real*8, allocatable :: fx(:,:)
+!     - ddcosmo solution sigma (nbasis,nsph) and adjoint solution s(nbasis,nsph)
 !
-! - for qm solutes, fock matrix contribution.
+      real*8, allocatable :: sigma(:,:), s(:,:)
 !
-character(len=64), dimension(2) :: args
+!     - forces:
 !
-!-----------------------------------------------------------
-! here, we read all the ddcosmo parameters from a file named Input.txt
+      real*8, allocatable :: fx(:,:)
 !
-memuse = 0
-memmax = 0
+!     - for qm solutes, fock matrix contribution.
 !
+      character(len=64), dimension(2) :: args
+!
+!-------------------------------------------------------------------------------
+!
+!     initialize
+      memuse = 0
+      memmax = 0
+!
+!     check number of variables in script file
       if ( iargc().ne.2 ) stop
+!
+!     read control variables
       do i = 1,iargc()
         call getarg( i, args(i) )
       enddo
 !
-!     read control parameters
-!     -----------------------
+!     open control file
       open( unit=10, file=args(1) )
+
+!     read control parameters
       read(10,*) iprint      ! printing flag
       read(10,*) nproc       ! number of openmp threads
       read(10,*) lmax        ! max angular momentum of spherical harmonics basis
@@ -141,53 +151,65 @@ memmax = 0
       read(10,*) iscrf       ! whether to use cosmo (0) or pcm (1)
       read(10,*) eps         ! dielectric constant of the solvent
       read(10,*) iunit       ! whether to convert to bohr (0) or not (1)
-      read(10,*) eta, se     ! regularization parameter
+      read(10,*) eta, se     ! regularization parameters
+!
+!     close control file
       close(10)
 !
+!     adjust number of grid points to acutal number of L.L. points
       call reset_ngrid
 !
-!     read atoms file
-!     ---------------
+!     open atoms file
       open( unit=10, file=args(2) )
-      read(10,*) nsph           ! number of atoms
 !
+!     read number of atoms
+      read(10,*) nsph
+!
+!     allocate arrays for centers, radii, charges
       allocate( x(nsph), y(nsph), z(nsph), rvdw(nsph), charge(nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
         write(*,*)'main : [1] failed allocation !'
         stop
       endif
 !
+!     update memory usage
       memuse = memuse + 5*nsph
       memmax = max(memmax,memuse)
 !
+!     read atoms file
       do i = 1, nsph
         read(10,*) charge(i), x(i), y(i), z(i), rvdw(i)
       end do
+!      
+!     convert to Angstrom if required
       tobohr = 1.0d0
-      if (iunit.eq.0) tobohr = 1.0d0/toang
+      if ( iunit.eq.0 ) tobohr = 1.0d0/toang
       x    = x*tobohr
       y    = y*tobohr
       z    = z*tobohr
       rvdw = rvdw*tobohr
 !
+!     close atoms file
       close (10)
 !
-! call the initialization routine. this routine allocates memory, computes some
-! quantities for internal use and creates and fills an array ccav(3,ncav) with
-! the coordinates of the grid points at which the user needs to compute the potential.
-! ncav is the number of external grid points and nbasis the number of spherical
-! harmonics functions used for the expansion of the various ddcosmo quantities;
-! both are computed by ddinit and defined as common variables in ddcosmo.mod.
-!
-      call ddinit(nsph,x,y,z,rvdw)
+!     Call the initialization routine. this routine allocates memory, computes some
+!     quantities for internal use and creates and fills an array ccav(3,ncav) with
+!     the coordinates of the grid points at which the user needs to compute the potential.
+!     ncav is the number of external grid points and nbasis the number of spherical
+!     harmonics functions used for the expansion of the various ddcosmo quantities;
+!     both are computed by ddinit and defined as common variables in ddcosmo.mod.
+      call ddinit( nsph, x, y, z, rvdw )
+!      
       allocate( phi(ncav), psi(nbasis,nsph), g(ngrid,nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
         write(*,*)'main : [2] failed allocation !'
         stop
       endif
 !
+!     update memory usage
       memuse = memuse + ncav + nbasis*nsph
       memmax = max(memmax,memuse)
+!
 !
 ! --------------------------   modify here  --------------------------  
 !
@@ -199,25 +221,24 @@ memmax = 0
 ! here, we compute the potential and the psi vector using the supplied routine mkrhs,
 ! which needs to be replaced by your routine.
 !
-      call mkrhs(nsph,charge,x,y,z,ncav,ccav,phi,nbasis,psi)
+      call mkrhs( nsph, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
 !
 ! --------------------------   end modify   --------------------------  
 !
-!     now, call the ddcosmo solver
 !
       allocate( sigma(nbasis,nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
         write(*,*)'main : [3] failed allocation !'
         stop
       endif
-
 !
+!     update memory usage
       memuse = memuse + nbasis*nsph
       memmax = max(memmax,memuse)
 !
 !     COSMO
 !     =====
-      if (iscrf.eq.0) then
+      if ( iscrf.eq.0 ) then
 !              
 !       compute \sigma and solvation energy
         call itsolv( .false., phi, psi, sigma, esolv )
@@ -237,9 +258,9 @@ memmax = 0
 !     the solution to the adjoint system is required also to compute the Fock matrix 
 !     contributions.
 !
-!     Forces
+!     FORCES
 !     ======
-      if (igrad.eq.1) then
+      if ( igrad.eq.1 ) then
 !              
         write(6,*)
 !        
@@ -291,4 +312,5 @@ memmax = 0
 !
       write(6,*) 'maximum quantity of memory allocated:', memmax
 !
-end program main
+!
+endprogram main

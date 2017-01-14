@@ -1942,8 +1942,24 @@ end subroutine adjrhs
                '   lmax for the spherical harmonics basis: '8x,i8,/,   &
                '   convergence threshold:                  '8x,d8.1,/, &
                '   regularization parameters (eta,s):      ',f8.3,f8.3/)
-  if (iprint.gt.0) write(iout,1000)
-  if (iprint.gt.0) write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, se
+!               
+  if ( iprint.gt.0 ) then
+!          
+    write(iout,1000)
+    write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, se
+!    
+    if ( iscrf.eq.0 ) then 
+      write(iout,1011) 
+ 1011 format( ' Use COSMO. '/ )      
+    else
+      write(iout,1012) 
+ 1012 format( ' Use PCM. '/ )      
+    endif
+!
+    if ( igrad.eq.1 )  write(iout,1013)
+ 1013 format( ' Compute forces.'// )   
+!
+  endif
   return
   end subroutine header
   !
