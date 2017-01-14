@@ -99,6 +99,7 @@ integer :: nsph, ngrid, ncav, lmax, nbasis, iconv, igrad, &
            iprint, nproc, memuse, memmax, iunit, iscrf
 real*8  :: eps, eta, se, pi, sq2
 logical :: grad
+logical :: iquiet = .false.
 !
 integer, allocatable :: inl(:), nl(:)
 real*8,  allocatable :: rsph(:), csph(:,:), ccav(:,:)
@@ -245,7 +246,9 @@ subroutine ddinit( n, x, y, z, rvdw )
       call set_pi
 !    
 !     print header
-      call header
+      if ( .not. iquiet ) then
+        call header
+      endif
 !    
 !     compute forces flag
       grad = ( igrad.ne.0 )
@@ -1933,14 +1936,14 @@ end subroutine adjrhs
                '  "Y88888  "Y88888  "Y8888P"   "Y88888P"   "Y8888P"  888       888  "Y88888P" ',/,  &
                '                                                                              ',/,  &
                ' An implementation of COSMO using a domain decomposition linear scaling strategy.',/)
-  1010 format( ' parameters:',/, &
-               '   number of grid points:                  ',i8,/,   &
-               '   number of spheres:                      ',i8,/,   &
-               '   lmax for the spherical harmonics basis: ',i8,/,   &
-               '   convergence threshold:                  ',d8.1,/, &
-               '   regularization parameter:               ',f8.2,/)
+  1010 format( ' Parameters:',/, &
+               '   number of grid points:                  '8x,i8,/,   &
+               '   number of spheres:                      '8x,i8,/,   &
+               '   lmax for the spherical harmonics basis: '8x,i8,/,   &
+               '   convergence threshold:                  '8x,d8.1,/, &
+               '   regularization parameters (eta,s):      ',f8.3,f8.3/)
   if (iprint.gt.0) write(iout,1000)
-  if (iprint.gt.0) write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta
+  if (iprint.gt.0) write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, se
   return
   end subroutine header
   !

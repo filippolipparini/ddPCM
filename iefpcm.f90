@@ -372,8 +372,10 @@ subroutine ADJpcm( philm, wlm )
 !     -------------------------------
 !
 !     main loop
-      write(iout,1000)
-      write(iout,1010)
+      if ( .not. iquiet ) then
+        write(iout,1000)
+        write(iout,1010)
+      endif
  1000 format('   first loop: computing V(eps)')
  1010 format('   it        error        err-00')
 !      
@@ -449,7 +451,9 @@ subroutine ADJpcm( philm, wlm )
 !          
         end if
 !        
-        write(iout,1020) it, vrms, err(1)
+        if ( .not. iquiet ) then
+          write(iout,1020) it, vrms, err(1)
+        endif
  1020   format(1x,i4,f14.8,121d12.4)
 !
 !       convergence has been achieved
@@ -465,7 +469,9 @@ subroutine ADJpcm( philm, wlm )
 !
   999 continue
 !  
-      write(iout,2000)
+      if ( .not. iquiet ) then
+        write(iout,2000)
+      endif
  2000 format('   first loop has converged.',/,'   second loop: solving ddCOSMO equations for V(eps)')
 !
 !

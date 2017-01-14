@@ -24,7 +24,7 @@
 subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
 !
       use ddcosmo , only : zero, ngrid, nsph, nbasis, zero, lmax, intrhs, itsolv2, &
-                           basis, fdoka, fdokb
+                           basis, fdoka, fdokb, iprint
 !      
       implicit none
       real*8, dimension( ngrid,nsph),        intent(in)  :: Phi
@@ -49,9 +49,8 @@ subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
 !
 !-------------------------------------------------------------------------------------
 !
-      call ADJcheck
-
-
+!!!      call ADJcheck
+!
 !     STEP 1 : solve adjoint problem (A_eps L)^T s = Psi
 !     --------------------------------------------------
 !   
@@ -139,6 +138,26 @@ subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
         call fdokb( isph, sigma, xi,         basloc, dbsloc, vplm, vcos, vsin, f(isph,:) ) 
 !
       enddo
+!
+!
+!     printing
+      if ( iprint.ge.2 ) then
+!              
+        write(*,*)'----------------------------------------------'
+        write(*,*)'ddPCM forces (atomic units):'
+        write(*,*)''
+        write(*,1004)
+ 1004   format(' atom',13x,'x',13x,'y',13x,'z' )
+        do isph = 1,nsph
+!
+          write(*,1005) isph, f(isph,:)
+ 1005     format( 1x,i4,3(2x,e12.5) )       
+! 
+        enddo
+        write(*,*)'----------------------------------------------'
+        write(*,*)''
+!        
+      endif
 !
 !
 endsubroutine compute_forces
@@ -686,11 +705,12 @@ endsubroutine compute_dphi
 subroutine ADJcheck
 !       
       use ddcosmo , only : nbasis,nsph,ngrid,lmax,zero,one,two,csph,rsph,memfree, &
-                           ddinit,ui,zi
+                           ddinit,ui,zi,iquiet,eps
 !
       implicit none
       real*8 :: f(nbasis,nsph),Af( nbasis)
       real*8 :: e(nbasis,nsph),ATe(nbasis)
+      real*8 :: s(nbasis,nsph)
       real*8 :: A(nbasis*nsph,nbasis*nsph),AT(nbasis*nsph,nbasis*nsph)
       real*8 :: dA1(nbasis*nsph,nbasis*nsph),dA2(nbasis*nsph,nbasis*nsph)
       real*8 :: dA3(nbasis*nsph,nbasis*nsph)
@@ -699,23 +719,29 @@ subroutine ADJcheck
       real*8 :: xlm(nbasis),xx(ngrid),vplm(nbasis),vcos(lmax+1),vsin(lmax+1), &
                 basloc(nbasis)
       integer :: isph,jsph,i,j,ibeg,iend,nsph_save,icomp,ksph,iter,n
-      real*8 :: eps,s1,s2,eeps,err,rnorm
+      real*8 :: s1,s2,eeps,err,rnorm
       integer, parameter :: niter = 6
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), s3(3)
       real*8 :: x(nsph), y(nsph), z(nsph), iwork(nsph*3,2), rwork(niter,nsph*3)
 !
 !--------------------------------------------------------------------------------
 !
-!     print A, A^T
-!     ------------
-      eps=two
+!     activate quiet flag
+      iquiet = .true.
 !
+!     check A = ( A^T )^T
+!     -------------------
+!
+!!!     set epsilon
+!!!      eps=two
+!
+!     construct A, A^T
       do isph = 1,nsph
 !
         do jsph = 1,nsph
           do j = 1,nbasis
 !
-!           set basis vector
+!           standard basis vector e_j
             e(:,   :) = zero
             e(j,jsph) = one
 !
@@ -731,30 +757,105 @@ subroutine ADJcheck
         enddo
       enddo
 !
-      write(*,*) 'A = '
+!     initialize
+      s1 = zero ; s2 = zero
+!      
+!     compute Frobenious norm of A and A^T
       do isph = 1,nsph
         do i = 1,nbasis
-          write(*,"(4x,300(e12.5,2x))") ( A((isph-1)*nbasis+i,j), j=1,nbasis*nsph )
+          do jsph = 1,nsph
+            do j = 1,nbasis
+!
+!             accumulate a_ij^2, (a^T)_ij^2
+              s1 = s1 + A ( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )**2
+              s2 = s2 + AT( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )**2
+!
+            enddo
+          enddo
         enddo
       enddo
-      write(*,*)''
 !
-      write(*,*) '(A^T)^T = '
-      do isph = 1,nsph
-        do i = 1,nbasis
-          write(*,"(4x,300(e12.5,2x))") ( AT(j,(isph-1)*nbasis+i), j=1,nbasis*nsph )
-        enddo
-      enddo
-      write(*,*)''
+!     || A^T ||_F     || A ||_F
+      s1 = sqrt(s1) ; s2 = sqrt(s2)
+!      
+!     print
+      write(*,1002) abs(s1-s2) / abs(s1)
+ 1002 format(' | ||A^T||_F - ||A||_F | / ||A||_F = ', e12.5)
+      write(*,*) ''
+!
+!!!      write(*,*) 'A = '
+!!!      do isph = 1,nsph
+!!!        do i = 1,nbasis
+!!!          write(*,"(4x,300(e12.5,2x))") ( A((isph-1)*nbasis+i,j), j=1,nbasis*nsph )
+!!!        enddo
+!!!      enddo
+!!!      write(*,*)''
+!!!!
+!!!      write(*,*) '(A^T)^T = '
+!!!      do isph = 1,nsph
+!!!        do i = 1,nbasis
+!!!          write(*,"(4x,300(e12.5,2x))") ( AT(j,(isph-1)*nbasis+i), j=1,nbasis*nsph )
+!!!        enddo
+!!!      enddo
+!!!      write(*,*)''
 !
 !
-!     check < A^T e , f > = < e , A f >
-!     ---------------------------------
+!!!!     check < A^T e , f > = < e , A f >
+!!!!     ---------------------------------
+!!!!
+!!!!     initialize random number generator
+!!!      call random_seed
+!!!!      
+!!!!     build e, f
+!!!      s1=zero ; s2=zero
+!!!      do isph = 1,nsph
+!!!        do j = 1,nbasis
+!!!!        
+!!!          call random_number( e(j,isph) )
+!!!          call random_number( f(j,isph) )
+!!!!          
+!!!          s1 = s1 + e(j,isph)**2
+!!!          s2 = s2 + f(j,isph)**2
+!!!!          
+!!!        enddo
+!!!      enddo
+!!!      e(:,:)=e(:,:)/sqrt(s1)
+!!!      f(:,:)=f(:,:)/sqrt(s2)
+!!!!
+!!!!     initialize
+!!!      Af( :)=zero
+!!!      ATe(:)=zero
+!!!      s1=zero
+!!!      s2=zero
+!!!!      
+!!!      do isph = 1,nsph
+!!!!
+!!!!       compute A_i f 
+!!!        call mkrvec( isph, eps, f, Af( :), xlm, xx, basloc, vplm, vcos, vsin )
+!!!!
+!!!!       compute A^T_i e
+!!!        call ADJvec( isph, eps, e, ATe(:), xlm, xx, basloc, vplm, vcos, vsin )
+!!!!
+!!!!       accumulate < e, A f >
+!!!        s1 = s1 + dot_product( e(:,isph), Af( :) )
+!!!!        
+!!!!       accumulate < A^T e, f >
+!!!        s2 = s2 + dot_product( f(:,isph), ATe(:) )
+!!!!        
+!!!      enddo
+!!!!      
+!!!      write(*,1000) abs(s1-s2) / abs(s1)
+!!! 1000 format(' | <e,Af> - <A^T f,e> | / |<e,Af>| = ', e12.5)
+!!!      write(*,*) ''
+!
+!
+!     check solution of adjoint problem : < e , f > = < A^T s , f > = < s , A f >
+!     ---------------------------------------------------------------------------
 !
 !     initialize random number generator
       call random_seed
 !      
-!     build e, f
+!     build e, f 
       s1=zero ; s2=zero
       do isph = 1,nsph
         do j = 1,nbasis
@@ -767,46 +868,34 @@ subroutine ADJcheck
 !          
         enddo
       enddo
+!
+!     normalize
       e(:,:)=e(:,:)/sqrt(s1)
       f(:,:)=f(:,:)/sqrt(s2)
 !
+!     solve A_eps^T s = e
+      call ADJpcm( e, s )
+!      
 !     initialize
-      Af( :)=zero
-      ATe(:)=zero
-      s1=zero
-      s2=zero
+      Af(:) = zero ; s1 = zero ; s2 = zero
 !      
       do isph = 1,nsph
 !
 !       compute A_i f 
-        call mkrvec( isph, eps, f, Af( :), xlm, xx, basloc, vplm, vcos, vsin )
+        call mkrvec( isph, eps, f, Af(:), xlm, xx, basloc, vplm, vcos, vsin )
 !
-!       compute A^T_i e
-        call ADJvec( isph, eps, e, ATe(:), xlm, xx, basloc, vplm, vcos, vsin )
-!
-!       accumulate < e, A f >
-        s1 = s1 + dot_product( e(:,isph), Af( :) )
+!       accumulate < s , A f >
+        s1 = s1 + dot_product( s(:,isph), Af(:) )
 !        
-!       accumulate < A^T e, f >
-        s2 = s2 + dot_product( f(:,isph), ATe(:) )
+!       accumulate < e , f >
+        s2 = s2 + dot_product( e(:,isph), f(:,isph) )
 !        
       enddo
-!      
-      write(*,1000) abs(s1-s2) / abs(s1)
- 1000 format(' | <e,Af> - <A^T f,e> | / |<e,Af>| = ', e12.5)
+!
+!     print
+      write(*,1001) abs(s2-s1) / abs(s1)
+ 1001 format(' | <e,f> - <s,Af> | / |<s,Af>| = ', e12.5)
       write(*,*) ''
-!
-!!!      do isph = 1,nsph
-!!!        do i = 1,ngrid
-!!!          write(*,*)'n, isph, zi(;,n,isph) = ',i,isph,zi(:,i,isph)
-!!!        enddo
-!!!      enddo
-!
-!!!      do n=1,ngrid
-!!!        do i=1,nsph
-!!!          write(*,*)'n,i,ui,zi = ',n,i,ui(n,i),zi(1:3,n,i)
-!!!        enddo
-!!!      enddo
 !
 !
 !     check derivatives
@@ -819,8 +908,9 @@ subroutine ADJcheck
             do jsph = 1,nsph
               do j = 1,nbasis
 !
-                e(:,:)=zero
-                f(:,:)=zero
+!               standard basis vectors e_i, f_j
+                e(:,:   )=zero
+                f(:,:   )=zero
                 e(i,isph)=one
                 f(j,jsph)=one
 !
@@ -847,7 +937,7 @@ subroutine ADJcheck
       z_save = csph(3,:)
       r_save = rsph(  :)
 !
-!     set increment initial
+!     set initial increment
       eeps=0.1d0
 !
 !     loop over increments
@@ -945,10 +1035,12 @@ subroutine ADJcheck
       eeps = eeps*2.d0
 !
 !     printing
-      do iter = 1,niter
+      do j = 1,nsph
+        do icomp = 1,3
 !
-        write(*,"(' iter = ',i1'; ',300(e12.5,2x))") iter, ( rwork(iter,j) , j=1,3*nsph)
+          write(*,"(' dA / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,j) , iter=1,niter )
 !        
+        enddo
       enddo
       write(*,*) ''
 !
@@ -985,6 +1077,9 @@ subroutine ADJcheck
 !     restore DS
       call memfree
       call ddinit( nsph_save, x_save, y_save, z_save, r_save )
+!
+!     deactivate quiet flag      
+      iquiet = .false.
 !
 !
 endsubroutine ADJcheck
