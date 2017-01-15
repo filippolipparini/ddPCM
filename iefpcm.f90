@@ -437,6 +437,7 @@ subroutine ADJpcm( philm, wlm )
         err = sqrt(err/dble(nsph))
 !
 !       compute rms- and max-norm of v_old
+        vrms=zero ; vmax=zero
         call rmsvec( nbasis*nsph, vold, vrms, vmax )
 !
         if ( vrms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
