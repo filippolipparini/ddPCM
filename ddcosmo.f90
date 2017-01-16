@@ -1366,7 +1366,22 @@ endsubroutine dbasis
 !
 !
 !
-subroutine itsolv(star,phi,psi,sigma,ene)
+!-------------------------------------------------------------------------------
+! Purpose : solve COSMO equation 
+!
+!             L sigma = g
+!
+!           or adjoint equation
+!
+!             L^* sigma = Psi
+!
+!           Compute solvation energy
+!
+!             E_s = 1/2 f(eps) < Psi , sigma >
+!
+!-------------------------------------------------------------------------------
+!
+subroutine itsolv( star, phi, psi, sigma, ene )
 !
       implicit none
       logical,                        intent(in)    :: star
@@ -1393,6 +1408,7 @@ subroutine itsolv(star,phi,psi,sigma,ene)
       integer, parameter :: nitmax=300
       real*8,  parameter :: ten=10.d0, tredis=1.0d-2
       integer :: istatus
+!      
 !-------------------------------------------------------------------------------
 !
 !     initialize the timer:

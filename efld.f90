@@ -1,5 +1,5 @@
-subroutine efld(nsrc,src,csrc,ntrg,ctrg,ef)
-implicit none
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! 
 ! 
 !      888      888  .d8888b.   .d88888b.   .d8888b.  888b     d888  .d88888b.  
 !      888      888 d88P  Y88b d88P" "Y88b d88P  Y88b 8888b   d8888 d88P" "Y88b 
@@ -82,6 +82,9 @@ implicit none
 ! with coordinates csrc) at the ntrg target points ctrg:                       !
 !                                                                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine efld( nsrc, src, csrc, ntrg, ctrg, ef )
+!
+implicit none
 !
 integer,                    intent(in)    :: nsrc, ntrg
 real*8,  dimension(nsrc),   intent(in)    :: src

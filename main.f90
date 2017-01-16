@@ -214,7 +214,7 @@ program main
 ! --------------------------   modify here  --------------------------  
 !
 ! place here your favorite routine to assemble the solute's electrostatic potential
-! and the "psi" vector. Such a routine should replace "mkrhs".
+! "phi" and the "psi" vector. Such a routine should replace "mkrhs".
 ! for classical solutes, assembling the psi vector is straightforward; for qm solutes
 ! it requires a numerical integration (similar to the one used to compute the xc 
 ! contributions in dft), as detaild in J. Chem. Phys. 141, 184108
@@ -240,7 +240,6 @@ program main
 !     =====
       if ( iscrf.eq.0 ) then
 !              
-!       compute \sigma and solvation energy
         call itsolv( .false., phi, psi, sigma, esolv )
         write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
@@ -248,6 +247,7 @@ program main
 !     ===
       else
 !              
+        g=zero
         call wghpot( phi, g )
         call iefpcm( g, psi, sigma )
 !        
@@ -264,7 +264,7 @@ program main
 !              
         write(6,*)
 !        
-!       solution of adjoint problem, forces
+!       allocate workspaces
         allocate( s(nbasis,nsph), fx(3,nsph) , stat=istatus )
         if ( istatus.ne.0 ) then
           write(*,*)'main : [4] failed allocation !'

@@ -1,6 +1,5 @@
-subroutine forces( n, charge, phi, sigma, s, fx )
-!
-use ddcosmo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! 
 ! 
 !      888      888  .d8888b.   .d88888b.   .d8888b.  888b     d888  .d88888b.  
 !      888      888 d88P  Y88b d88P" "Y88b d88P  Y88b 8888b   d8888 d88P" "Y88b 
@@ -82,83 +81,196 @@ use ddcosmo
 ! Sample driver for the calculation of the ddCOSMO forces.                     !
                                                                                !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-implicit none
+!-------------------------------------------------------------------------------
+! Recall :
 !
-integer,                         intent(in)    :: n
-real*8,  dimension(n),           intent(in)    :: charge
-real*8,  dimension(ncav),        intent(in)    :: phi
-real*8,  dimension(nbasis,nsph), intent(in)    :: sigma
-real*8,  dimension(nbasis,nsph), intent(in)    :: s
-real*8,  dimension(3,n),         intent(inout) :: fx
+!  E_s = 1/2 f(eps) < Psi , sigma >  ;  F_i = dE_s / dr_i  ;  L^* s = Psi
 !
-integer :: isph, ig, ii, c1, c2, cr, istatus
-real*8  :: fep
+! Then, if we indicate a generic derivative with ', we obtain :
 !
-real*8, allocatable :: xi(:,:), phiexp(:,:), zeta(:), ef(:,:)
-real*8, allocatable :: basloc(:), dbsloc(:,:), vplm(:), vcos(:), vsin(:)
+!   g' = (L sigma)' = L' sigma + L sigma'
 !
-allocate(xi(ngrid,nsph),phiexp(ngrid,nsph), stat=istatus)
-if (istatus.ne.0) then
-  write(*,*) 'forces : [1] failed allocation !'
-endif
+! Thus :
 !
-allocate(basloc(nbasis),dbsloc(3,nbasis),vplm(nbasis),vcos(lmax+1),vsin(lmax+1) , stat=istatus)
-if (istatus.ne.0) then
-  write(*,*) 'forces : [2] failed allocation !'
-endif
+!   E_s' = ... < Psi' , sigma > + <   Psi , sigma' >
 !
-! initialize the timer:
+!        = ... < Psi' , sigma > + < L^* s , sigma' >
 !
-call system_clock(count_rate=cr)
-call system_clock(count=c1)
+!        = ... < Psi' , sigma > + <     s , L sigma' >
 !
-! compute xi:
+!        = ... < Psi' , sigma > + < s , g' > - < s , L' sigma >
 !
-!$omp parallel do default(shared) private(isph,ig)
-do isph = 1, nsph
-  do ig = 1, ngrid
-    xi(ig,isph) = dot_product(s(:,isph),basis(:,ig))
-  end do
-end do
-!$omp end parallel do
+! Recall :
 !
-! expand the potential on a sphere-by-sphere basis (needed for parallelism):
+!   < s , L' sigma > = K_a + K_b  [ see PCM notes ]
 !
-ii = 0
-phiexp = zero
-do isph = 1, nsph
-  do ig = 1, ngrid
-    if (ui(ig,isph).gt.zero) then
-      ii = ii + 1
-      phiexp(ig,isph) = phi(ii)
-    end if
-  end do
-end do
+! and
 !
-fx = zero
-do isph = 1, nsph
-  call fdoka(isph,sigma,xi(:,isph),basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 
-  call fdokb(isph,sigma,xi,basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 
-  call fdoga(isph,xi,phiexp,fx(:,isph)) 
-end do
+!   < s , g' > = sum sum sum  Y_l^m(y_n) [s_j]_l^m  w_n   ( U_n^j' Phi_n^j + U_n^j  Phi_n^j' )
+!                 j   n  l,m
 !
-deallocate (basloc,dbsloc,vplm,vcos,vsin)
+!                        |------- xi(j,n) -------|
 !
-allocate (zeta(ncav))
-ii = 0
-do isph = 1, nsph
-  do ig = 1, ngrid
-    if (ui(ig,isph).gt.zero) then
-      ii = ii + 1
-      zeta(ii) = xi(ig,isph)*w(ig)*ui(ig,isph)
-    end if
-  end do
-end do
-call system_clock(count=c2)
-if (iprint.gt.0) then
-  write(iout,1010) dble(c2-c1)/dble(cr)
-1010 format(' the computation of the ddCOSMO part of the forces took ',f8.3,' seconds.')
-end if
+!
+!              = sum sum  xi(j,n) w_n U_n^j  Phi_n^j'  +  xi(j,n) w_n U_n^j' Phi_n^j
+!                 j   n
+!
+!                         |-- zeta(j,n) --|
+!
+! Finally :
+!
+!   Phi_n^i' = \grad_i Phi_n^i = -E[z_i]_n^i
+!
+! where E... is the electric field produced by all charges z_j such that
+! j \ne i , and  
+!
+!   Phi_n^j' = \grad_i Phi_n^j = -E(z_i)_n^j 
+!
+! where E... is the electric field produced by the charge z_i at the cavity
+! points for j \ne i .
+!-------------------------------------------------------------------------------
+!
+subroutine forces( n, charge, phi, sigma, s, fx )
+!
+      use ddcosmo
+!
+      implicit none
+!
+      integer,                         intent(in)    :: n
+      real*8,  dimension(n),           intent(in)    :: charge
+      real*8,  dimension(ncav),        intent(in)    :: phi
+      real*8,  dimension(nbasis,nsph), intent(in)    :: sigma
+      real*8,  dimension(nbasis,nsph), intent(in)    :: s
+      real*8,  dimension(3,n),         intent(inout) :: fx
+!
+      integer :: isph, ig, ii, c1, c2, cr, istatus
+      real*8  :: fep
+!
+      real*8, allocatable :: xi(:,:), phiexp(:,:), zeta(:), ef(:,:)
+      real*8, allocatable :: basloc(:), dbsloc(:,:), vplm(:), vcos(:), vsin(:)
+!      
+!-------------------------------------------------------------------------------
+!
+!     allocate workspaces...
+      allocate( xi(ngrid,nsph), phiexp(ngrid,nsph) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'forces : [1] failed allocation !'
+      endif
+!
+!     ... and more workspaces      
+      allocate( basloc(nbasis), dbsloc(3,nbasis), vplm(nbasis), vcos(lmax+1), & 
+                vsin(lmax+1) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'forces : [2] failed allocation !'
+      endif
+!
+!     initialize the timer
+      call system_clock( count_rate = cr )
+      call system_clock( count = c1 )
+!
+      !$omp parallel do default(shared) private(isph,ig)
+!
+!     loop over atoms
+      do isph = 1, nsph
+!
+!       loop over gridpoints
+        do ig = 1, ngrid
+!        
+!         compute xi(j,n)
+!         ===============
+          xi(ig,isph) = dot_product( s(:,isph), basis(:,ig) )
+!          
+        enddo
+      enddo
+!      
+      !$omp end parallel do
+!
+!
+!     initialize
+      ii = 0 ; phiexp = zero
+!
+!     loop over atoms
+      do isph = 1, nsph
+!
+!       loop over integration points
+        do ig = 1, ngrid
+!
+!         positive contribution from integration point
+          if ( ui(ig,isph).gt.zero ) then
+!                  
+!           advance index
+            ii = ii + 1
+!
+!           expand potential Phi_n^j on a sphere-by-sphere basis [ needed for parallelism ]
+!           ========================
+            phiexp(ig,isph) = phi(ii)
+!            
+          endif
+        enddo
+      enddo
+!
+!     initialize forces
+      fx = zero
+!      
+!     loop over atoms
+      do isph = 1, nsph
+!      
+!       accumulate K_a contribution to < s , L' sigma >
+        call fdoka( isph, sigma, xi(:,isph), basloc, dbsloc, vplm, vcos, vsin, fx(:,isph) ) 
+!        
+!       accumulate K_b contribution to < s , L' sigma >
+        call fdokb( isph, sigma, xi,         basloc, dbsloc, vplm, vcos, vsin, fx(:,isph) ) 
+!
+!       accumulate sum_n U_n^j' Phi_n^j xi(j,n) 
+        call fdoga( isph,        xi,         phiexp,                           fx(:,isph) ) 
+!        
+      enddo
+!
+!     deallocate workspaces
+      deallocate( basloc, dbsloc, vplm, vcos, vsin , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'forces : [1] failed deallocation !'
+      endif
+!
+!     allocate workspace
+      allocate( zeta(ncav) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'forces : [3] failed allocation !'
+      endif
+!
+!     initialize index
+      ii = 0
+!
+!     loop over atoms
+      do isph = 1, nsph
+!
+!       loop over gridpoints
+        do ig = 1, ngrid
+!
+!         non-null contribution from grid point
+          if (ui(ig,isph).gt.zero) then
+!   
+!           advance index
+            ii = ii + 1
+!
+!           compute zeta(j,n)
+!           =================
+            zeta(ii) = xi(ig,isph)*w(ig)*ui(ig,isph)
+!            
+          endif
+        enddo
+      enddo
+!
+!     time computation of forces
+      call system_clock( count = c2 )
+!
+!     printing
+      if (iprint.gt.0) then
+!              
+        write(iout,1010) dble(c2-c1)/dble(cr)
+ 1010   format(' the computation of the ddCOSMO part of the forces took ',f8.3,' seconds.')
+! 
+      endif
 !
 ! --------------------------   modify here  --------------------------  
 !
@@ -177,27 +289,47 @@ end if
 ! an example (efld). notice that the array csph contains the coordinates of the nuclei.
 ! the user will need to replace efld with his/her favorite routine.
 !
-allocate(ef(3,ncav))
+!     allocate workspace
+      allocate( ef(3,ncav) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'forces : [4] failed allocation !'
+      endif
 !
-! solute's electric field at the cav points times zeta:
+!     electric field produced by the charges, at the cavity points [ TARGETS ]
+      call efld( n, charge, csph, ncav, ccav, ef )
 !
-call efld(n,charge,csph,ncav,ccav,ef)
-ii = 0
-do isph = 1, nsph
-  do ig = 1, ngrid
-    if (ui(ig,isph).gt.zero) then 
-      ii = ii + 1
-      fx(:,isph) = fx(:,isph) + zeta(ii)*ef(:,ii)
-    end if
-  end do
-end do
+!     initialize index
+      ii = 0
 !
-! "zeta's" electric field at the nuclei times the charges. notice that ncav is larger than n.
+!     loop over atoms
+      do isph = 1, nsph
 !
-call efld(ncav,zeta,ccav,n,csph,ef)
-do isph = 1, nsph
-  fx(:,isph) = fx(:,isph) + ef(:,isph)*charge(isph)
-end do
+!       loop over gridpoints
+        do ig = 1, ngrid
+!
+!         non-null contribution from integration point
+          if ( ui(ig,isph).gt.zero ) then 
+!
+!           advance index
+            ii = ii + 1
+!
+!           accumulate zeta(j,n) Phi_n^j'
+            fx(:,isph) = fx(:,isph) + zeta(ii)*ef(:,ii)
+!            
+          endif
+        enddo
+      enddo
+!
+!     electric field produced by the cavity, at the nuclei [ TARGETS ]
+      call efld( ncav, zeta, ccav, n, csph, ef )
+!
+!     loop over atoms
+      do isph = 1, nsph
+!      
+!       accumulate [ spurious contributions cancel ... ]
+        fx(:,isph) = fx(:,isph) + ef(:,isph)*charge(isph)
+!        
+      enddo
 !
 ! for point charges, there is no contribution from the derivatives of the psi vector.
 ! for quantum mechanical solutes, such a contribution needs to be handled via a numerical
@@ -205,20 +337,28 @@ end do
 !
 ! --------------------------   end modify   --------------------------  
 ! 
-deallocate (xi,phiexp,zeta,ef)
+!     deallocate workspaces
+      deallocate( xi, phiexp, zeta, ef , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'forces : [2] failed deallocation !'
+      endif
 !
-! scale the forces time the cosmo factor:
+!     scale the forces time the cosmo factor
+      fep = pt5*(eps-one)/eps
+      fx  = fep*fx
 !
-fep = pt5*(eps-one)/eps
-fx  = fep*fx
+!     printing      
+      if ( iprint.ge.2 ) then
+!              
+        write(iout,1000)
+ 1000   format(1x,'ddCOSMO forces (atomic units):',/, &
+                  1x,' atom',15x,'x',15x,'y',15x,'z')
+!                  
+        do isph = 1, nsph
+          write(6,'(1x,i5,3f16.8)') isph, fx(:,isph)
+        enddo
+!        
+      endif
 !
-if (iprint.ge.2) then
-  write(iout,1000)
-1000 format(1x,'ddCOSMO forces (atomic units):',/, &
-            1x,' atom',15x,'x',15x,'y',15x,'z')
-  do isph = 1, nsph
-    write(6,'(1x,i5,3f16.8)') isph, fx(:,isph)
-  end do
-end if
-return
-end
+!
+endsubroutine forces

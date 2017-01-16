@@ -81,7 +81,7 @@ subroutine iefpcm( phi, psi, sigma_g )
         write(*,*)'iefpcm : allocation failed !'
         stop
       endif
-!
+!      
 !
 !===================================================================================
 ! PCM                                                                              |
@@ -103,7 +103,11 @@ subroutine iefpcm( phi, psi, sigma_g )
 !     initial residual : R^0  = g - A_eps * x^0 = g
       vold(:,:) = glm(:,:)
 !      
-      !$omp parallel do default(shared) private(isph,xlm,x,basloc,vplm,vcos,vsin)
+!     $omp parallel do default(shared) private(isph,xlm,x,basloc,vplm,vcos,vsin)
+!      
+!     initialize
+      philm(:,:) = zero ; x(:) = zero ; xlm(:) = zero ; basloc(:) = zero
+      vplm(:) = zero ; vcos(:) = zero ; vsin(:) = zero
 !      
 !     loop over atoms
       do isph = 1,nsph
@@ -113,12 +117,15 @@ subroutine iefpcm( phi, psi, sigma_g )
 !        
       end do
 !
-      !$omp parallel do default(shared) private(isph)
+!     $omp parallel do default(shared) private(isph)
 !      
 !      
 !     STEP 2 : solve A_eps W = phi
 !     -----------------------------
 !    
+!     initialize
+      prec(:,:,:) = zero ; precm1(:,:,:) = zero
+!      
 !     loop over atoms
       do isph = 1,nsph
 !
@@ -126,7 +133,6 @@ subroutine iefpcm( phi, psi, sigma_g )
         call mkprec( isph, .true., prec(:,:,isph), precm1(:,:,isph) )
 !        
       end do
-!
 !
 !                                   n
 !     STEP 2.1 : Jacobi method for W
@@ -143,6 +149,7 @@ subroutine iefpcm( phi, psi, sigma_g )
 !      
 !       initialize residual to zero
         wlm(:,:) = zero
+!
 !
       !$omp parallel do default(shared) private(isph,xlm,x,basloc,vplm,vcos,vsin)
 !
