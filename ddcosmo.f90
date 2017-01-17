@@ -1700,26 +1700,29 @@ end subroutine itsolv
 !
 !
 !
-  subroutine wghpot(phi,g)
-  implicit none
-  !
-  real*8, dimension(ncav),       intent(in)    :: phi
-  real*8, dimension(ngrid,nsph), intent(inout) :: g
-  !
-  integer isph, ig, ic
-  !
-  ic = 0
-  do isph = 1, nsph
-    do ig = 1, ngrid
-      if (ui(ig,isph).ne.zero) then
-        ic = ic + 1
-        g(ig,isph) = - ui(ig,isph)*phi(ic)
-      end if
-    end do
-  end do
-  !
-  return
-  end subroutine wghpot
+subroutine wghpot( phi, g )
+!
+      implicit none
+!
+      real*8, dimension(ncav),       intent(in)    :: phi
+      real*8, dimension(ngrid,nsph), intent(inout) :: g
+!
+      integer isph, ig, ic
+!
+      ic = 0
+      do isph = 1, nsph
+        do ig = 1, ngrid
+          if (ui(ig,isph).ne.zero) then
+            ic = ic + 1
+            g(ig,isph) = - ui(ig,isph)*phi(ic)
+          end if
+        end do
+      end do
+!
+      return
+!
+!
+endsubroutine wghpot
   !
   subroutine hsnorm(u,unorm)
   implicit none

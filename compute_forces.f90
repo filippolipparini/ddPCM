@@ -15,36 +15,36 @@
 !
 ! Since A_eps' is independent of eps, let's just set A' = A_oo' = A_eps' , so that :
 !
-!   F = < s , A' ( Phi - Phi_eps ) >  + < s , A_oo Phi' > + < s , A_eps L' sigma >
+!   F = < s , A' ( Phi - Phi_eps ) > +   < s , A_oo Phi' > +   < s , A_eps L' sigma >
 !
-!       < s , A' ( Phi - Phi_eps ) >  + < s , A_oo Phi' > + < A_eps^T s , L' sigma >
+!       < s , A' ( Phi - Phi_eps ) > + < A_oo^T s , Phi' > + < A_eps^T s , L' sigma >
 !
 !-------------------------------------------------------------------------------------
 !
-subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
+subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
       use ddcosmo , only : zero, ngrid, nsph, nbasis, zero, lmax, intrhs, itsolv2, &
-                           basis, fdoka, fdokb, iprint
+                           basis, fdoka, fdokb, iprint, ncav, ui, ccav, csph, &
+                           w, fdoga, eps
 !      
       implicit none
-      real*8, dimension( ngrid,nsph),        intent(in)  :: Phi
-      real*8, dimension( ngrid,nsph,nsph,3), intent(in)  :: dPhi
-      real*8, dimension(nbasis,nsph),        intent(in)  :: Psi
-      real*8, dimension(nbasis,nsph),        intent(in)  :: sigma
-      real*8, dimension(nbasis,nsph),        intent(in)  :: Phi_eps
-      real*8, dimension(nsph,3),             intent(out) :: f
+      real*8, dimension( ngrid,nsph), intent(in)  :: Phi
+      real*8, dimension(       nsph), intent(in)  :: charge
+      real*8, dimension(nbasis,nsph), intent(in)  :: Psi
+      real*8, dimension(nbasis,nsph), intent(in)  :: sigma
+      real*8, dimension(nbasis,nsph), intent(in)  :: Phi_eps
+      real*8, dimension(nsph,3),      intent(out) :: f
 !
       real*8, dimension(ngrid,nsph) :: xi
-      real*8, dimension(nbasis,nsph) :: w_lm, s, y
-      real*8, dimension(nbasis,nsph,nsph,3) :: g_lm
-      real*8, dimension(nbasis,nsph,nsph,3) :: dphi_lm
+      real*8, dimension(nbasis,nsph) :: w_lm, s, y, z
       real*8, dimension(ngrid) :: x
       real*8, dimension(nbasis) :: xlm, basloc, vplm
       real*8, dimension(3,nbasis) :: dbsloc
       real*8, dimension(lmax+1) :: vcos, vsin
       real*8 :: rvoid
+      real*8 :: ef(3,ncav),zeta(ncav)
 !
-      integer :: isph,jsph,icomp,n
+      integer :: isph,jsph,icomp,n,i
       logical, parameter :: star=.true.
 !
 !-------------------------------------------------------------------------------------
@@ -85,47 +85,114 @@ subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
       enddo
 !
 !
-!     STEP 3 : compute f = f + < s , A_oo Phi' >
-!     ------------------------------------------
+!     STEP 3 : compute f = f + < A_oo^T s , Phi' >
+!     --------------------------------------------
 !
-!     compute SH expansion on i-sphere ...
+!     initialize
+      z(:,:) = zero ; xlm(:) = zero ; x(:) = zero ; basloc(:) = zero
+      vplm(:) = zero ; vcos(:) = zero ; vsin(:) = zero
+!      
+!     compute z = A_oo^T s
+      do isph = 1,nsph
+!      
+        call ADJvec( isph, zero, s(:,:), z(:,isph), xlm, x, basloc, vplm, vcos, vsin )
+!        
+      enddo
+!      
+!     initialize
+      xi(:,:) = zero
+!      
+      do isph = 1,nsph
+        do n = 1,ngrid
+!        
+!         compute xi
+          xi(n,isph) = dot_product( z(:,isph), basis(:,n) )
+!          
+        enddo
+      enddo
+! 
+!     loop over atoms
       do isph = 1,nsph
 !
-!       ... of derivative of Phi with respect to center of j-sphere
-        do jsph = 1,nsph
-!       
-          do icomp = 1,3
-!       
-            call intrhs( isph, dPhi(:,isph,jsph,icomp), g_lm(:,isph,jsph,icomp) )
-!       
-          enddo
+!       accumulate sum_n U_n^i' Phi_n^i xi(i,n) 
+        call fdoga( isph, xi, Phi, f(isph,:) ) 
+!        
+      enddo
+!      
+!     initialize index
+      i=0
+!
+!     loop over atoms
+      do isph = 1,nsph
+!
+!       loop over gridpoints
+        do n = 1,ngrid
+!
+!         non-null contribution from grid point
+          if ( ui(n,isph).gt.zero ) then
+!   
+!           advance index
+            i=i+1
+!
+!           compute zeta(i,n)
+            zeta(i) = xi(n,isph)*w(n)*ui(n,isph)
+!            
+          endif
         enddo
       enddo
 !
-!     apply A_oo
-      do isph = 1,nsph
 !
-        do jsph = 1,nsph
-!     
-          do icomp = 1,3
-!     
-            call mkrvec( isph, zero, g_lm(:,:,jsph,icomp), dphi_lm(:,isph,jsph,icomp), xlm, x, basloc, vplm, vcos, vsin )
+! =========================  M O D I F Y    H E R E  =========================
 !
-!           accumulate
-            f(isph,icomp) = f(isph,icomp) + dot_product( s(:,isph) , dphi_lm(:,isph,jsph,icomp) )
-!     
-          enddo
+!     electric field produced by the charges, at the cavity points [ TARGETS ]
+      call efld( nsph, charge, csph, ncav, ccav, ef )
+!
+!     initialize index
+      i=0
+!
+!     loop over atoms
+      do isph = 1, nsph
+!
+!       loop over gridpoints
+        do n = 1, ngrid
+!
+!         non-null contribution from integration point
+          if ( ui(n,isph).gt.zero ) then 
+!
+!           advance index
+            i=i+1
+!
+!           accumulate FIRST contribution to < z , Phi' >
+            f(isph,:) = f(isph,:) + zeta(i)*ef(:,i)
+!            
+          endif
         enddo
       enddo
+!
+!     electric field produced by the cavity, at the nuclei [ TARGETS ]
+      call efld( ncav, zeta, ccav, nsph, csph, ef )
+!
+!     loop over atoms
+      do isph = 1, nsph
+!      
+!       accumulate SECOND contribution to < z , Phi' >
+        f(isph,:) = f(isph,:) + ef(:,isph)*charge(isph)
+!        
+      enddo
+!
+! ==========================  E N D    M O D I F Y  ==========================
 !
 !
 !     STEP 4 : compute f = f - < y , L' sigma >
 !     -----------------------------------------
 !
-!     compute xi
+!     initialize
+      xi(:,:) = zero
+!      
       do isph = 1,nsph
         do n = 1,ngrid
 !        
+!         compute xi
           xi(n,isph) = dot_product( y(:,isph), basis(:,n) )
 !          
         enddo
@@ -139,6 +206,8 @@ subroutine compute_forces( Phi, dPhi, Psi, sigma, Phi_eps, f )
 !
       enddo
 !
+!!!!     scale the forces time the cosmo factor [ is this needed ??? ]
+!!!      f = 0.5d0*(eps-1.d0)/eps * f
 !
 !     printing
       if ( iprint.ge.2 ) then

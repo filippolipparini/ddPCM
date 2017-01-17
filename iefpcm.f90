@@ -16,7 +16,7 @@
 !
 !   -sigma_g 
 !-------------------------------------------------------------------------------
-subroutine iefpcm( phi, psi, sigma_g )
+subroutine iefpcm( phi, psi, charge, sigma_g )
 !
       use  ddcosmo
 !      
@@ -24,6 +24,7 @@ subroutine iefpcm( phi, psi, sigma_g )
 !
       real*8, dimension( ngrid,nsph), intent(in)    :: phi
       real*8, dimension(nbasis,nsph), intent(in)    :: psi
+      real*8, dimension(       nsph), intent(in)    :: charge
       real*8, dimension(nbasis,nsph), intent(inout) :: sigma_g
 !      
 !     P. Gatto, Nov 2016      
@@ -254,25 +255,19 @@ subroutine iefpcm( phi, psi, sigma_g )
 !===================================================================================
 !
 !     allocate 
-      allocate( phi_eps(nbasis,nsph), dphi(ngrid,nsph,nsph,3), f(3,nsph) , stat=istatus )
+      allocate( f(3,nsph) , stat=istatus )
 !      
 !     check
       if ( istatus.ne.0 ) then
         write(*,*)'iefpcm : [1] failed allocation !'
         stop
       endif 
-!
-!     redirect
-      phi_eps = -wlm
 !      
-!     provide derivatives of Phi
-      call compute_dphi( dphi )
-!      
-!     compute forces
-      call compute_forces( phi, dphi, psi, sigma_g, phi_eps, f )
+!     compute forces                                  phi_eps
+      call compute_forces( phi, charge, psi, sigma_g, -wlm   , f )
 !      
 !     deallocate
-      deallocate( phi_eps, dphi, f , stat=istatus )
+      deallocate( f , stat=istatus )
 !      
 !     check
       if ( istatus.ne.0 ) then

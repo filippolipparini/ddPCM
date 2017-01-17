@@ -249,7 +249,7 @@ program main
 !              
         g=zero
         call wghpot( phi, g )
-        call iefpcm( g, psi, sigma )
+        call iefpcm( g, psi, charge, sigma )
 !        
       end if
 !
@@ -300,7 +300,8 @@ program main
       memuse = memuse - 5*nsph - ncav - 2*nsph*nbasis
       memmax = max(memmax,memuse)
 !
-      if (igrad.eq.1) then
+!     deallocate workspace
+      if ( igrad.eq.1 ) then
         deallocate( s, fx , stat=istatus )
         if ( istatus.ne.0 ) then
           write(*,*)'main : [2] failed deallocation !'
@@ -308,6 +309,7 @@ program main
         endif 
       endif
 !
+!     free memory
       call memfree
 !
       write(6,*) 'maximum quantity of memory allocated:', memmax

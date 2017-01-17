@@ -77,9 +77,9 @@
 ! Written by Filippo Lipparini, October 2015.
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                                                                               !
+!                                                                              !
 ! Sample driver for the calculation of the ddCOSMO forces.                     !
-                                                                               !
+!                                                                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !-------------------------------------------------------------------------------
 ! Recall :
@@ -248,7 +248,7 @@ subroutine forces( n, charge, phi, sigma, s, fx )
         do ig = 1, ngrid
 !
 !         non-null contribution from grid point
-          if (ui(ig,isph).gt.zero) then
+          if ( ui(ig,isph).gt.zero ) then
 !   
 !           advance index
             ii = ii + 1
@@ -265,7 +265,7 @@ subroutine forces( n, charge, phi, sigma, s, fx )
       call system_clock( count = c2 )
 !
 !     printing
-      if (iprint.gt.0) then
+      if ( iprint.gt.0 ) then
 !              
         write(iout,1010) dble(c2-c1)/dble(cr)
  1010   format(' the computation of the ddCOSMO part of the forces took ',f8.3,' seconds.')
@@ -313,7 +313,7 @@ subroutine forces( n, charge, phi, sigma, s, fx )
 !           advance index
             ii = ii + 1
 !
-!           accumulate zeta(j,n) Phi_n^j'
+!           accumulate FIRST contribution to < s , g' >
             fx(:,isph) = fx(:,isph) + zeta(ii)*ef(:,ii)
 !            
           endif
@@ -326,7 +326,7 @@ subroutine forces( n, charge, phi, sigma, s, fx )
 !     loop over atoms
       do isph = 1, nsph
 !      
-!       accumulate [ spurious contributions cancel ... ]
+!       accumulate SECOND contribution to < s , g' >
         fx(:,isph) = fx(:,isph) + ef(:,isph)*charge(isph)
 !        
       enddo
