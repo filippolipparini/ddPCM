@@ -97,8 +97,8 @@ program main
 !      
       implicit none
 !
-      integer :: i, istatus
-      real*8  :: tobohr, esolv
+      integer :: i, j, istatus
+      real*8  :: tobohr, esolv, ss
       real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
 !     quantities to be allocated by the user.
@@ -226,6 +226,7 @@ program main
 ! --------------------------   end modify   --------------------------  
 !
 !
+!     allocate solution vector
       allocate( sigma(nbasis,nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
         write(*,*)'main : [3] failed allocation !'
@@ -236,78 +237,120 @@ program main
       memuse = memuse + nbasis*nsph
       memmax = max(memmax,memuse)
 !
+!
 !     COSMO
 !     =====
       if ( iscrf.eq.0 ) then
 !              
+!       1. solve cosmo equations
+!       ------------------------
         call itsolv( .false., phi, psi, sigma, esolv )
         write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+!
+!       2. compute norm of solution   
+!       ---------------------------
+        ss=zero
+!        
+        do i = 1,nbasis
+          do j = 1,nsph
+!
+!           accumulate
+            ss = ss + sigma(i,j)**2
+!
+          enddo
+        enddo
+!
+        ss = sqrt(ss)
+!        
+        write(*,1000) ss
+ 1000   format(' COSMO : ||sigma|| = ',e12.5)       
+!
+!       this is all for the energy. if the forces are also required, call the solver for
+!       the adjoint problem. 
+!       the solution to the adjoint system is required also to compute the Fock matrix 
+!       contributions.
+!
+!       3. compute forces
+!       -----------------
+        if ( igrad.eq.1 ) then
+!                
+          write(6,*)
+!          
+!         allocate workspaces
+          allocate( s(nbasis,nsph), fx(3,nsph) , stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*)'main : [4] failed allocation !'
+            stop
+          endif 
+!          
+!         update memory usage
+          memuse = memuse + nbasis*nsph + 3*nsph
+          memmax = max(memmax,memuse)
+!
+!         solve adjoint problem
+          call itsolv( .true., phi, psi, s, esolv )
+!
+!         now call the routine that computes the forces. such a routine requires the potential 
+!         derivatives at the cavity points and the electric field at the cavity points: it has
+!         therefore to be personalized by the user. it is included in this sample program as
+!         forces.f90.
+!
+          call forces( nsph, charge, phi, sigma, s, fx )
+!           
+!         deallocate workspaces
+          deallocate( s, fx , stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*)'main : [1] failed deallocation !'
+            stop
+          endif 
+!          
+!         update memory usage
+          memuse = memuse - nbasis*nsph - 3*nsph
+          memmax = max(memmax,memuse)
+!
+        endif
+!
 !
 !     PCM        
 !     ===
       else
 !              
+!       1. solve pcm equations, and compute forces
+!       ------------------------------------------
         g=zero
         call wghpot( phi, g )
         call iefpcm( g, psi, charge, sigma )
+!
+!       2. compute norm of solution   
+!       ---------------------------
+        ss=zero
 !        
-      end if
+        do i = 1,nbasis
+          do j = 1,nsph
 !
-!     this is all for the energy. if the forces are also required, call the solver for
-!     the adjoint problem. 
-!     the solution to the adjoint system is required also to compute the Fock matrix 
-!     contributions.
+!           accumulate
+            ss = ss + sigma(i,j)**2
 !
-!     FORCES
-!     ======
-      if ( igrad.eq.1 ) then
-!              
-        write(6,*)
+          enddo
+        enddo
+!
+        ss = sqrt(ss)
 !        
-!       allocate workspaces
-        allocate( s(nbasis,nsph), fx(3,nsph) , stat=istatus )
-        if ( istatus.ne.0 ) then
-          write(*,*)'main : [4] failed allocation !'
-          stop
-        endif 
+        write(*,1001) ss
+ 1001   format(' PCM : ||sigma|| = ',e12.5)       
 !        
-!       update memory usage
-        memuse = memuse + nbasis*nsph + 3*nsph
-        memmax = max(memmax,memuse)
+      endif
 !
-!       solve adjoint problem
-        call itsolv( .true., phi, psi, s, esolv )
-!
-!       now call the routine that computes the forces. such a routine requires the potential 
-!       derivatives at the cavity points and the electric field at the cavity points: it has
-!       therefore to be personalized by the user. it is included in this sample program as
-!       forces.f90.
-!
-         call forces( nsph, charge, phi, sigma, s, fx )
-!
-      end if
-!
-!
-!     clean up:
-!
+!     deallocate workspaces
       deallocate( x, y, z, rvdw, charge, phi, psi, sigma , stat=istatus )
       if ( istatus.ne.0 ) then
-        write(*,*)'main : [1] failed deallocation !'
+        write(*,*)'main : [2] failed deallocation !'
         stop
       endif 
 !      
 !     update memory usage
       memuse = memuse - 5*nsph - ncav - 2*nsph*nbasis
       memmax = max(memmax,memuse)
-!
-!     deallocate workspace
-      if ( igrad.eq.1 ) then
-        deallocate( s, fx , stat=istatus )
-        if ( istatus.ne.0 ) then
-          write(*,*)'main : [2] failed deallocation !'
-          stop
-        endif 
-      endif
 !
 !     free memory
       call memfree

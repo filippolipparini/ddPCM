@@ -370,8 +370,9 @@ subroutine ddinit( n, x, y, z, rvdw )
             d2 = (csph(1,isph) - csph(1,jsph))**2 + (csph(2,isph) - csph(2,jsph))**2 + (csph(3,isph) - csph(3,jsph))**2
 !            
 !           sum square of atoms' radii
-            r2 = (rsph(isph) + rsph(jsph))**2
-!!!            r2 = ( rsph(isph)*(one + se) + rsph(jsph)*(one + se) )**2
+!!!            r2 = (rsph(isph) + rsph(jsph))**2
+            r2 = ( rsph(isph)*(one + (se + 1.d0)*eta / 2.d0) + &
+                   rsph(jsph)*(one + (se + 1.d0)*eta / 2.d0)   )**2
 !    
 !           atoms intersect
             if ( d2.le.r2 ) then
@@ -436,15 +437,15 @@ subroutine ddinit( n, x, y, z, rvdw )
             t    = vv/rsph(jsph)
 !    
 !           compute \chi( t )
-            xt = fsw( t, se, eta*rsph(jsph) )
+            xt = fsw( t, se, eta )
 !            
 !           upper bound of switch region
-            swthr = one - eta*rsph(jsph)
+            swthr = one + (se + 1.d0)*eta / 2.d0
 !            
 !           if t belongs to switch region
-            if ( grad .and. ( t.lt.one .and. t.gt.swthr ) ) then
+            if ( grad .and. ( t.lt.swthr .and. t.gt.swthr-eta ) ) then
 !                    
-              fac = dfsw( t, se, eta*rsph(jsph) ) / rsph(jsph)
+              fac = dfsw( t, se, eta ) / rsph(jsph)
 !    
 !             accumulate sum_j d\chi_j / dr_i
               zi(:,i,isph) = zi(:,i,isph) + fac*v(:)/vv
@@ -456,10 +457,7 @@ subroutine ddinit( n, x, y, z, rvdw )
 !            
           end do
 !    
-!         
           if ( fi(i,isph).le.one )  ui(i,isph) = one - fi(i,isph)
-
-!    !!      write(*,*)'i,isph,zi(:) = ',i,isph,zi(:,i,isph)
 !    
         end do
       end do
@@ -656,8 +654,13 @@ real*8 function fsw( t, s, eta )
 !
 !------------------------------------------------------------------------------------------------
 !
+!     shift :
+!     s =  0   =>   t - eta/2  [ CENTERED ]
+!     s =  1   =>   t - eta    [ EXTERIOR ]
+!     s = -1   =>   t          [ INTERIOR ]
+!
 !     apply shift
-      x = t - s
+      x = t - (s + 1.d0)*eta / 2.d0
 !      
 !     lower bound of switch region
       flow = one - eta
@@ -699,8 +702,13 @@ real*8 function dfsw( t, s, eta )
 !
 !------------------------------------------------------------------------------------------------
 !
+!     shift :
+!     s =  0   =>   t - eta/2  [ CENTERED ]
+!     s =  1   =>   t - eta    [ EXTERIOR ]
+!     s = -1   =>   t          [ INTERIOR ]
+!
 !     apply shift
-      x = t - s
+      x = t - (s + 1.d0)*eta / 2.d0
 !
 !     lower bound of switch region
       flow = one - eta
@@ -918,7 +926,7 @@ subroutine calcv(first,isph,g,pot,sigma,basloc,vplm,vcos,vsin)
             vvij = sqrt(dot_product(vij,vij))
             tij  = vvij/rsph(jsph) 
             sij  = vij/vvij
-            xij  = fsw(tij,se,eta*rsph(jsph))
+            xij  = fsw(tij,se,eta)
             if (fi(ig,isph).gt.one) then
               oij = xij/fi(ig,isph)
             else
@@ -1796,7 +1804,7 @@ subroutine adjrhs(first,isph,psi,xi,vlm,basloc,vplm,vcos,vsin)
 !                  
 !           build \omega_ij
             sji = vji/vvji
-            xji = fsw(tji,se,eta*rsph(isph))
+            xji = fsw(tji,se,eta)
             if (fi(ig,jsph).gt.one) then
               oji = xji/fi(ig,jsph)
             else
@@ -2020,7 +2028,7 @@ end subroutine adjrhs
         t = t*tij
       end do
       beta = intmlp(tij,sigma(:,jsph),basloc)
-      xij = fsw(tij,se,eta*rsph(jsph))
+      xij = fsw(tij,se,eta)
       if (fi(ig,isph).gt.one) then
         oij = xij/fi(ig,isph)
         f2  = -oij/fi(ig,isph)
@@ -2032,7 +2040,7 @@ end subroutine adjrhs
       va(:) = va(:) + f1*alp(:) + beta*f2*zi(:,ig,isph)
       if (tij .gt. (one-eta*rsph(jsph))) then
 !!!        f3 = beta*dfsw(tij,eta*rsph(jsph))/rsph(jsph)
-        f3 = beta*dfsw(tij,se,eta*rsph(jsph))/rsph(jsph)
+        f3 = beta*dfsw(tij,se,eta)/rsph(jsph)
         if (fi(ig,isph).gt.one) f3 = f3/fi(ig,isph)
         va(:) = va(:) + f3*sij(:)
       end if
@@ -2083,7 +2091,7 @@ end subroutine adjrhs
         end do
         t = t*tji
       end do
-      xji = fsw(tji,se,eta*rsph(isph))
+      xji = fsw(tji,se,eta)
       if (fi(ig,jsph).gt.one) then
         oji = xji/fi(ig,jsph)
       else
@@ -2109,14 +2117,14 @@ end subroutine adjrhs
                 sjk  = vjk/vvjk
                 call ylmbas(sjk,basloc,vplm,vcos,vsin)
                 g1  = intmlp(tjk,sigma(:,ksph),basloc)
-                xjk = fsw(tjk,se,eta*rsph(ksph))
+                xjk = fsw(tjk,se,eta)
                 b   = b + g1*xjk
               end if
             end if
           end do
           if (proc) then
 !!!            g1 = di*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
-            g1 = di*di*dfsw(tji,se,eta*rsph(isph))/rsph(isph)
+            g1 = di*di*dfsw(tji,se,eta)/rsph(isph)
             g2 = g1*xi(ig,jsph)*b
             vc = vc + g2*sji
           end if
@@ -2125,7 +2133,7 @@ end subroutine adjrhs
           fac = zero
         end if
 !!!        f2 = (one-fac)*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
-        f2 = (one-fac)*di*dfsw(tji,se,eta*rsph(isph))/rsph(isph)
+        f2 = (one-fac)*di*dfsw(tji,se,eta)/rsph(isph)
         vb = vb + f2*xi(ig,jsph)*beta*sji
       end if 
     end do
@@ -2155,11 +2163,11 @@ end subroutine adjrhs
       vji   = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
       vvji  = sqrt(dot_product(vji,vji))
       tji   = vvji/rsph(isph)
-      swthr = one - eta*rsph(isph)
-      if (tji.lt.one .and. tji.gt.swthr .and. ui(ig,jsph).gt.zero) then
+      swthr = one + (se + 1.d0)*eta / 2.d0
+      if (tji.lt.swthr .and. tji.gt.swthr-eta .and. ui(ig,jsph).gt.zero) then
         sji = vji/vvji
 !!!        fac = - dfsw(tji,eta*rsph(isph))/rsph(isph)
-        fac = - dfsw(tji,se,eta*rsph(isph))/rsph(isph)
+        fac = - dfsw(tji,se,eta)/rsph(isph)
         alp = alp + fac*phi(ig,jsph)*xi(ig,jsph)*sji
       end if
     end do
@@ -2563,7 +2571,7 @@ subroutine calcv2(first,isph,pot,sigma,basloc,vplm,vcos,vsin)
             sij = vij / vvij
 !            
 !           compute \chi( t )
-            xij = fsw( tij, se, eta*rsph(jsph) )
+            xij = fsw( tij, se, eta )
 !
 !           ???? omega_n^jk = chi_n^jk / f_n^j = chi_n^jk / sum_k chi_n^jk [check this]
             if ( fi(its,isph).gt.one ) then

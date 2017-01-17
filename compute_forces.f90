@@ -206,8 +206,8 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
       enddo
 !
-!!!!     scale the forces time the cosmo factor [ is this needed ??? ]
-!!!      f = 0.5d0*(eps-1.d0)/eps * f
+!     scale the forces the cosmo factor
+      f = 0.5d0*(eps-1.d0)/eps * f
 !
 !     printing
       if ( iprint.ge.2 ) then
