@@ -49,7 +49,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
 !-------------------------------------------------------------------------------------
 !
-!!!      call ADJcheck
+      call ADJcheck
 !
 !     STEP 1 : solve adjoint problem (A_eps L)^T s = Psi
 !     --------------------------------------------------
@@ -1107,7 +1107,8 @@ subroutine ADJcheck
       do j = 1,nsph
         do icomp = 1,3
 !
-          write(*,"(' dA / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,j) , iter=1,niter )
+!!!          write(*,"(' dA / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,j) , iter=1,niter )
+          write(*,"(' dA / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
 !        
         enddo
       enddo
@@ -1152,3 +1153,117 @@ subroutine ADJcheck
 !
 !
 endsubroutine ADJcheck
+
+!---------------------------------------------------------------------------------------
+subroutine check_forcesPCM( Psi0, sigma0, charge, f )
+!
+      use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
+                           eps, ncav, ccav, ngrid, zero, sprod, wghpot
+!                           
+      implicit none
+      real*8, dimension(nbasis,nsph), intent(in) :: Psi0
+      real*8, dimension(nbasis,nsph), intent(in) :: sigma0
+      real*8, dimension(       nsph), intent(in) :: charge
+      real*8, dimension(     nsph,3), intent(in) :: f
+!
+      integer,parameter :: niter = 3
+!
+      real*8 :: phi(ncav), psi(nbasis,nsph), g(ngrid,nsph), sigma(nbasis,nsph)
+      real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
+      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3)
+      real*8 :: E0, E_plus, err, eeps
+      integer :: iter, icomp, ksph, nsph_save, j
+!
+!---------------------------------------------------------------------------------------
+!
+!     activate quiet flag
+      iquiet = .true.
+!
+!     compute E0
+      E0 = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma0, Psi0 )
+
+      write(*,*)'E0 = ',E0
+!
+!     save initial DS
+      nsph_save = nsph
+      x_save = csph(1,:)
+      y_save = csph(2,:)
+      z_save = csph(3,:)
+      r_save = rsph(  :)
+!
+!     set initial increment
+      eeps=0.1d0
+!
+!     loop over increments
+      do iter = 1,niter
+!        
+!       loop over d / dr_k
+        do ksph = 1,nsph_save
+!
+!         loop over components of d / dr_k
+          do icomp = 1,3
+!
+!           deallocate DS      
+            call memfree
+
+            write(*,*)'ksph,icomp = ',ksph,icomp
+!
+!           perturb     
+            x = x_save
+            y = y_save
+            z = z_save
+            select case(icomp)
+            case(1) ; x(ksph) = x_save(ksph) + eeps
+            case(2) ; y(ksph) = y_save(ksph) + eeps
+            case(3) ; z(ksph) = z_save(ksph) + eeps
+            endselect
+!
+!           allocate new DS      
+            call ddinit( nsph_save, x, y, z, r_save )
+!            
+!           potential Phi and Psi vector
+            call mkrhs( nsph, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
+!
+!           solve PCM equations       
+            g=zero
+            call wghpot( phi, g )
+            call iefpcm( g, psi, sigma, phi_eps )
+!
+!           compute energy
+            E_plus = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma, psi )
+
+            write(*,*)'ksph, icomp, E_plus = ',ksph,icomp,E_plus
+            write(*,*)'                  f = ',f(ksph,icomp) 
+!
+!           compute relative error
+            err = abs( (E_plus - E0) / eeps - f(ksph,icomp) )! / abs( f(ksph,icomp) )
+!
+!           store
+            rwork(iter,(ksph-1)*3+icomp) = err
+!
+          enddo
+        enddo
+!
+        eeps = eeps / 2.d0
+!
+      enddo
+!      
+!     printing
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(*,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
+!      
+!     restore DS
+      call memfree
+      call ddinit( nsph_save, x_save, y_save, z_save, r_save )
+!
+!     deactivate quiet flag      
+      iquiet = .false.
+!
+!
+endsubroutine check_forcesPCM

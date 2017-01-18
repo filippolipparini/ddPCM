@@ -362,3 +362,113 @@ subroutine forces( n, charge, phi, sigma, s, fx )
 !
 !
 endsubroutine forces
+!---------------------------------------------------------------------------------------
+!
+!
+!
+!
+!
+!
+!---------------------------------------------------------------------------------------
+subroutine check_forcesCOSMO( E0, charge, f )
+!
+      use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
+                           ncav, ccav, ngrid, zero
+!                           
+      implicit none
+      real*8,                    intent(in) :: E0
+      real*8, dimension(  nsph), intent(in) :: charge
+      real*8, dimension(3,nsph), intent(in) :: f
+!
+      integer,parameter :: niter = 3
+!
+      real*8 :: phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph)
+      real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
+      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3)
+      real*8 :: E0, E_plus, err, eeps
+      integer :: iter, icomp, ksph, nsph_save, j
+!
+!---------------------------------------------------------------------------------------
+!
+!     activate quiet flag
+      iquiet = .true.
+!
+      write(*,*)'E0 = ',E0
+!
+!     save initial DS
+      nsph_save = nsph
+      x_save = csph(1,:)
+      y_save = csph(2,:)
+      z_save = csph(3,:)
+      r_save = rsph(  :)
+!
+!     set initial increment
+      eeps=0.1d0
+!
+!     loop over increments
+      do iter = 1,niter
+!        
+!       loop over d / dr_k
+        do ksph = 1,nsph_save
+!
+!         loop over components of d / dr_k
+          do icomp = 1,3
+!
+!           deallocate DS      
+            call memfree
+!
+!           perturb     
+            x = x_save
+            y = y_save
+            z = z_save
+            select case(icomp)
+            case(1) ; x(ksph) = x_save(ksph) + eeps
+            case(2) ; y(ksph) = y_save(ksph) + eeps
+            case(3) ; z(ksph) = z_save(ksph) + eeps
+            endselect
+!
+!           allocate new DS      
+            call ddinit( nsph_save, x, y, z, r_save )
+!            
+!           potential Phi and Psi vector
+            call mkrhs( nsph, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
+!
+!           solve COSMO equations       
+            E_plus = zero ; sigma = zero
+            call itsolv( .false., phi, psi, sigma, E_plus )
+!
+            write(*,*)'ksph, icomp, E_plus = ',ksph,icomp,E_plus
+            write(*,*)'                  f = ',f(ksph,icomp) 
+!
+!           compute relative error
+            err = abs( (E_plus - E0) / eeps - f(icomp,ksph) )! / abs( f(icomp,ksph) )
+!
+!           store
+            rwork(iter,(ksph-1)*3+icomp) = err
+!
+          enddo
+        enddo
+!
+        eeps = eeps / 2.d0
+!
+      enddo
+!      
+!     printing
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(*,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
+!      
+!     restore DS
+      call memfree
+      call ddinit( nsph_save, x_save, y_save, z_save, r_save )
+!
+!     deactivate quiet flag      
+      iquiet = .false.
+!
+!
+endsubroutine check_forcesCOSMO

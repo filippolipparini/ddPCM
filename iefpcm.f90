@@ -16,7 +16,7 @@
 !
 !   -sigma_g 
 !-------------------------------------------------------------------------------
-subroutine iefpcm( phi, psi, charge, sigma_g )
+subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !
       use  ddcosmo
 !      
@@ -24,8 +24,8 @@ subroutine iefpcm( phi, psi, charge, sigma_g )
 !
       real*8, dimension( ngrid,nsph), intent(in)    :: phi
       real*8, dimension(nbasis,nsph), intent(in)    :: psi
-      real*8, dimension(       nsph), intent(in)    :: charge
       real*8, dimension(nbasis,nsph), intent(inout) :: sigma_g
+      real*8, dimension(nbasis,nsph), intent(out)   :: phi_eps
 !      
 !     P. Gatto, Nov 2016      
 !     real*8, dimension(ngrid, nsph), intent(inout) :: sigma_g
@@ -47,7 +47,7 @@ subroutine iefpcm( phi, psi, charge, sigma_g )
       real*8, allocatable :: err(:), ddiag(:)
       logical :: dodiis
 !
-      real*8, allocatable :: phi_eps(:,:), dphi(:,:,:,:), f(:,:)
+      real*8, allocatable :: dphi(:,:,:,:), f(:,:)
 !
       integer, parameter :: nitmax=300
       real*8,  parameter :: ten=10.0d0, tredis=1.d-2
@@ -249,31 +249,37 @@ subroutine iefpcm( phi, psi, charge, sigma_g )
 !     solve  L sigma = W , compute energy
       call itsolv2( .false., .true., wlm, psi, sigma_g, ene )
 !
-!   
-!===================================================================================
-! FORCES                                                                           |
-!===================================================================================
+!     save phi_eps for computing forces
+      phi_eps = -wlm
 !
-!     allocate 
-      allocate( f(3,nsph) , stat=istatus )
-!      
-!     check
-      if ( istatus.ne.0 ) then
-        write(*,*)'iefpcm : [1] failed allocation !'
-        stop
-      endif 
-!      
-!     compute forces                                  phi_eps
-      call compute_forces( phi, charge, psi, sigma_g, -wlm   , f )
-!      
-!     deallocate
-      deallocate( f , stat=istatus )
-!      
-!     check
-      if ( istatus.ne.0 ) then
-        write(*,*)'iefpcm : [1] failed deallocation !'
-        stop
-      endif 
+!   
+!!!!===================================================================================
+!!!! FORCES                                                                           |
+!!!!===================================================================================
+!!!!
+!!!!     allocate 
+!!!      allocate( f(3,nsph) , stat=istatus )
+!!!!      
+!!!!     check
+!!!      if ( istatus.ne.0 ) then
+!!!        write(*,*)'iefpcm : [1] failed allocation !'
+!!!        stop
+!!!      endif 
+!!!!      
+!!!!     compute forces                                  phi_eps
+!!!      call compute_forces( phi, charge, psi, sigma_g, -wlm   , f )
+!!!
+!!!      call check_forces( psi, sigma_g, charge, f )
+!!!
+!!!!      
+!!!!     deallocate
+!!!      deallocate( f , stat=istatus )
+!!!!      
+!!!!     check
+!!!      if ( istatus.ne.0 ) then
+!!!        write(*,*)'iefpcm : [1] failed deallocation !'
+!!!        stop
+!!!      endif 
 !
 !
 !     free the memory

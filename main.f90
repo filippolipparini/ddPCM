@@ -98,7 +98,7 @@ program main
       implicit none
 !
       integer :: i, j, istatus
-      real*8  :: tobohr, esolv, ss
+      real*8  :: tobohr, esolv, ss, rvoid
       real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
 !     quantities to be allocated by the user.
@@ -110,7 +110,7 @@ program main
 !
 !     - electrostatic potential phi(ncav) and psi vector psi(nbasis,nsph)
 !
-      real*8, allocatable :: phi(:), psi(:,:), g(:,:)
+      real*8, allocatable :: phi(:), psi(:,:), g(:,:), phi_eps(:,:)
 !
 !     - ddcosmo solution sigma (nbasis,nsph) and adjoint solution s(nbasis,nsph)
 !
@@ -118,7 +118,7 @@ program main
 !
 !     - forces:
 !
-      real*8, allocatable :: fx(:,:)
+      real*8, allocatable :: fx(:,:), f_PCM(:,:)
 !
 !     - for qm solutes, fock matrix contribution.
 !
@@ -288,7 +288,7 @@ program main
           memmax = max(memmax,memuse)
 !
 !         solve adjoint problem
-          call itsolv( .true., phi, psi, s, esolv )
+          call itsolv( .true., phi, psi, s, rvoid )
 !
 !         now call the routine that computes the forces. such a routine requires the potential 
 !         derivatives at the cavity points and the electric field at the cavity points: it has
@@ -296,6 +296,7 @@ program main
 !         forces.f90.
 !
           call forces( nsph, charge, phi, sigma, s, fx )
+          call check_forcesCOSMO( esolv, charge, fx )
 !           
 !         deallocate workspaces
           deallocate( s, fx , stat=istatus )
@@ -314,12 +315,24 @@ program main
 !     PCM        
 !     ===
       else
+!
+!       allocate workspaces
+        allocate( phi_eps(nbasis,nsph), f_PCM(nsph,3) , stat=istatus )
+        if ( istatus.ne.0 ) then
+          write(*,*)'main : [5] failed allocation !'
+          stop
+        endif 
+!        
+!       update memory usage
+        memuse = memuse + nbasis*nsph + 3*nsph
+        memmax = max(memmax,memuse)
+!
 !              
-!       1. solve pcm equations, and compute forces
-!       ------------------------------------------
+!       1. solve pcm equations
+!       ----------------------
         g=zero
         call wghpot( phi, g )
-        call iefpcm( g, psi, charge, sigma )
+        call iefpcm( g, psi, sigma, phi_eps )
 !
 !       2. compute norm of solution   
 !       ---------------------------
@@ -339,7 +352,24 @@ program main
         write(*,1001) ss
  1001   format(' PCM : ||sigma|| = ',e12.5)       
 !        
+!       3. compute forces
+!       -----------------
+        call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
+        call check_forcesPCM( psi, sigma, charge, f_PCM )
+!        
+!       deallocate workspaces
+        deallocate( phi_eps, f_PCM , stat=istatus )
+        if ( istatus.ne.0 ) then
+          write(*,*)'main : [3] failed deallocation !'
+          stop
+        endif 
+!        
+!       update memory usage
+        memuse = memuse - nbasis*nsph - 3*nsph
+        memmax = max(memmax,memuse)
+!
       endif
+!
 !
 !     deallocate workspaces
       deallocate( x, y, z, rvdw, charge, phi, psi, sigma , stat=istatus )
