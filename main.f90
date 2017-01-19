@@ -98,7 +98,7 @@ program main
       implicit none
 !
       integer :: i, j, istatus
-      real*8  :: tobohr, esolv, ss, rvoid
+      real*8  :: tobohr, esolv, rvoid
       real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
 !     quantities to be allocated by the user.
@@ -247,30 +247,13 @@ program main
         call itsolv( .false., phi, psi, sigma, esolv )
         write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
-!       2. compute norm of solution   
-!       ---------------------------
-        ss=zero
-!        
-        do i = 1,nbasis
-          do j = 1,nsph
-!
-!           accumulate
-            ss = ss + sigma(i,j)**2
-!
-          enddo
-        enddo
-!
-        ss = sqrt(ss)
-!        
-        write(*,1000) ss
- 1000   format(' COSMO : ||sigma|| = ',e12.5)       
 !
 !       this is all for the energy. if the forces are also required, call the solver for
 !       the adjoint problem. 
 !       the solution to the adjoint system is required also to compute the Fock matrix 
 !       contributions.
 !
-!       3. compute forces
+!       2. compute forces
 !       -----------------
         if ( igrad.eq.1 ) then
 !                
@@ -296,7 +279,7 @@ program main
 !         forces.f90.
 !
           call forces( nsph, charge, phi, sigma, s, fx )
-          call check_forcesCOSMO( esolv, charge, fx )
+!!!          call check_forcesCOSMO( esolv, charge, fx )
 !           
 !         deallocate workspaces
           deallocate( s, fx , stat=istatus )
@@ -334,25 +317,8 @@ program main
         call wghpot( phi, g )
         call iefpcm( g, psi, sigma, phi_eps )
 !
-!       2. compute norm of solution   
-!       ---------------------------
-        ss=zero
 !        
-        do i = 1,nbasis
-          do j = 1,nsph
-!
-!           accumulate
-            ss = ss + sigma(i,j)**2
-!
-          enddo
-        enddo
-!
-        ss = sqrt(ss)
-!        
-        write(*,1001) ss
- 1001   format(' PCM : ||sigma|| = ',e12.5)       
-!        
-!       3. compute forces
+!       2. compute forces
 !       -----------------
         call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
         call check_forcesPCM( psi, sigma, charge, f_PCM )

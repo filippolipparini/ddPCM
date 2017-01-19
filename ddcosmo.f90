@@ -887,7 +887,7 @@ endfunction dfsw
 !                   i    j        ij    ij       j
 !
 !---------------------------------------------------------------------------------
-subroutine calcv(first,isph,g,pot,sigma,basloc,vplm,vcos,vsin)
+subroutine calcv( first, isph, g, pot, sigma, basloc, vplm, vcos, vsin )
 !
       implicit none
       logical,                        intent(in)    :: first
@@ -907,13 +907,13 @@ subroutine calcv(first,isph,g,pot,sigma,basloc,vplm,vcos,vsin)
       pot = g
 !
 !     just return pot = g when n=1
-      if (first) return
+      if ( first ) return
 !
 !     loop over integration points of i-sphere
       do ig = 1, ngrid
 !
 !       integration point also belongs to a neighboring sphere
-        if (ui(ig,isph).lt.one) then
+        if ( ui(ig,isph).lt.one ) then
 !
 !         loop over neighboring spheres
           do ij = inl(isph), inl(isph+1) - 1
@@ -934,7 +934,7 @@ subroutine calcv(first,isph,g,pot,sigma,basloc,vplm,vcos,vsin)
             end if
 !
 !           compute spherical harmonics at integration point 
-            call ylmbas(sij,basloc,vplm,vcos,vsin)
+            call ylmbas( sij, basloc, vplm, vcos, vsin )
 !
 !           point is inside j-sphere
             if (tij.lt.one) then
@@ -1409,13 +1409,15 @@ subroutine itsolv( star, phi, psi, sigma, ene )
       real*8, allocatable :: xdiis(:,:,:), ediis(:,:,:), bmat(:)
 !
 !     local variables:
-      integer :: it, isph, nmat, lenb, ig, c1, c2, cr
-      real*8  :: tol, drms, dmax, fep
+      integer :: it, isph, nmat, lenb, ig, c1, c2, cr, j
+      real*8  :: tol, drms, dmax, fep, s1, s2, s3
       logical :: dodiis, first
 !
       integer, parameter :: nitmax=300
       real*8,  parameter :: ten=10.d0, tredis=1.0d-2
       integer :: istatus
+!
+      real*8 :: Lsigma(nbasis), gvoid(nbasis,nsph)
 !      
 !-------------------------------------------------------------------------------
 !
@@ -1515,7 +1517,7 @@ subroutine itsolv( star, phi, psi, sigma, ene )
         do it = 1, nitmax
 !
 !         1st iteration flag
-          first = it.eq.1
+          first = ( it.eq.1 )
 !
 !         initialize vlm = g_i - sum_j L_ij X_j
           vlm = zero
@@ -1551,15 +1553,19 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 !    
       !$omp end parallel do
 !
-    !     compute root-mean-square and max norm
-          call rmsvec(nsph,norm,drms,dmax)
-    !    
-          if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
-          if (dodiis) then
+!         compute root-mean-square and max norm
+          call rmsvec( nsph, norm, drms, dmax )
+!    
+          if ( drms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!          
+          if ( dodiis ) then
+!                  
             xdiis(:,:,nmat) = sigma
             ediis(:,:,nmat) = sigma - sigold
+!            
             call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
-          end if
+!            
+          endif
 
           if (iprint.gt.1) then
             ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
@@ -1580,6 +1586,38 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 !       E_s = 1/2 f(\epsilon_s) * < \Psi , \sigma >
 !
         ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
+!
+! 
+!       check solution
+!       ==============
+!
+!       compute action
+        s1 = zero ; s2 = zero ; s3 = zero ; pot = zero ; Lsigma = zero ; gvoid = zero
+!        
+        do isph = 1,nsph
+!        
+!         action of g_i - L_ij , j \ne i
+          call calcv( first, isph, g(:,isph), pot, sigma, basloc, vplm, vcos, vsin )
+          call intrhs( isph, pot, Lsigma )
+          Lsigma = Lsigma
+!          
+!         action of L_ii
+          Lsigma = Lsigma - sigma(:,isph) / facl
+!        
+          do j=1,nbasis
+!          
+            s1 = s1 + ( Lsigma(j) )**2
+            s2 = s2 + ( g(j,isph) )**2
+            s3 = s3 + ( sigma(j,isph) )**2
+!            
+          enddo
+        enddo
+!
+        write(*,*) 'ddCOSMO : '
+        write(*,*) ' '
+        write(*,1002) sqrt(s3) , sqrt(s1) / sqrt(s2)
+ 1002   format(' || sigma || , || Phi - L sigma || / || Phi || =  ',2(e12.5,2x) )    
+!
 !
 !
 !     solve the adjoint equations S' \sigma = \Psi
@@ -2351,183 +2389,238 @@ endfunction dtslm2
 !
 !---------------------------------------------------------------------
 subroutine itsolv2(star,iefpcm,phi,psi,sigma,ene)
-implicit none
-logical,                        intent(in)    :: star, iefpcm
-real*8, dimension(nbasis,nsph), intent(in)    :: phi, psi
-real*8,                         intent(inout) :: ene
-real*8, dimension(nbasis,nsph), intent(inout) :: sigma
 !
-! local arrays:
+      implicit none
+!      
+      logical,                        intent(in)    :: star, iefpcm
+      real*8, dimension(nbasis,nsph), intent(in)    :: phi, psi
+      real*8,                         intent(inout) :: ene
+      real*8, dimension(nbasis,nsph), intent(inout) :: sigma
+      !
+      ! local arrays:
+      !
+      real*8, allocatable :: g(:,:), pot(:), sigold(:,:), vlm(:), xi(:,:)
+      !
+      ! scratch arrays:
+      !
+      real*8, allocatable :: basloc(:), vplm(:), vcos(:), vsin(:)
+      real*8, allocatable :: delta(:), norm(:)
+      !
+      ! diis arrays:
+      !
+      real*8, allocatable :: xdiis(:,:,:), ediis(:,:,:), bmat(:)
+      !
+      ! local variables:
+      !
+      integer :: it, isph, nmat, lenb, ig, c1, c2, cr, istatus
+      real*8  :: tol, drms, dmax, fep
+      logical :: dodiis, first
+      !
+      integer, parameter :: nitmax=300
+      real*8,  parameter :: ten=10.d0, tredis=1.0d-2
+      !
+      real*8 :: Lsigma(nbasis), s1, s2, s3
+      integer :: j
+!      
+!---------------------------------------------------------------------
 !
-real*8, allocatable :: g(:,:), pot(:), sigold(:,:), vlm(:), xi(:,:)
+!     initialize the timer:
+      call system_clock(count_rate=cr)
+      call system_clock(count=c1)
 !
-! scratch arrays:
+!     allocate local variables and set convergence parameters
+      fep = one
+      if (.not. iefpcm) fep = (eps-one)/eps
+      tol = ten**(-iconv)
+      allocate (g(ngrid,nsph),pot(ngrid),vlm(nbasis),sigold(nbasis,nsph))
+      sigold = zero
+      allocate (delta(nbasis),norm(nsph))
+      allocate(vplm(nbasis),basloc(nbasis),vcos(lmax+1),vsin(lmax+1))
+      if (star) allocate(xi(ngrid,nsph))
+      memuse = memuse + ngrid*nsph + ngrid*nproc + 2*nbasis*nproc + nbasis*nsph + &
+               2*nbasis*nproc + 2*(lmax+1)*nproc + nsph
+      if (star) memuse = memuse + nsph*ngrid
+      memmax = max(memmax,memuse)
 !
-real*8, allocatable :: basloc(:), vplm(:), vcos(:), vsin(:)
-real*8, allocatable :: delta(:), norm(:)
+!     set up diis:
+      dodiis = .false.
+      nmat   = 1
+      lenb   = ndiis + 1
+      allocate (xdiis(nbasis,nsph,ndiis),ediis(nbasis,nsph,ndiis),bmat(lenb*lenb))
+      memuse = memuse + 2*nbasis*nsph*ndiis + lenb*lenb
+      memmax = max(memmax,memuse)
 !
-! diis arrays:
+!     solve the direct equations
 !
-real*8, allocatable :: xdiis(:,:,:), ediis(:,:,:), bmat(:)
+      if (.not. star) then
 !
-! local variables:
-!
-integer :: it, isph, nmat, lenb, ig, c1, c2, cr, istatus
-real*8  :: tol, drms, dmax, fep
-logical :: dodiis, first
-!
-integer, parameter :: nitmax=300
-real*8,  parameter :: ten=10.d0, tredis=1.0d-2
-!
-! initialize the timer:
-!
-call system_clock(count_rate=cr)
-call system_clock(count=c1)
-!
-! allocate local variables and set convergence parameters
-!
-fep = one
-if (.not. iefpcm) fep = (eps-one)/eps
-!
-tol = ten**(-iconv)
-allocate (g(ngrid,nsph),pot(ngrid),vlm(nbasis),sigold(nbasis,nsph))
-sigold = zero
-allocate (delta(nbasis),norm(nsph))
-allocate(vplm(nbasis),basloc(nbasis),vcos(lmax+1),vsin(lmax+1))
-if (star) allocate(xi(ngrid,nsph))
-memuse = memuse + ngrid*nsph + ngrid*nproc + 2*nbasis*nproc + nbasis*nsph + &
-         2*nbasis*nproc + 2*(lmax+1)*nproc + nsph
-if (star) memuse = memuse + nsph*ngrid
-memmax = max(memmax,memuse)
-!
-! set up diis:
-!
-dodiis = .false.
-nmat   = 1
-lenb   = ndiis + 1
-allocate (xdiis(nbasis,nsph,ndiis),ediis(nbasis,nsph,ndiis),bmat(lenb*lenb))
-memuse = memuse + 2*nbasis*nsph*ndiis + lenb*lenb
-memmax = max(memmax,memuse)
-!
-! solve the direct equations
-!
-if (.not. star) then
-!
-! build g:
-!
-  call wghpot(phi,g)
-  do it = 1, nitmax
-    first = it.eq.1
-    vlm   = zero
-!$omp parallel do default(shared) private(basloc,vcos,vsin,vplm) &
-!$omp private(isph,pot,vlm,delta) schedule(dynamic,10) 
-    do isph = 1, nsph
-      call calcv2( first, isph, pot, sigold, basloc, vplm, vcos, vsin )
-      call intrhs(isph,pot,vlm)
-      vlm(:) = vlm(:) + phi(:,isph)
-      call solve(isph,vlm,sigma(:,isph))
-      delta = sigma(:,isph) - sigold(:,isph)
-      call hsnorm(delta,norm(isph))
-    end do
-!$omp end parallel do
-    call rmsvec(nsph,norm,drms,dmax)
-    if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
-    if (dodiis) then
-      xdiis(:,:,nmat) = sigma
-      ediis(:,:,nmat) = sigma - sigold
-      call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
-    end if
-    if (iprint.gt.1) then
-      ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
-      write(iout,1000) it, ene, drms, dmax
-    end if
-    if (drms.le.tol) goto 900
-    sigold = sigma
-  end do
-  write(iout,1020) 
-  stop
-900 continue
-  ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
-!
-else
-!
-! solve the adjoint equations:
-!
-  do it = 1, nitmax
-    first = it.eq.1
-    if (.not. first) then
-      xi = zero
-!$omp parallel do default(shared) private(isph,ig)
-      do isph = 1, nsph
-        do ig = 1, ngrid
-          xi(ig,isph) = dot_product(sigold(:,isph),basis(:,ig))
+!       build g:
+        g(:,:) = zero
+        call wghpot( phi, g )
+!        
+        do it = 1, nitmax
+!        
+          first = ( it.eq.1 )
+          vlm   = zero
+!          
+      !$omp parallel do default(shared) private(basloc,vcos,vsin,vplm) &
+      !$omp private(isph,pot,vlm,delta) schedule(dynamic,10) 
+!      
+          do isph = 1, nsph
+!          
+            call calcv2( first, isph, pot, sigold, basloc, vplm, vcos, vsin )
+            call intrhs( isph, pot, vlm )
+!            
+            vlm(:) = vlm(:) + phi(:,isph)
+!            
+            call solve( isph, vlm, sigma(:,isph) )
+!            
+            delta = sigma(:,isph) - sigold(:,isph)
+            call hsnorm(delta,norm(isph))
+!            
+          enddo
+!          
+      !$omp end parallel do
+!      
+          call rmsvec(nsph,norm,drms,dmax)
+!          
+          if ( drms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!          
+          if (dodiis) then
+!                  
+            xdiis(:,:,nmat) = sigma
+            ediis(:,:,nmat) = sigma - sigold
+!            
+            call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
+!            
+          end if
+!          
+          if ( iprint.gt.1 ) then
+            ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
+            write(iout,1000) it, ene, drms, dmax
+          end if
+!          
+          if ( drms.le.tol ) goto 900
+          sigold = sigma
+!          
         end do
-      end do
-!$omp end parallel do
-    end if
-!$omp parallel do default(shared) private(basloc,vcos,vsin,vplm) &
-!$omp private(isph,vlm,delta) schedule(dynamic,10)
-    do isph = 1, nsph
-      call adjrhs(first,isph,psi(:,isph),xi,vlm,basloc,vplm,vcos,vsin)
-      call solve(isph,vlm,sigma(:,isph))
-      delta = sigma(:,isph) - sigold(:,isph)
-      call hsnorm(delta,norm(isph))
-    end do
-!$omp end parallel do
-    call rmsvec(nsph,norm,drms,dmax)
-    if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
-    if (dodiis) then
-      xdiis(:,:,nmat) = sigma
-      ediis(:,:,nmat) = sigma - sigold
-      call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
-    end if
-    if (iprint.gt.1) then
-      write(iout,1000) it, zero, drms, dmax
-    end if
-    if (drms.le.tol) goto 910
-    sigold = sigma
-  end do
-  write(iout,1020) 
-  stop
-910 continue
-end if
 !
-! free the memory:
+        write(iout,1020) 
+        stop
+!        
+  900   continue
+!  
 !
-if (iprint.gt.1) write(iout,*)
-if (star) deallocate(xi)
-deallocate (g,pot,vlm,sigold)
-deallocate (delta,norm)
-deallocate (vplm,basloc,vcos,vsin)
-deallocate (xdiis,ediis,bmat)
-memuse = memuse - ngrid*nsph - ngrid*nproc - 2*nbasis*nproc - nbasis*nsph - &
-         2*nbasis*nproc - 2*(lmax+1)*nproc - nsph
-memuse = memuse - 2*nbasis*nsph*ndiis - lenb*lenb
+!       check solution
+        s1 = zero ; s2 = zero ; s3 = zero ; pot = zero ; Lsigma = zero
+!        
+        do isph = 1,nsph
 !
-call system_clock(count=c2)
-if (iprint.gt.0) then
-  if (star) then
-    write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
-  else
-    write(iout,1010) '', dble(c2-c1)/dble(cr)
-  end if
-  write(iout,*)
-end if
-if (iprint.ge.3) then
-  if (star) then
-    call prtsph('solution to the ddcosmo adjoint equations:',nsph,0,sigma)
-  else
-    call prtsph('solution to the ddcosmo equations:',nsph,0,sigma)
-  end if
-end if
-1000 format(' energy at iteration ',i4,': ',f14.7,' error (rms,max):',2f14.7)
-1010 format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
-1020 format(' ddCOSMO did not converge! Aborting...')
-return
+!         action of L_ij , j \ne i
+          call calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
+          call intrhs( isph, pot, Lsigma )
+          Lsigma = -Lsigma
+!
+!         action of L_ii
+          Lsigma = Lsigma + sigma(:,isph) / facl
+!          
+          do j = 1,nbasis
+!
+            s1 = s1 + ( phi(  j,isph) - Lsigma(j) )**2
+            s2 = s2 + ( phi(  j,isph)             )**2
+            s3 = s3 + ( sigma(j,isph)             )**2
+!            
+          enddo
+        enddo
+!
+        write(*,*) 'ddPCM :'
+        write(*,*) ' '
+        write(*,1001) sqrt(s3) , sqrt(s1) / sqrt(s2)
+ 1001   format(' || sigma || , || Phi_eps - L sigma || / || Phi_eps || = ',2(e12.5,2x) )       
+!
+!
+!       compute energy : 1/2 f(eps) < psi , sigma >
+        ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
+!
+      else
+      !
+      ! solve the adjoint equations:
+      !
+        do it = 1, nitmax
+          first = it.eq.1
+          if (.not. first) then
+            xi = zero
+      !$omp parallel do default(shared) private(isph,ig)
+            do isph = 1, nsph
+              do ig = 1, ngrid
+                xi(ig,isph) = dot_product(sigold(:,isph),basis(:,ig))
+              end do
+            end do
+      !$omp end parallel do
+          end if
+      !$omp parallel do default(shared) private(basloc,vcos,vsin,vplm) &
+      !$omp private(isph,vlm,delta) schedule(dynamic,10)
+          do isph = 1, nsph
+            call adjrhs(first,isph,psi(:,isph),xi,vlm,basloc,vplm,vcos,vsin)
+            call solve(isph,vlm,sigma(:,isph))
+            delta = sigma(:,isph) - sigold(:,isph)
+            call hsnorm(delta,norm(isph))
+          end do
+      !$omp end parallel do
+          call rmsvec(nsph,norm,drms,dmax)
+          if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
+          if (dodiis) then
+            xdiis(:,:,nmat) = sigma
+            ediis(:,:,nmat) = sigma - sigold
+            call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
+          end if
+          if (iprint.gt.1) then
+            write(iout,1000) it, zero, drms, dmax
+          end if
+          if (drms.le.tol) goto 910
+          sigold = sigma
+        end do
+        write(iout,1020) 
+        stop
+      910 continue
+      end if
+      !
+      ! free the memory:
+      !
+      if (iprint.gt.1) write(iout,*)
+      if (star) deallocate(xi)
+      deallocate (g,pot,vlm,sigold)
+      deallocate (delta,norm)
+      deallocate (vplm,basloc,vcos,vsin)
+      deallocate (xdiis,ediis,bmat)
+      memuse = memuse - ngrid*nsph - ngrid*nproc - 2*nbasis*nproc - nbasis*nsph - &
+               2*nbasis*nproc - 2*(lmax+1)*nproc - nsph
+      memuse = memuse - 2*nbasis*nsph*ndiis - lenb*lenb
+      !
+      call system_clock(count=c2)
+      if (iprint.gt.0) then
+        if (star) then
+          write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
+        else
+          write(iout,1010) '', dble(c2-c1)/dble(cr)
+        end if
+        write(iout,*)
+      end if
+      if (iprint.ge.3) then
+        if (star) then
+          call prtsph('solution to the ddcosmo adjoint equations:',nsph,0,sigma)
+        else
+          call prtsph('solution to the ddcosmo equations:',nsph,0,sigma)
+        end if
+      end if
+ 1000 format(' energy at iteration ',i4,': ',f14.7,' error (rms,max):',2f14.7)
+ 1010 format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
+ 1020 format(' ddCOSMO did not converge! Aborting...')
+      return
 !
 end subroutine itsolv2
 !
-subroutine calcv2(first,isph,pot,sigma,basloc,vplm,vcos,vsin)
+subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !
       logical,                        intent(in)    :: first
       integer,                        intent(in)    :: isph

@@ -3,21 +3,23 @@
 !
 !   A_eps Phi_eps = A_oo Phi     <==  PCM
 !        
-!         L sigma = -Phi_eps     <==  COSMO
+!         L sigma = Phi_eps      <==  COSMO
 !      
-! Computation of forces :      
-!      
-!   F = - < s , -A_oo' Phi - A_oo Phi' + A_eps' Phi_eps - A_eps L' sigma >
+! and :
 !
-! where s is the solution of the adjoint problem 
+!   E_s = 1/2 f(eps) < Psi , sigma >  ;  F_i = - dE_s / dr_i  ;  (A_eps L)^T s = Psi
 !
-!   (A_eps L)^T s = Psi
+! Thus :
+!
+!   E_s' = ... < Psi           , sigma' >
+!
+!        = ... < (A_eps L)^* s , sigma' >
+!
+!        = ... <             s , A_eps L sigma' >
 !
 ! Since A_eps' is independent of eps, let's just set A' = A_oo' = A_eps' , so that :
 !
-!   F = < s , A' ( Phi - Phi_eps ) > +   < s , A_oo Phi' > +   < s , A_eps L' sigma >
-!
-!       < s , A' ( Phi - Phi_eps ) > + < A_oo^T s , Phi' > + < A_eps^T s , L' sigma >
+!   F = ... ( - < s , A' ( Phi - Phi_eps ) > - < A_oo^T s , Phi' > + < A_eps^T s , L' sigma > )
 !
 !-------------------------------------------------------------------------------------
 !
@@ -49,8 +51,6 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
 !-------------------------------------------------------------------------------------
 !
-      call ADJcheck
-!
 !     STEP 1 : solve adjoint problem (A_eps L)^T s = Psi
 !     --------------------------------------------------
 !   
@@ -61,8 +61,8 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       call ADJpcm( y, s )
 !
 !
-!     STEP 2 : compute f = < s , A' ( Phi - Phi_eps ) >
-!     -------------------------------------------------
+!     STEP 2 : compute f = - < s , A' ( Phi - Phi_eps ) >
+!     ---------------------------------------------------
 !
 !     initialize
       f(:,:) = zero
@@ -84,8 +84,11 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
       enddo
 !
+!     flip sign 
+      f = -f
 !
-!     STEP 3 : compute f = f + < A_oo^T s , Phi' >
+!
+!     STEP 3 : compute f = f - < A_oo^T s , Phi' >
 !     --------------------------------------------
 !
 !     initialize
@@ -114,11 +117,11 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     loop over atoms
       do isph = 1,nsph
 !
-!       accumulate sum_n U_n^i' Phi_n^i xi(i,n) 
+!       accumulate f -= sum_n U_n^i' Phi_n^i xi(i,n) 
         call fdoga( isph, xi, Phi, f(isph,:) ) 
 !        
       enddo
-!      
+!
 !     initialize index
       i=0
 !
@@ -183,7 +186,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 ! ==========================  E N D    M O D I F Y  ==========================
 !
 !
-!     STEP 4 : compute f = f - < y , L' sigma >
+!     STEP 4 : compute f = f + < y , L' sigma >
 !     -----------------------------------------
 !
 !     initialize
@@ -792,6 +795,7 @@ subroutine ADJcheck
       integer, parameter :: niter = 6
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), s3(3)
       real*8 :: x(nsph), y(nsph), z(nsph), iwork(nsph*3,2), rwork(niter,nsph*3)
+      real*8 :: rrate(niter,nsph*3)
 !
 !--------------------------------------------------------------------------------
 !
@@ -966,6 +970,8 @@ subroutine ADJcheck
  1001 format(' | <e,f> - <s,Af> | / |<s,Af>| = ', e12.5)
       write(*,*) ''
 !
+!     initialize
+      rwork = zero ; rrate = zero
 !
 !     check derivatives
 !     -----------------
@@ -1090,8 +1096,14 @@ subroutine ADJcheck
 !!!            enddo
 !!!            write(*,*)''
 !
-!           store error
+!           store relative error
             rwork(iter,(ksph-1)*3+icomp) = sqrt( err / rnorm )
+!
+!           store rate of convergence
+            if ( iter.gt.1 ) then 
+              rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
+                                                   rwork(iter  ,(ksph-1)*3+icomp)   ) / log(0.5d0)  
+            endif
 !
           enddo
         enddo
@@ -1103,16 +1115,28 @@ subroutine ADJcheck
 
       eeps = eeps*2.d0
 !
-!     printing
+!     printing relative error
+      write(*,*)'Relative error : '
       do j = 1,nsph
         do icomp = 1,3
 !
-!!!          write(*,"(' dA / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,j) , iter=1,niter )
           write(*,"(' dA / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
 !        
         enddo
       enddo
       write(*,*) ''
+
+!     printing rate of convergence
+      write(*,*)'Rate of convergence : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(*,"(' dA / dr_'i2','i1' : ',300(f12.3,2x))") j,icomp, ( rrate(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
+
 !
 !!!!     printing
 !!!      do ksph = 1,nsph
@@ -1166,11 +1190,11 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
       real*8, dimension(       nsph), intent(in) :: charge
       real*8, dimension(     nsph,3), intent(in) :: f
 !
-      integer,parameter :: niter = 3
+      integer,parameter :: niter = 6
 !
       real*8 :: phi(ncav), psi(nbasis,nsph), g(ngrid,nsph), sigma(nbasis,nsph)
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
-      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3)
+      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3), rrate(niter,nsph*3)
       real*8 :: E0, E_plus, err, eeps
       integer :: iter, icomp, ksph, nsph_save, j
 !
@@ -1181,8 +1205,6 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
 !     compute E0
       E0 = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma0, Psi0 )
-
-      write(*,*)'E0 = ',E0
 !
 !     save initial DS
       nsph_save = nsph
@@ -1193,6 +1215,9 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
 !     set initial increment
       eeps=0.1d0
+!      
+!     initialize
+      rwork = zero ; rrate = zero
 !
 !     loop over increments
       do iter = 1,niter
@@ -1205,8 +1230,6 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
 !           deallocate DS      
             call memfree
-
-            write(*,*)'ksph,icomp = ',ksph,icomp
 !
 !           perturb     
             x = x_save
@@ -1231,15 +1254,21 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
 !           compute energy
             E_plus = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma, psi )
+!
+            if ( abs( f(ksph,icomp) ).gt.1.E-12 ) then
+!                      
+!             compute relative error
+              err = abs( (E_plus - E0) / eeps + f(ksph,icomp) ) / abs( f(ksph,icomp) )
+!
+!             store
+              rwork(iter,(ksph-1)*3+icomp) = err
 
-            write(*,*)'ksph, icomp, E_plus = ',ksph,icomp,E_plus
-            write(*,*)'                  f = ',f(ksph,icomp) 
-!
-!           compute relative error
-            err = abs( (E_plus - E0) / eeps - f(ksph,icomp) )! / abs( f(ksph,icomp) )
-!
-!           store
-            rwork(iter,(ksph-1)*3+icomp) = err
+!             compute rate
+              if ( iter.gt.1 ) then 
+                rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
+                                                     rwork(iter  ,(ksph-1)*3+icomp)   ) / log(0.5d0)
+              endif
+            endif
 !
           enddo
         enddo
@@ -1248,11 +1277,23 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
       enddo
 !      
-!     printing
+!     print relative error
+      write(*,*)'Relative error : '
       do j = 1,nsph
         do icomp = 1,3
 !
           write(*,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
+!      
+!     print rate of convergence
+      write(*,*)'Rate of convergence : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(*,"(' dE / dr_'i2','i1' : ',300(f12.3,2x))") j,icomp, ( rrate(iter,(j-1)*3+icomp) , iter=1,niter )
 !        
         enddo
       enddo

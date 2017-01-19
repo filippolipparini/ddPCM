@@ -1,20 +1,20 @@
 !-------------------------------------------------------------------------------
-! Purpose : solve PCM equation R_eps S \sigma = -R_oo \Phi by solving the 
+! Purpose : solve PCM equation R_eps S \sigma = R_oo \Phi by solving the 
 !           system :
 !
 !             { R_eps \Phi_eps = R_oo \Phi
 !             {
-!             {       S \sigma = -\Phi_eps    ( <== COSMO )
+!             {       S \sigma = \Phi_eps    ( <== COSMO )
 !
 !           After numerical discretization, we obtain linear systems 
 !
 !             { A_eps W = A_oo g
 !             {
-!             {     L X = -W
+!             { L sigma = W
 !
 ! Arguments :
 !
-!   -sigma_g 
+!   sigma_g - IN : g ; OUT : sigma
 !-------------------------------------------------------------------------------
 subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !
@@ -42,8 +42,8 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !     preconditioner:
       real*8, allocatable :: prec(:,:,:), precm1(:,:,:)
 !
-      integer :: it, isph, nmat, lenb, istatus
-      real*8  :: ene, vrms, vmax, tol
+      integer :: it, isph, nmat, lenb, istatus, j
+      real*8  :: ene, vrms, vmax, tol, s1, s2, s3
       real*8, allocatable :: err(:), ddiag(:)
       logical :: dodiis
 !
@@ -51,6 +51,8 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !
       integer, parameter :: nitmax=300
       real*8,  parameter :: ten=10.0d0, tredis=1.d-2
+!
+      real*8 :: pot(ngrid), Awlm(nbasis)
 !
 !-------------------------------------------------------------------------------
 !
@@ -250,36 +252,31 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
       call itsolv2( .false., .true., wlm, psi, sigma_g, ene )
 !
 !     save phi_eps for computing forces
-      phi_eps = -wlm
+      phi_eps = wlm
 !
-!   
-!!!!===================================================================================
-!!!! FORCES                                                                           |
-!!!!===================================================================================
-!!!!
-!!!!     allocate 
-!!!      allocate( f(3,nsph) , stat=istatus )
-!!!!      
-!!!!     check
-!!!      if ( istatus.ne.0 ) then
-!!!        write(*,*)'iefpcm : [1] failed allocation !'
-!!!        stop
-!!!      endif 
-!!!!      
-!!!!     compute forces                                  phi_eps
-!!!      call compute_forces( phi, charge, psi, sigma_g, -wlm   , f )
-!!!
-!!!      call check_forces( psi, sigma_g, charge, f )
-!!!
-!!!!      
-!!!!     deallocate
-!!!      deallocate( f , stat=istatus )
-!!!!      
-!!!!     check
-!!!      if ( istatus.ne.0 ) then
-!!!        write(*,*)'iefpcm : [1] failed deallocation !'
-!!!        stop
-!!!      endif 
+!
+!     check solution
+!     --------------
+      s1 = zero ; s2 = zero ; s3 = zero ; Awlm = zero
+!
+      do isph = 1,nsph
+!     
+!       action of ( A_eps )_ij 
+        call mkrvec( isph, eps, wlm, Awlm, xlm, x, basloc, vplm, vcos, vsin )
+!      
+        do j=1,nbasis
+!        
+          s1 = s1 + ( philm(j,isph) - Awlm(j) )**2
+          s2 = s2 + ( philm(j,isph)           )**2
+          s3 = s3 + ( wlm(  j,isph)           )**2
+!          
+        enddo
+      enddo
+!
+      write(*,*) 'ddPCM : '
+      write(*,*) ' '
+      write(*,1001) sqrt(s3) , sqrt(s1) / sqrt(s2)
+ 1001 format(' || Phi_eps || , || A_oo Phi - A_eps Phi_eps || / || A_oo Phi || =  ',2(e12.5,2x) )     
 !
 !
 !     free the memory
