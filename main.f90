@@ -321,7 +321,7 @@ program main
 !       2. compute forces
 !       -----------------
         call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
-        call check_forcesPCM( psi, sigma, charge, f_PCM )
+!!!        call check_forcesPCM( psi, sigma, charge, f_PCM )
 !        
 !       deallocate workspaces
         deallocate( phi_eps, f_PCM , stat=istatus )
