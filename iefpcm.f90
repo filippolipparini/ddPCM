@@ -539,7 +539,7 @@ endsubroutine ADJpcm
 subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
       use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, ui, facl, &
-                            one, pi, zero, pt5, two, dtslm, dtslm2, intrhs, ylmbas
+                            one, pi, zero, pt5, two, dtslm, dtslm2, intrhs, ylmbas, ext1
 !      
       implicit none
       integer,                         intent(in   ) :: isph
@@ -578,25 +578,40 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
             if ( jsph.ne.isph ) then
 !
-!             compute 1/t_ijn [ CAREFUL !!! ], s_ijn
+!             compute tij, sij
               vij  = csph(:,isph) + rsph(isph)*grid(:,its) - csph(:,jsph)
               vvij = sqrt(dot_product(vij,vij))
               tij  = vvij/rsph(jsph) 
               sij  = vij/vvij
 !              
-!             compute Y_l'^m'( s_ijn )
+!             compute Y_l'^m'( sij )
               call ylmbas( sij, basloc, vplm, vcos, vsin )
 !              
-!             t is OUTSIDE j-th sphere [ extension of potential ]
+!             point vij is INSIDE j-sphere [ extension ]
+!             ------------------------------------------
               if ( tij.lt.one ) then
-!                      
+!
 !               contract over l', m'; accumulate
-!!!                x(its) = x(its) + dtslm(  tij, vlm(:,jsph), basloc )
-
-!               FOR NOW ...
+!
+!               extension of potential
+                select case(ext1)
+!
+!               t^l extension
+                case(0)
                 x(its) = x(its) + dtslm2( tij, vlm(:,jsph), basloc )
+!
+!               constant extension
+                case(1)
+                x(its) = x(its) + dtslm2( one, vlm(:,jsph), basloc )
+
+!               t^-l extension
+                case(2)
+                x(its) = x(its) + dtslm(  tij, vlm(:,jsph), basloc )
+!
+               endselect
 !                      
-!             t is INSIDE j-th sphere
+!             point vij is OUTSIDE j-sphere
+!             -----------------------------
               else
 !                      
 !               contract over l', m'; accumulate
@@ -669,7 +684,7 @@ endsubroutine mkrvec
 subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
       use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, ui, facl, &
-                            two, pi, one, zero, pt5, w, ylmbas
+                            two, pi, one, zero, pt5, w, ylmbas, ext1
 !      
       implicit none
       integer,                         intent(in   ) :: isph
@@ -684,6 +699,8 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
       real*8 :: vij(3), s_ijn(3), fep
       real*8 :: vvij, t_ijn, tt, ss
       real*8 :: dijvlm(nbasis),f1(nbasis)
+
+      integer, save :: iflag = 0
 !
 !----------------------------------------------------------------------------------------
 !
@@ -727,7 +744,8 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !             compute Y_l^m( s_ijn )
               call ylmbas( s_ijn, basloc, vplm, vcos, vsin )
 !              
-!             t is INSIDE j-th sphere
+!             point vij is OUTSIDE i-sphere
+!             -----------------------------
               if ( t_ijn.le.one ) then
 
 !               initialize t^(l+1) factor
@@ -751,11 +769,86 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
                   enddo
                 enddo
 !
-!             t is OUTSIDE j-th sphere [ extension of potential ]
+!             point vij is INSIDE i-sphere [ extension of potential ]
+!             -------------------------------------------------------
               else
 !
-                write(*,*) 'ADJvec : no extension of potential yet !'
+!               extension of potential
+                select case(ext1)
 !
+!               t^l extension
+                case(0)
+!                        
+!               initialize t^(l+1) factor
+                tt = one
+!
+!               loop over degree of spherical harmonics 
+                do l = 0,lmax
+!                
+!                 update factor
+                  tt = tt*t_ijn
+!                  
+!                 index associated to Y_0^l
+                  ind = l*l + l + 1
+!                  
+!                 loop over oder of spherical harmonics
+                  do m = -l,l
+!                   
+!                   compute f1
+                    f1(ind+m) = two*l * tt * basloc(ind+m)
+!                    
+                  enddo
+                enddo
+!
+!               constant extension
+                case(1)
+!                        
+!               initialize t^(l+1) factor
+                tt = one
+!
+!               loop over degree of spherical harmonics 
+                do l = 0,lmax
+!                
+!                 update factor
+!!!               tt = tt*t_ijn
+!                  
+!                 index associated to Y_0^l
+                  ind = l*l + l + 1
+!                  
+!                 loop over oder of spherical harmonics
+                  do m = -l,l
+!                   
+!                   compute f1
+                    f1(ind+m) = two*l * tt * basloc(ind+m)
+!                    
+                  enddo
+                enddo
+!
+!               t^-l extension
+                case(2)
+!
+!               initialize t^-(l+1) factor
+                tt = one
+!
+!               loop over degree of spherical harmonics 
+                do l = 0,lmax
+!                
+!                 update factor
+                  tt = tt/t_ijn
+!                  
+!                 index associated to Y_0^l
+                  ind = l*l + l + 1
+!                  
+!                 loop over oder of spherical harmonics
+                  do m = -l,l
+!                   
+!                   compute f1
+                    f1(ind+m) = two*l * tt * basloc(ind+m)
+!                    
+                  enddo
+                enddo
+!
+                endselect
               endif
 !
 !             accumulate over j
@@ -1071,3 +1164,10 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
 !      
 !      
 endsubroutine ADJprec
+
+!!!subroutine pause
+!!!      implicit none
+!!!      write(*,*)'PAUSE - press any key'
+!!!      read(*,*)
+!!!      return
+!!!endsubroutine pause

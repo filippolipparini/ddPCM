@@ -96,7 +96,7 @@ real*8,  parameter :: zero=0.d0, pt5=0.5d0, one=1.d0, two=2.d0, four=4.d0
 !    eta    - regularization parameter
 !
 integer :: nsph, ngrid, ncav, lmax, nbasis, iconv, igrad, &
-           iprint, nproc, memuse, memmax, iunit, iscrf
+           iprint, nproc, memuse, memmax, iunit, iscrf, ext0, ext1
 real*8  :: eps, eta, se, pi, sq2
 logical :: grad
 logical :: iquiet = .false.
@@ -415,7 +415,7 @@ subroutine ddinit( n, x, y, z, rvdw )
 !     -----------------------------------
 !
 !     initialize
-      fi = zero ; ui = zero ; if ( grad )  zi = zero
+      fi(:,:) = zero ; ui(:,:) = zero ; if ( grad )  zi(:,:,:) = zero
 !      
       !$omp parallel do default(shared) private(isph,i,ii,jsph,v,vv,t,xt,swthr,fac)
 !    
@@ -535,24 +535,45 @@ endsubroutine ddinit
   !
   subroutine memfree
   implicit none
+  integer :: istatus, istatus0
   !
   ! deallocate the arrays:
   !
-  if(allocated(rsph))  deallocate(rsph)  
-  if(allocated(csph))  deallocate(csph)  
-  if(allocated(ccav))  deallocate(ccav)  
-  if(allocated(w))     deallocate(w)     
-  if(allocated(grid))  deallocate(grid)  
-  if(allocated(basis)) deallocate(basis) 
-  if(allocated(inl))   deallocate(inl)   
-  if(allocated(nl))    deallocate(nl)    
-  if(allocated(fact))  deallocate(fact)  
-  if(allocated(facl))  deallocate(facl)  
-  if(allocated(facs))  deallocate(facs)  
-  if(allocated(ui))    deallocate(ui)
-  if(allocated(fi))    deallocate(fi)
-  if(allocated(zi))    deallocate(zi)
+  istatus0 = 0 ; istatus = 0
+  if(allocated(rsph))  deallocate(rsph , stat=istatus)  
+  istatus0 = istatus0 + istatus
+  if(allocated(csph))  deallocate(csph , stat=istatus)  
+  istatus0 = istatus0 + istatus
+  if(allocated(ccav))  deallocate(ccav, stat=istatus)  
+  istatus0 = istatus0 + istatus
+  if(allocated(w))     deallocate(w, stat=istatus)     
+  istatus0 = istatus0 + istatus
+  if(allocated(grid))  deallocate(grid, stat=istatus)  
+  istatus0 = istatus0 + istatus
+  if(allocated(basis)) deallocate(basis, stat=istatus) 
+  istatus0 = istatus0 + istatus
+  if(allocated(inl))   deallocate(inl, stat=istatus)   
+  istatus0 = istatus0 + istatus
+  if(allocated(nl))    deallocate(nl, stat=istatus)    
+  istatus0 = istatus0 + istatus
+  if(allocated(fact))  deallocate(fact, stat=istatus)  
+  istatus0 = istatus0 + istatus
+  if(allocated(facl))  deallocate(facl, stat=istatus)  
+  istatus0 = istatus0 + istatus
+  if(allocated(facs))  deallocate(facs, stat=istatus)  
+  istatus0 = istatus0 + istatus
+  if(allocated(ui))    deallocate(ui, stat=istatus)
+  istatus0 = istatus0 + istatus
+  if(allocated(fi))    deallocate(fi, stat=istatus)
+  istatus0 = istatus0 + istatus
+  if(allocated(zi))    deallocate(zi, stat=istatus)
+  istatus0 = istatus0 + istatus
   !
+  if ( istatus0 .ne. 0 ) then
+    write(*,*)'memfree : dallocation failed!'
+    stop
+  endif
+!
   memuse = memuse - 4*nsph - 4*ngrid - nbasis*ngrid - nsph-1 - nsph*nngmax - &
            2*ngrid*nsph - 2*lmax-1 - 3*nbasis
   if (grad) memuse = memuse - 3*ngrid*nsph
@@ -921,7 +942,7 @@ subroutine calcv( first, isph, g, pot, sigma, basloc, vplm, vcos, vsin )
 !           j-sphere is the neighbor
             jsph = nl(ij)
 !
-!           build \omega_ij
+!           build omega_ij
             vij  = csph(:,isph) + rsph(isph)*grid(:,ig) - csph(:,jsph)
             vvij = sqrt(dot_product(vij,vij))
             tij  = vvij/rsph(jsph) 
@@ -936,15 +957,30 @@ subroutine calcv( first, isph, g, pot, sigma, basloc, vplm, vcos, vsin )
 !           compute spherical harmonics at integration point 
             call ylmbas( sij, basloc, vplm, vcos, vsin )
 !
-!           point is inside j-sphere
-            if (tij.lt.one) then
+!           point vij is inside j-sphere
+!           ----------------------------
+            if ( tij.lt.one ) then
+!                    
               pot(ig) = pot(ig) + oij*intmlp(tij,sigma(:,jsph),basloc)
 !
-!           point is on boundary of j-sphere
-            else 
+!           point is on boundary of j-sphere (+ transition layer) [EXTENSION]
+!           -----------------------------------------------------------------
+            elseif ( tij.lt.( one + (se+one)/two*eta ) ) then
+!
+!             extension of potential
+              select case(ext0)
+!
+!             t^l extension
+              case(0)
+              pot(ig) = pot(ig) + oij*intmlp(tij,sigma(:,jsph),basloc)
+!
+!             constant extension
+              case(1)
               pot(ig) = pot(ig) + oij*cstmlp(    sigma(:,jsph),basloc)
 !
-            end if
+              endselect
+!
+            endif
 !            
           end do
         end if
@@ -994,7 +1030,7 @@ end subroutine calcv
   real*8,  dimension(ndiis+1,ndiis+1), intent(inout) :: b
   real*8,  dimension(n),               intent(inout) :: xnew
 !
-  integer :: nmat1, i
+  integer :: nmat1, i, istatus
   integer :: j, k
   logical :: ok
 !
@@ -1016,7 +1052,12 @@ end subroutine calcv
     nmat = nmat - 10
   end if
   nmat1 = nmat + 1
-  allocate (bloc(nmat1,nmat1),cex(nmat1))
+  allocate (bloc(nmat1,nmat1),cex(nmat1) , stat=istatus)
+  if ( istatus.ne.0 ) then 
+    write(*,*) 'diis: allocation failed!'
+    stop
+  endif
+
 !
 ! update memory usage
   memuse = memuse + (nmat1+1)*nmat1
@@ -1036,7 +1077,12 @@ end subroutine calcv
     xnew = xnew + cex(i+1)*x(:,i)
   end do
   nmat = nmat + 1
-  deallocate (bloc,cex)
+  deallocate (bloc,cex , stat=istatus)
+  if ( istatus.ne.0 ) then 
+    write(*,*) 'diis: deallocation failed!'
+    stop
+  endif
+
   memuse = memuse - (nmat1+1)*nmat1
   return
   end subroutine diis
@@ -1090,11 +1136,13 @@ end subroutine calcv
   subroutine ylmbas(x,basloc,vplm,vcos,vsin)
   implicit none
   real*8, dimension(3), intent(in) :: x
-  real*8, dimension(nbasis), intent(inout) :: basloc, vplm
-  real*8, dimension(lmax+1), intent(inout) :: vcos, vsin
+  real*8, dimension(nbasis), intent(out) :: basloc, vplm
+  real*8, dimension(lmax+1), intent(out) :: vcos, vsin
   !
   integer :: l, m, ind
   real*8  :: cthe, sthe, cphi, sphi, plm
+
+  basloc=zero ; vplm=zero ; vcos=zero ; vsin=zero
 !
 ! get cos(\theta), sin(\theta), cos(\phi) and sin(\phi) from the cartesian
 ! coordinates of x.
@@ -1352,25 +1400,50 @@ endsubroutine dbasis
   !
 !
 ! 
-  real*8 function intmlp(t,sigma,basloc)
-  implicit none
-  real*8, intent(in) :: t
-  real*8, dimension(nbasis), intent(in) :: sigma, basloc
-  !
-  integer :: l, ind
-  real*8  :: tt, ss, fac
-  !
-  tt = one
-  ss = zero
-  do l = 0, lmax
-    ind = l*l + l + 1
-    fac = tt/facl(ind)
-    ss = ss + fac*dot_product(basloc(ind-l:ind+l),sigma(ind-l:ind+l))
-    tt = tt*t
-  end do
-  intmlp = ss
-  return
-  end function intmlp
+
+!---------------------------------------------------------------------
+! Purpose : compute
+!
+!                          l'
+!     sum   4pi/(2l'+1) t_n   * Y_l'^m'(s_n) * sigma_l'^m'
+!    l',m'                                           
+!
+!---------------------------------------------------------------------
+!
+real*8 function intmlp(t,sigma,basloc)
+!  
+      implicit none
+      real*8, intent(in) :: t
+      real*8, dimension(nbasis), intent(in) :: sigma, basloc
+!
+      integer :: l, ind
+      real*8  :: tt, ss, fac
+!
+!---------------------------------------------------------------------
+!
+!     initialize
+      tt = one
+      ss = zero
+!
+!     loop over l',m'
+      do l = 0, lmax
+        ind = l*l + l + 1
+!
+!       update factor 4pi/(2l'+1) (t_n)^l'
+        fac = tt/facl(ind)
+!
+!       contract over l',m' and accumulate
+        ss = ss + fac*dot_product(basloc(ind-l:ind+l),sigma(ind-l:ind+l))
+!
+!       update (t_n)^l'
+        tt = tt*t
+      end do
+!      
+      intmlp = ss
+      return
+!
+!
+endfunction intmlp
 !
 !
 !
@@ -1607,10 +1680,14 @@ subroutine itsolv( star, phi, psi, sigma, ene )
           do j=1,nbasis
 !          
             s1 = s1 + ( Lsigma(j) )**2
-            s2 = s2 + ( g(j,isph) )**2
             s3 = s3 + ( sigma(j,isph) )**2
 !            
           enddo
+!
+          do j=1,ngrid
+            s2 = s2 + ( g(j,isph) )**2
+          enddo
+!
         enddo
 !
         write(*,*) 'ddCOSMO : '
@@ -1750,12 +1827,12 @@ subroutine wghpot( phi, g )
 !
       implicit none
 !
-      real*8, dimension(ncav),       intent(in)    :: phi
-      real*8, dimension(ngrid,nsph), intent(inout) :: g
+      real*8, dimension(ncav),       intent(in)  :: phi
+      real*8, dimension(ngrid,nsph), intent(out) :: g
 !
       integer isph, ig, ic
 !
-      ic = 0
+      ic = 0 ; g(:,:)=0.d0
       do isph = 1, nsph
         do ig = 1, ngrid
           if (ui(ig,isph).ne.zero) then
@@ -1800,6 +1877,11 @@ endsubroutine wghpot
 !
 !    vlm = S' \sigma  = \Phi - sum S_ij' \sigma_j
 !                   i       i   j
+
+
+!                            l
+!    sum  sum  4pi/(2l+1) t_n  * Y_l^m(s_n) * psi_l^m w_n * sigma(y_n) * Y(y_n)
+!     n   l,m                                           
 !
 !-----------------------------------------------------------------------------------
 subroutine adjrhs(first,isph,psi,xi,vlm,basloc,vplm,vcos,vsin)
@@ -1823,13 +1905,13 @@ subroutine adjrhs(first,isph,psi,xi,vlm,basloc,vplm,vcos,vsin)
 !     just return vlm = psi when n=1
       if (first) return
 !
-!     loop over neighboring sphere of i-sphere
+!     loop over neighboring spheres of i-sphere
       do ij = inl(isph), inl(isph+1) - 1
 !
 !       j-sphere is neighbor
         jsph = nl(ij)
 !
-!       loop over integration points of i-sphere
+!       loop over integration points on j-sphere
         do ig = 1, ngrid
 !        
 !         build t_ij
@@ -1837,10 +1919,11 @@ subroutine adjrhs(first,isph,psi,xi,vlm,basloc,vplm,vcos,vsin)
           vvji = sqrt(dot_product(vji,vji))
           tji  = vvji/rsph(isph)
 !
-!         point is inside j-sphere
-          if (tji.lt.one) then
+!         point vji is inside i-sphere (+ transition layer)
+!         -------------------------------------------------
+          if ( tji.lt.( one + (se+one)/two*eta ) ) then
 !                  
-!           build \omega_ij
+!           build omega_ij
             sji = vji/vvji
             xji = fsw(tji,se,eta)
             if (fi(ig,jsph).gt.one) then
@@ -1863,7 +1946,7 @@ subroutine adjrhs(first,isph,psi,xi,vlm,basloc,vplm,vcos,vsin)
               end do
               t = t*tji
             end do
-!
+!            
           end if
         end do
       end do
@@ -1900,14 +1983,22 @@ end subroutine adjrhs
   real*8,  dimension(n,n),    intent(inout) :: a
   real*8,  dimension(n,nrhs), intent(inout) :: b
   !
-  integer :: i, j, k, irow, icol
+  integer :: i, j, k, irow, icol, istatus
   real*8  :: big, dum, pinv
   !
   integer, allocatable :: indxc(:), indxr(:), piv(:)
   real*8,  allocatable :: scr(:)
   !
-  allocate (indxc(n), indxr(n), piv(n))
-  allocate (scr(n))
+  allocate (indxc(n), indxr(n), piv(n) , stat=istatus)
+  if ( istatus.ne.0 ) then
+    write(*,*)'gjinv: allocation failed! [1]'
+    stop
+  endif
+  allocate (scr(n) , stat=istatus)
+  if ( istatus.ne.0 ) then
+    write(*,*)'gjinv: allocation failed! [2]'
+    stop
+  endif
 !
 ! update memory usage
   memuse = memuse + 4*n
@@ -1980,7 +2071,12 @@ end subroutine adjrhs
   end do
   !
   ok = .true.
-  deallocate (indxr,indxc,piv,scr)
+  deallocate (indxr,indxc,piv,scr , stat=istatus)
+  if ( istatus.ne.0 ) then
+    write(*,*)'gjinv: deallocation failed! [1]'
+    stop
+  endif
+
   memuse = memuse - 4*n
   return
   !
@@ -2244,15 +2340,10 @@ endfunction extmlp
 !
 !
 !---------------------------------------------------------------------
-! Purpose : compute l,m-th row of L_jj * X_j vector.
-!
-!               m           mm'        m'
-!   [ L_jj X_j ]  = [ L_jj ]    [ X_j ]   
-!               l           ll'        ll'
-!                                                
-!                                                            m'
-!                 =  sum   4pi/(2l'+1) * Y_l'^m'(s_n) * [X_j]
-!                   l',m'                                    l'
+! Purpose : compute
+!                                       
+!     sum   4pi/(2l'+1) * Y_l'^m'(s_n) * sigma_l'^m'
+!    l',m'                             
 !
 !---------------------------------------------------------------------
 real*8 function cstmlp( sigma, basloc )
@@ -2335,7 +2426,7 @@ endfunction dtslm
 ! Purpose : compute :
 !
 !        4 pi l
-!   sum  ------  1/t^(l+1)  \nu_l^m  Y_l^m
+!   sum  ------  1/t^(l+1)  nu_l^m  Y_l^m
 !   l,m  2l + 1
 !
 ! Remark : index l starts from 0 !
@@ -2388,7 +2479,7 @@ endfunction dtslm2
 !
 !
 !---------------------------------------------------------------------
-subroutine itsolv2(star,iefpcm,phi,psi,sigma,ene)
+subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
 !
       implicit none
 !      
@@ -2432,11 +2523,34 @@ subroutine itsolv2(star,iefpcm,phi,psi,sigma,ene)
       fep = one
       if (.not. iefpcm) fep = (eps-one)/eps
       tol = ten**(-iconv)
-      allocate (g(ngrid,nsph),pot(ngrid),vlm(nbasis),sigold(nbasis,nsph))
+      allocate (g(ngrid,nsph),pot(ngrid),vlm(nbasis),sigold(nbasis,nsph) , &
+      stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: allocation failed! [1]'
+        stop
+      endif
+
       sigold = zero
-      allocate (delta(nbasis),norm(nsph))
-      allocate(vplm(nbasis),basloc(nbasis),vcos(lmax+1),vsin(lmax+1))
-      if (star) allocate(xi(ngrid,nsph))
+      allocate (delta(nbasis),norm(nsph) , stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: allocation failed! [2]'
+        stop
+      endif
+
+      allocate(vplm(nbasis),basloc(nbasis),vcos(lmax+1),vsin(lmax+1) , &
+      stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: allocation failed! [3]'
+        stop
+      endif
+
+      istatus=0
+      if (star) allocate(xi(ngrid,nsph) , stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: allocation failed! [4]'
+        stop
+      endif
+
       memuse = memuse + ngrid*nsph + ngrid*nproc + 2*nbasis*nproc + nbasis*nsph + &
                2*nbasis*nproc + 2*(lmax+1)*nproc + nsph
       if (star) memuse = memuse + nsph*ngrid
@@ -2446,7 +2560,13 @@ subroutine itsolv2(star,iefpcm,phi,psi,sigma,ene)
       dodiis = .false.
       nmat   = 1
       lenb   = ndiis + 1
-      allocate (xdiis(nbasis,nsph,ndiis),ediis(nbasis,nsph,ndiis),bmat(lenb*lenb))
+      allocate (xdiis(nbasis,nsph,ndiis),ediis(nbasis,nsph,ndiis),bmat(lenb*lenb) , &
+      stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: allocation failed! [5]'
+        stop
+      endif
+
       memuse = memuse + 2*nbasis*nsph*ndiis + lenb*lenb
       memmax = max(memmax,memuse)
 !
@@ -2454,9 +2574,9 @@ subroutine itsolv2(star,iefpcm,phi,psi,sigma,ene)
 !
       if (.not. star) then
 !
-!       build g:
-        g(:,:) = zero
-        call wghpot( phi, g )
+!!!!       build g:
+!!!        g(:,:) = zero
+!!!        call wghpot( phi, g )
 !        
         do it = 1, nitmax
 !        
@@ -2588,11 +2708,38 @@ subroutine itsolv2(star,iefpcm,phi,psi,sigma,ene)
       ! free the memory:
       !
       if (iprint.gt.1) write(iout,*)
-      if (star) deallocate(xi)
-      deallocate (g,pot,vlm,sigold)
-      deallocate (delta,norm)
-      deallocate (vplm,basloc,vcos,vsin)
-      deallocate (xdiis,ediis,bmat)
+
+      istatus=0
+      if (star) deallocate(xi , stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: deallocation failed! [1]'
+        stop
+      endif
+
+      deallocate (g,pot,vlm,sigold , stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: deallocation failed! [2]'
+        stop
+      endif
+
+      deallocate (delta,norm , stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: deallocation failed! [3]'
+        stop
+      endif
+
+      deallocate (vplm,basloc,vcos,vsin , stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: deallocation failed! [4]'
+        stop
+      endif
+
+      deallocate (xdiis,ediis,bmat , stat=istatus)
+      if ( istatus.ne.0 ) then
+        write(*,*)'itsolv2: deallocation failed! [5]'
+        stop
+      endif
+
       memuse = memuse - ngrid*nsph - ngrid*nproc - 2*nbasis*nproc - nbasis*nsph - &
                2*nbasis*nproc - 2*(lmax+1)*nproc - nsph
       memuse = memuse - 2*nbasis*nsph*ndiis - lenb*lenb
@@ -2649,10 +2796,10 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !       ???? grid point belongs to N(s) [check this]
         if ( ui(its,isph).lt.one ) then
 !
-!         loop over neighbors
+!         loop over neighbors of i-sphere
           do ij = inl(isph),inl(isph+1)-1
 !
-!           neighbor's number
+!           neighbor is j-sphere
             jsph = nl(ij)
 !            
 !           compute t = | r_i + \rho_i s_n - r_j | / \rho_j
@@ -2680,21 +2827,41 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !           compute spherical harmonics at s
             call ylmbas( sij, basloc, vplm, vcos, vsin )
 !
+!           point vij is inside j-sphere
+!           ----------------------------
             if ( tij.lt.one ) then
 !                    
 !             compute l,m-th row of L_jk * X_k vector
               pot(its) = pot(its) + oij * intmlp( tij, sigma(:,jsph), basloc )
+!              
+!           point vij on boundary of j-sphere (+ transition layer) [EXTENSION]
+!           ------------------------------------------------------------------
+            elseif ( tij.lt.( one + (se+one)/two*eta ) ) then
 !                    
-            else
+!             extension of potential
+              select case(ext0)
+!
+!             t^l extension
+              case(0)
+              pot(its) = pot(its) + oij*intmlp(tij,sigma(:,jsph),basloc)
+!
+!             constant extension
+              case(1)
+              pot(its) = pot(its) + oij*cstmlp(    sigma(:,jsph),basloc)
+!
+              endselect
+!
 !                    
-!             compute l,m-th row of L_jj * X_j vector
-              pot(its) = pot(its) + oij * cstmlp(      sigma(:,jsph), basloc )
-!                    
-      !       pot(its) = pot(its) + oij*extmlp(tij,sigma(:,jsph),basloc)
-      !       pot(its) = pot(its) + oij*stslm2(lmax,tij,sigma(:,jsph),basloc)
-      !       pot(its) = pot(its) + oij*stslm3(lmax,tij,sigma(:,jsph),basloc)
-!                    
-            end if
+!!!            elseif ( tij.lt.( one + (se+one)/two*eta ) ) then
+!!!!                    
+!!!!             compute l,m-th row of L_jj * X_j vector
+!!!              pot(its) = pot(its) + oij * cstmlp(      sigma(:,jsph), basloc )
+!!!!                    
+!!!      !       pot(its) = pot(its) + oij*extmlp(tij,sigma(:,jsph),basloc)
+!!!      !       pot(its) = pot(its) + oij*stslm2(lmax,tij,sigma(:,jsph),basloc)
+!!!      !       pot(its) = pot(its) + oij*stslm3(lmax,tij,sigma(:,jsph),basloc)
+!!!!                    
+            endif
           end do
         end if
       end do

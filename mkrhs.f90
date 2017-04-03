@@ -89,8 +89,8 @@ subroutine mkrhs( n, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
       integer,                      intent(in)    :: n, ncav, nbasis
       real*8,  dimension(n),        intent(in)    :: x, y, z, charge
       real*8,  dimension(3,ncav),   intent(in)    :: ccav
-      real*8,  dimension(ncav),     intent(inout) :: phi
-      real*8,  dimension(nbasis,n), intent(inout) :: psi
+      real*8,  dimension(ncav),     intent(out) :: phi
+      real*8,  dimension(nbasis,n), intent(out) :: psi
 !
       integer :: isph, ic, j, iprint
       real*8  :: v
@@ -104,9 +104,11 @@ subroutine mkrhs( n, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
       fac = sqrt(four*pi)
 !
 !     initialize
-      phi = zero ; psi = zero
+      phi(:) = zero ; psi(:,:) = zero
 !
-      !$omp parallel do default(shared) private(ic,v,j,dx,dy,dz,d2,d)
+!
+!!!      !$omp parallel do default(shared) private(ic,v,j,dx,dy,dz,d2,d)
+!      
 !       
 !       
 !     potential phi
@@ -142,7 +144,7 @@ subroutine mkrhs( n, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
         psi(1,isph) = fac*charge(isph)
 !        
       end do
-!
+
       iprint=0
       if ( iprint.gt.0 ) then
 !

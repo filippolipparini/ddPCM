@@ -229,6 +229,13 @@ subroutine forces( n, charge, phi, sigma, s, fx )
         call fdoga( isph,        xi,         phiexp,                           fx(:,isph) ) 
 !        
       enddo
+
+!!!      write(iout,1001)
+!!! 1001 format(1x,'ddCOSMO forces [1] (atomic units):',/, &
+!!!                1x,' atom',15x,'x',15x,'y',15x,'z')
+!!!      do isph = 1, nsph
+!!!        write(6,'(1x,i5,3f16.8)') isph, fx(:,isph)
+!!!      enddo
 !
 !     deallocate workspaces
       deallocate( basloc, dbsloc, vplm, vcos, vsin , stat=istatus )
@@ -324,6 +331,13 @@ subroutine forces( n, charge, phi, sigma, s, fx )
         enddo
       enddo
 !
+!!!      write(*,1002)
+!!! 1002 format(1x,'ddCOSMO forces [2] (atomic units):',/, &
+!!!                1x,' atom',15x,'x',15x,'y',15x,'z')
+!!!      do isph = 1, nsph
+!!!        write(6,'(1x,i5,3f16.8)') isph, fx(:,isph)
+!!!      enddo
+
 !     electric field produced by the cavity, at the nuclei [ TARGETS ]
       call efld( ncav, zeta, ccav, n, csph, ef )
 !
@@ -334,6 +348,14 @@ subroutine forces( n, charge, phi, sigma, s, fx )
         fx(:,isph) = fx(:,isph) + ef(:,isph)*charge(isph)
 !        
       enddo
+      
+!!!      write(*,1003)
+!!! 1003 format(1x,'ddCOSMO forces [3] (atomic units):',/, &
+!!!                1x,' atom',15x,'x',15x,'y',15x,'z')
+!!!      do isph = 1, nsph
+!!!        write(6,'(1x,i5,3f16.8)') isph, fx(:,isph)
+!!!      enddo
+
 !
 ! for point charges, there is no contribution from the derivatives of the psi vector.
 ! for quantum mechanical solutes, such a contribution needs to be handled via a numerical
@@ -633,20 +655,21 @@ endsubroutine check_derivativesCOSMO
 subroutine check_forcesCOSMO( E0, charge, f )
 !
       use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
-                           ncav, ccav, ngrid, zero, itsolv
+                           ncav, ccav, ngrid, zero, itsolv, one
 !                           
       implicit none
       real*8,                    intent(in) :: E0
       real*8, dimension(  nsph), intent(in) :: charge
       real*8, dimension(3,nsph), intent(in) :: f
 !
-      integer,parameter :: niter = 6
+      integer,parameter :: niter = 4
 !
       real*8 :: phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph)
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
-      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3),rrate(niter,nsph*3)
-      real*8 :: E_plus, err, eeps
-      integer :: iter, icomp, ksph, nsph_save, j
+      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3),rrate(niter,nsph*3) , &
+                hwork(niter,nsph*3)
+      real*8 :: E_plus, err, eeps, h
+      integer :: iter, icomp, ksph, nsph_save, j, ncav_save, nbasis_save
 !
 !---------------------------------------------------------------------------------------
 !
@@ -655,6 +678,8 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !
 !     save initial DS
       nsph_save = nsph
+      ncav_save = ncav
+      nbasis_save = nbasis
       x_save = csph(1,:)
       y_save = csph(2,:)
       z_save = csph(3,:)
@@ -683,16 +708,16 @@ subroutine check_forcesCOSMO( E0, charge, f )
             y = y_save
             z = z_save
             select case(icomp)
-            case(1) ; x(ksph) = x_save(ksph) + eeps
-            case(2) ; y(ksph) = y_save(ksph) + eeps
-            case(3) ; z(ksph) = z_save(ksph) + eeps
+            case(1) ; x(ksph) = x_save(ksph)*(one + eeps) ; h = x_save(ksph)*eeps
+            case(2) ; y(ksph) = y_save(ksph)*(one + eeps) ; h = y_save(ksph)*eeps
+            case(3) ; z(ksph) = z_save(ksph)*(one + eeps) ; h = z_save(ksph)*eeps
             endselect
 !
 !           allocate new DS      
             call ddinit( nsph_save, x, y, z, r_save )
 !            
 !           potential Phi and Psi vector
-            call mkrhs( nsph, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
+            call mkrhs( nsph_save, charge, x, y, z, ncav_save, ccav, phi, nbasis_save, psi )
 !
 !           solve COSMO equations       
             E_plus = zero ; sigma = zero
@@ -701,15 +726,19 @@ subroutine check_forcesCOSMO( E0, charge, f )
             if ( abs( f(icomp,ksph) ).gt.1.E-12 ) then
 !                    
 !             compute relative error
-              err = abs( (E_plus - E0) / eeps + f(icomp,ksph) ) / abs( f(icomp,ksph) )
+!!!              err = abs( (E_plus - E0) / eeps + f(icomp,ksph) ) / abs( f(icomp,ksph) )
+              err = abs( (E_plus - E0) / h + f(icomp,ksph) ) / abs( f(icomp,ksph) )
 !
 !             store
               rwork(iter,(ksph-1)*3+icomp) = err
+              hwork(iter,(ksph-1)*3+icomp) = h
 !              
 !             compute rate
               if ( iter.gt.1 ) then 
                 rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
-                                                     rwork(iter  ,(ksph-1)*3+icomp)   ) / log(0.5d0)  
+                                                     rwork(iter  ,(ksph-1)*3+icomp)   ) / &
+                                                log( hwork(iter  ,(ksph-1)*3+icomp) / & 
+                                                     hwork(iter-1,(ksph-1)*3+icomp)   )
               endif
             endif
 !
@@ -741,6 +770,14 @@ subroutine check_forcesCOSMO( E0, charge, f )
         enddo
       enddo
       write(*,*) ''
+
+      write(*,1000)
+ 1000 format(1x,'ddCOSMO forces (atomic units):',/, &
+                1x,' atom',15x,'x',15x,'y',15x,'z')
+!                
+      do ksph = 1, nsph
+        write(6,'(1x,i5,3f16.8)') ksph, f(:,ksph)
+      enddo
 !      
 !     restore DS
       call memfree

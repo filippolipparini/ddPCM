@@ -90,7 +90,7 @@ integer,                    intent(in)    :: nsrc, ntrg
 real*8,  dimension(nsrc),   intent(in)    :: src
 real*8,  dimension(3,nsrc), intent(in)    :: csrc
 real*8,  dimension(3,ntrg), intent(in)    :: ctrg
-real*8,  dimension(3,ntrg), intent(inout) :: ef
+real*8,  dimension(3,ntrg), intent(out) :: ef
 !
 integer :: i, j
 real*8  :: r(3), r2, rr, r3, fac, e(3)

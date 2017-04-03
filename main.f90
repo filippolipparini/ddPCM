@@ -152,11 +152,12 @@ program main
       read(10,*) eps         ! dielectric constant of the solvent
       read(10,*) iunit       ! whether to convert to bohr (0) or not (1)
       read(10,*) eta, se     ! regularization parameters
+      read(10,*) ext0, ext1  ! extension of potential for COSMO and PCM
 !
 !     close control file
       close(10)
 !
-!     adjust number of grid points to acutal number of L.L. points
+!     adjust number of grid points to actual number of L.L. points
       call reset_ngrid
 !
 !     open atoms file
@@ -279,6 +280,7 @@ program main
 !         forces.f90.
 !
           call forces( nsph, charge, phi, sigma, s, fx )
+!!!          call check_derivativesCOSMO()
 !!!          call check_forcesCOSMO( esolv, charge, fx )
 !           
 !         deallocate workspaces
@@ -321,7 +323,7 @@ program main
 !       2. compute forces
 !       -----------------
         call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
-!!!        call check_forcesPCM( psi, sigma, charge, f_PCM )
+        call check_forcesPCM( psi, sigma, charge, f_PCM )
 !        
 !       deallocate workspaces
         deallocate( phi_eps, f_PCM , stat=istatus )

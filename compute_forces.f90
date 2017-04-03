@@ -46,10 +46,18 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       real*8 :: rvoid
       real*8 :: ef(3,ncav),zeta(ncav)
 !
-      integer :: isph,jsph,icomp,n,i
+      integer :: isph, jsph, icomp, n, i, c1, c2, cr
       logical, parameter :: star=.true.
 !
 !-------------------------------------------------------------------------------------
+!
+!     initialize
+      f(:,:) = zero
+!
+!     initialize the timer
+      call system_clock( count_rate = cr )
+      call system_clock( count = c1 )
+!      
 !
 !     STEP 1 : solve adjoint problem (A_eps L)^T s = Psi
 !     --------------------------------------------------
@@ -63,9 +71,6 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
 !     STEP 2 : compute f = - < s , A' ( Phi - Phi_eps ) >
 !     ---------------------------------------------------
-!
-!     initialize
-      f(:,:) = zero
 !
 !     compute SH expansion of Phi on i-sphere
       do isph = 1,nsph
@@ -212,6 +217,18 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     scale the forces the cosmo factor
       f = 0.5d0*(eps-1.d0)/eps * f
 !
+!
+!     time computation of forces
+      call system_clock( count = c2 )
+!
+!     printing
+      if ( iprint.gt.0 ) then
+!              
+        write(*,1010) dble(c2-c1)/dble(cr)
+ 1010   format(' computation of ddPCM forces : ',f8.3,' sec')
+! 
+      endif
+
 !     printing
       if ( iprint.ge.2 ) then
 !              
@@ -1182,7 +1199,7 @@ endsubroutine ADJcheck
 subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
       use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
-                           eps, ncav, ccav, ngrid, zero, sprod, wghpot
+                           eps, ncav, ccav, ngrid, zero, sprod, wghpot, one
 !                           
       implicit none
       real*8, dimension(nbasis,nsph), intent(in) :: Psi0
@@ -1194,9 +1211,10 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
       real*8 :: phi(ncav), psi(nbasis,nsph), g(ngrid,nsph), sigma(nbasis,nsph)
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
-      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3), rrate(niter,nsph*3)
-      real*8 :: E0, E_plus, err, eeps
-      integer :: iter, icomp, ksph, nsph_save, j
+      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3), rrate(niter,nsph*3), &
+                hwork(niter,nsph*3)
+      real*8 :: E0, E_plus, err, eeps, h
+      integer :: iter, icomp, ksph, nsph_save, j, ncav_save, nbasis_save
 !
 !---------------------------------------------------------------------------------------
 !
@@ -1208,6 +1226,8 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
 !     save initial DS
       nsph_save = nsph
+      ncav_save = ncav
+      nbasis_save = nbasis
       x_save = csph(1,:)
       y_save = csph(2,:)
       z_save = csph(3,:)
@@ -1236,19 +1256,19 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
             y = y_save
             z = z_save
             select case(icomp)
-            case(1) ; x(ksph) = x_save(ksph) + eeps
-            case(2) ; y(ksph) = y_save(ksph) + eeps
-            case(3) ; z(ksph) = z_save(ksph) + eeps
+            case(1) ; x(ksph) = x_save(ksph)*(one + eeps) ; h = x_save(ksph)*eeps 
+            case(2) ; y(ksph) = y_save(ksph)*(one + eeps) ; h = y_save(ksph)*eeps
+            case(3) ; z(ksph) = z_save(ksph)*(one + eeps) ; h = z_save(ksph)*eeps
             endselect
 !
 !           allocate new DS      
             call ddinit( nsph_save, x, y, z, r_save )
 !            
 !           potential Phi and Psi vector
-            call mkrhs( nsph, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
+            call mkrhs( nsph_save, charge, x, y, z, ncav_save, ccav, phi, nbasis_save, psi )
 !
 !           solve PCM equations       
-            g=zero
+            g(:,:)=zero ; sigma(:,:)=zero
             call wghpot( phi, g )
             call iefpcm( g, psi, sigma, phi_eps )
 !
@@ -1258,15 +1278,19 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
             if ( abs( f(ksph,icomp) ).gt.1.E-12 ) then
 !                      
 !             compute relative error
-              err = abs( (E_plus - E0) / eeps + f(ksph,icomp) ) / abs( f(ksph,icomp) )
+!!!              err = abs( (E_plus - E0) / eeps + f(ksph,icomp) ) / abs( f(ksph,icomp) )
+              err = abs( (E_plus - E0) / h + f(ksph,icomp) ) / abs( f(ksph,icomp) )
 !
 !             store
               rwork(iter,(ksph-1)*3+icomp) = err
+              hwork(iter,(ksph-1)*3+icomp) = h
 
 !             compute rate
               if ( iter.gt.1 ) then 
                 rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
-                                                     rwork(iter  ,(ksph-1)*3+icomp)   ) / log(0.5d0)
+                                                     rwork(iter  ,(ksph-1)*3+icomp)   ) / &
+                                                log( hwork(iter  ,(ksph-1)*3+icomp) / &
+                                                     hwork(iter-1,(ksph-1)*3+icomp)   )
               endif
             endif
 !
