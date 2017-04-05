@@ -1,10 +1,11 @@
 2                            # iprint
 1                            # nproc
-1                            # lmax
-5                           # ngrid
+2                          # lmax
+26                           # ngrid
 7                            # iconv
 1                            # igrad
-1                            # iscrf
-32.d0 78.3553                   # eps
+0                            # iscrf
+78.3553                   # eps
 1                            # iunit
-0.05d0 -0.025d0              # eta, se
+0.1d0  -1.d0              # eta, se
+1 1                     # ext0 ext1
