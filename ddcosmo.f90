@@ -2135,9 +2135,12 @@ end subroutine adjrhs
   real*8,  dimension(3),           intent(inout) :: fx
   !
   integer :: ig, ij, jsph, l, ind, m
-  real*8  :: vvij, tij, xij, oij, t, fac, fl, f1, f2, f3, beta
+  real*8  :: vvij, tij, xij, oij, t, fac, fl, f1, f2, f3, beta, tlow, thigh
   real*8  :: vij(3), sij(3), alp(3), va(3)
-  !
+!
+  tlow  = one - pt5*(one - se)*eta
+  thigh = one + pt5*(one + se)*eta
+!
   do ig = 1, ngrid
     va = zero
     do ij = inl(isph), inl(isph+1) - 1
@@ -2145,7 +2148,9 @@ end subroutine adjrhs
       vij  = csph(:,isph) + rsph(isph)*grid(:,ig) - csph(:,jsph)
       vvij = sqrt(dot_product(vij,vij))
       tij  = vvij/rsph(jsph)
-      if (tij.ge.one) cycle
+!
+      if (tij.ge.thigh) cycle
+!
       sij  = vij/vvij
       call dbasis(sij,basloc,dbsloc,vplm,vcos,vsin)
       alp  = zero
@@ -2172,7 +2177,8 @@ end subroutine adjrhs
       end if
       f1 = oij/rsph(jsph)
       va(:) = va(:) + f1*alp(:) + beta*f2*zi(:,ig,isph)
-      if (tij .gt. (one-eta*rsph(jsph))) then
+      if (tij .gt. tlow) then
+!!!      if (tij .gt. (one-eta*rsph(jsph))) then
 !!!        f3 = beta*dfsw(tij,eta*rsph(jsph))/rsph(jsph)
         f3 = beta*dfsw(tij,se,eta)/rsph(jsph)
         if (fi(ig,isph).gt.one) f3 = f3/fi(ig,isph)
@@ -2196,10 +2202,13 @@ end subroutine adjrhs
   !
   integer :: ig, ji, jsph, l, ind, m, jk, ksph
   logical :: proc
-  real*8  :: vvji, tji, xji, oji, t, fac, fl, f1, f2, beta, di
+  real*8  :: vvji, tji, xji, oji, t, fac, fl, f1, f2, beta, di, tlow, thigh
   real*8  :: b, g1, g2, vvjk, tjk, f, xjk
   real*8  :: vji(3), sji(3), alp(3), vb(3), vjk(3), sjk(3), vc(3)
-  !
+!
+  tlow  = one - pt5*(one - se)*eta
+  thigh = one + pt5*(one + se)*eta
+!
   do ig = 1, ngrid
     vb = zero
     vc = zero
@@ -2208,10 +2217,12 @@ end subroutine adjrhs
       vji  = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
       vvji = sqrt(dot_product(vji,vji))
       tji  = vvji/rsph(isph)
-      if (tji.gt.one) cycle
+!
+      if (tji.gt.thigh) cycle
+!
       sji  = vji/vvji
       call dbasis(sji,basloc,dbsloc,vplm,vcos,vsin)
-  !
+!
       alp = zero
       t   = one
       do l = 1, lmax
@@ -2233,7 +2244,7 @@ end subroutine adjrhs
       end if
       f1 = oji/rsph(isph)
       vb = vb + f1*alp*xi(ig,jsph)
-      if (tji.gt.one-eta*rsph(isph)) then
+      if (tji .gt. tlow) then
         beta = intmlp(tji,sigma(:,isph),basloc)
         if (fi(ig,jsph) .gt. one) then
           di  = one/fi(ig,jsph)
@@ -2246,7 +2257,7 @@ end subroutine adjrhs
             vvjk = sqrt(dot_product(vjk,vjk))
             tjk  = vvjk/rsph(ksph)
             if (ksph.ne.isph) then
-              if (tjk.lt.one) then
+              if (tjk .le. thigh) then
                 proc = .true.
                 sjk  = vjk/vvjk
                 call ylmbas(sjk,basloc,vplm,vcos,vsin)

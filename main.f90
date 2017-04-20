@@ -284,7 +284,7 @@ program main
 !!!          call check_forcesCOSMO( esolv, charge, fx )
 !           
 !         deallocate workspaces
-          deallocate( s, fx , stat=istatus )
+!fl          deallocate( s, fx , stat=istatus )
           if ( istatus.ne.0 ) then
             write(*,*)'main : [1] failed deallocation !'
             stop
@@ -338,6 +338,12 @@ program main
 !
       endif
 !
+!fl
+      if (.true.) then
+        deallocate (phi,psi,sigma)
+        call memfree
+        call numgrad(fx,x,y,z,rvdw,charge)
+      end if
 !
 !     deallocate workspaces
       deallocate( x, y, z, rvdw, charge, phi, psi, sigma , stat=istatus )
