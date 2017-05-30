@@ -97,7 +97,7 @@ program main
 !      
       implicit none
 !
-      integer :: i, j, istatus
+      integer :: i, j, istatus, ig
       real*8  :: tobohr, esolv, rvoid
       real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
@@ -123,6 +123,13 @@ program main
 !     - for qm solutes, fock matrix contribution.
 !
       character(len=64), dimension(2) :: args
+
+      integer :: igrid
+      integer, parameter, dimension(32) :: ngrid_vec = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
+                                                          146, 170, 194, 230, 266, 302, 350, 434,  &
+                                                          590, 770, 974,1202,1454,1730,2030,2354,  &
+                                                         2702,3074,3470,3890,4334,4802,5294,5810/)
+ 
 !
 !-------------------------------------------------------------------------------
 !
@@ -157,8 +164,15 @@ program main
 !     close control file
       close(10)
 !
-!     adjust number of grid points to actual number of L.L. points
-      call reset_ngrid
+!     loop over angular momenta
+      do lmax=2,10
+!
+!       adjust number of grid points so that 2*lmax is integrated exactly
+        call reset_ngrid00(igrid)
+!
+!       loop over extra grids
+        do ig = 1,4
+!          
 !
 !     open atoms file
       open( unit=10, file=args(2) )
@@ -281,10 +295,10 @@ program main
 !
           call forces( nsph, charge, phi, sigma, s, fx )
 !!!          call check_derivativesCOSMO()
-!!!          call check_forcesCOSMO( esolv, charge, fx )
+          call check_forcesCOSMO( esolv, charge, fx )
 !           
 !         deallocate workspaces
-!fl          deallocate( s, fx , stat=istatus )
+          deallocate( s, fx , stat=istatus )
           if ( istatus.ne.0 ) then
             write(*,*)'main : [1] failed deallocation !'
             stop
@@ -339,14 +353,14 @@ program main
       endif
 !
 !fl
-      if (.true.) then
-        deallocate (phi,psi,sigma)
-        call memfree
-        call numgrad(fx,x,y,z,rvdw,charge)
-      end if
+!!!      if (.false.) then
+!!!        deallocate (phi,psi,sigma)
+!!!        call memfree
+!!!        call numgrad(fx,x,y,z,rvdw,charge)
+!!!      end if
 !
 !     deallocate workspaces
-      deallocate( x, y, z, rvdw, charge, phi, psi, sigma , stat=istatus )
+      deallocate( x, y, z, rvdw, charge, phi, psi, sigma, g , stat=istatus )
       if ( istatus.ne.0 ) then
         write(*,*)'main : [2] failed deallocation !'
         stop
@@ -360,6 +374,16 @@ program main
       call memfree
 !
       write(6,*) 'maximum quantity of memory allocated:', memmax
+!
+!
+!         increment grid number        
+          igrid = igrid + 1
+!
+!         update number of grid points
+          ngrid = ngrid_vec(igrid)
+!
+        enddo
+      enddo
 !
 !
 endprogram main

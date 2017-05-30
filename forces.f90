@@ -655,7 +655,7 @@ endsubroutine check_derivativesCOSMO
 subroutine check_forcesCOSMO( E0, charge, f )
 !
       use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
-                           ncav, ccav, ngrid, zero, itsolv, one
+                           ncav, ccav, ngrid, zero, itsolv, one, lmax
 !                           
       implicit none
       real*8,                    intent(in) :: E0
@@ -667,9 +667,15 @@ subroutine check_forcesCOSMO( E0, charge, f )
       real*8 :: phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph)
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
       real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3),rrate(niter,nsph*3) , &
-                hwork(niter,nsph*3)
+                hwork(niter,nsph*3),ework(niter,nsph*3)
       real*8 :: E_plus, err, eeps, h
       integer :: iter, icomp, ksph, nsph_save, j, ncav_save, nbasis_save
+
+      real*8, parameter :: tokcal=627.509469d0
+!      
+      character(len=10) :: x1,x2
+      character(len=30) :: fname
+      integer :: fp
 !
 !---------------------------------------------------------------------------------------
 !
@@ -686,10 +692,10 @@ subroutine check_forcesCOSMO( E0, charge, f )
       r_save = rsph(  :)
 !
 !     set initial increment
-      eeps=0.1d0
+      eeps=0.001d0
 !
 !     initialize
-      rwork = zero ; rrate = zero
+      rwork = zero ; rrate = zero ; ework = zero ; hwork = zero
 !
 !     loop over increments
       do iter = 1,niter
@@ -708,10 +714,11 @@ subroutine check_forcesCOSMO( E0, charge, f )
             y = y_save
             z = z_save
             select case(icomp)
-            case(1) ; x(ksph) = x_save(ksph)*(one + eeps) ; h = x_save(ksph)*eeps
-            case(2) ; y(ksph) = y_save(ksph)*(one + eeps) ; h = y_save(ksph)*eeps
-            case(3) ; z(ksph) = z_save(ksph)*(one + eeps) ; h = z_save(ksph)*eeps
+            case(1) ; x(ksph) = x_save(ksph) + eeps 
+            case(2) ; y(ksph) = y_save(ksph) + eeps 
+            case(3) ; z(ksph) = z_save(ksph) + eeps 
             endselect
+            h = eeps
 !
 !           allocate new DS      
             call ddinit( nsph_save, x, y, z, r_save )
@@ -722,6 +729,13 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !           solve COSMO equations       
             E_plus = zero ; sigma = zero
             call itsolv( .false., phi, psi, sigma, E_plus )
+!
+!           store numerical derivative of energy
+            if ( abs( h ).gt.1.E-12 ) then
+!                    
+              ework(iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
+!              
+            endif
 !
             if ( abs( f(icomp,ksph) ).gt.1.E-12 ) then
 !                    
@@ -750,6 +764,17 @@ subroutine check_forcesCOSMO( E0, charge, f )
       enddo
 !      
 !     print relative error
+      write(*,*)'Numerical derivative of energy : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(*,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( ework(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
+!
+!     print relative error
       write(*,*)'Relative error : '
       do j = 1,nsph
         do icomp = 1,3
@@ -776,8 +801,46 @@ subroutine check_forcesCOSMO( E0, charge, f )
                 1x,' atom',15x,'x',15x,'y',15x,'z')
 !                
       do ksph = 1, nsph
-        write(6,'(1x,i5,3f16.8)') ksph, f(:,ksph)
+        write(*,'(1x,i5,3f16.8)') ksph, f(:,ksph)
       enddo
+!
+      write (*,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', E0*tokcal
+!
+!     print to file
+!     -------------
+!
+      write(x1,'(I2.2)') lmax
+      write(x2,'(I4.4)') ngrid
+      fname = 'test_lmax' // trim(x1) // '_ngrid' // trim(x2)
+      fp    = 17
+!
+      open( unit=fp, file=fname, form='formatted', access='sequential', status='unknown')
+!      
+      write(fp,*)'lmax,ngrid = ',lmax,ngrid
+      write(fp,*) ''
+!
+!     print relative error
+      write(fp,*)'Relative error : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(fp,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(fp,*) ''
+!      
+!     print rate of convergence
+      write(fp,*)'Rate of convergence : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(fp,"(' dE / dr_'i2','i1' : ',300(f12.3,2x))") j,icomp, ( rrate(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+!
+      close(fp)
 !      
 !     restore DS
       call memfree

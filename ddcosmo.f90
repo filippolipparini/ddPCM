@@ -164,6 +164,95 @@ contains
 ! subroutine  fdoga
 !
 !
+subroutine reset_ngrid0
+! 
+      implicit none
+      integer, parameter, dimension(32) :: ngrid_vec = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
+                                                          146, 170, 194, 230, 266, 302, 350, 434,  &
+                                                          590, 770, 974,1202,1454,1730,2030,2354,  &
+                                                         2702,3074,3470,3890,4334,4802,5294,5810  /)
+
+      integer, parameter, dimension(32) :: lmax_vec  = (/   3,   5,   7,   9,  11,  13,  15,  17,  &
+                                                           19,  21,  23,  25,  27,  29,  31,  35,  &
+                                                           41,  47,  53,  59,  65,  71,  77,  83,  &
+                                                           89,  95, 101, 107, 113, 119, 125, 131  /)
+      integer, parameter :: nLLG = 32
+      integer :: igrid, ig
+!
+!-----------------------------------------------------------------------------------
+!
+!     initialize to largest grid
+      igrid=nLLG
+
+!     loop over grids
+      do ig=1,nLLG
+!
+!       if number of points has exceeded threshold, then exit
+        if ( lmax_vec(ig) .ge. lmax ) then
+!                
+          igrid=ig
+          exit
+!          
+        endif
+!        
+      enddo
+!      
+!     adjust ngrid
+      ngrid=ngrid_vec(igrid)
+!
+!!!      write(*,*)'lmax,ngrid = ',lmax,ngrid
+!
+      return
+!
+endsubroutine reset_ngrid0
+!
+!
+!
+!-----------------------------------------------------------------------------------
+subroutine reset_ngrid00(igrid)
+! 
+      implicit none
+      integer, intent(out) :: igrid
+      integer, parameter, dimension(19) :: ngrid_vec = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
+                                                          146, 170, 194, 230, 266, 302, 350, 434,  &
+                                                          590, 770, 974  /)
+
+      integer, parameter, dimension(19) :: lmax_vec  = (/   1,   2,   3,   4,   5,   6,   7,   8,  &
+                                                            9,  10,  11,  12,  13,  14,  15,  17,  &
+                                                           20,  23,  26  /) 
+      integer, parameter :: nLLG = 19
+      integer :: ig
+!
+!-----------------------------------------------------------------------------------
+!
+!     initialize to largest grid
+      igrid=nLLG
+
+!     loop over grids
+      do ig=1,nLLG
+!
+!       if number of points has exceeded threshold, then exit
+        if ( lmax_vec(ig) .ge. lmax ) then
+!                
+          igrid=ig
+          exit
+!          
+        endif
+!        
+      enddo
+!      
+!     adjust ngrid
+      ngrid=ngrid_vec(igrid)
+!
+!!!      write(*,*)'lmax,ngrid = ',lmax,ngrid
+!
+      return
+!
+endsubroutine reset_ngrid00
+
+!
+!
+!-----------------------------------------------------------------------------------
 subroutine reset_ngrid
 ! 
       implicit none
@@ -1383,7 +1472,7 @@ endsubroutine dbasis
   subroutine trgev(x,y,cx,sx)
   implicit none
   real*8, intent(in) :: x, y
-  real*8, dimension(lmax+1), intent(inout) :: cx, sx
+  real*8, dimension( max((lmax+1),2) ), intent(inout) :: cx, sx
   !
   integer :: m
   !
@@ -1397,10 +1486,9 @@ endsubroutine dbasis
   end do
   return
   end subroutine trgev
-  !
+!
 !
 ! 
-
 !---------------------------------------------------------------------
 ! Purpose : compute
 !

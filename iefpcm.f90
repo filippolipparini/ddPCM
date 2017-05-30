@@ -42,8 +42,8 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !     preconditioner:
       real*8, allocatable :: prec(:,:,:), precm1(:,:,:)
 !
-      integer :: it, isph, nmat, lenb, istatus, j
-      real*8  :: ene, vrms, vmax, tol, s1, s2, s3
+      integer :: it, isph, nmat, lenb, istatus, j, jsph,l,m,ind,nt,ns,its
+      real*8  :: ene, vrms, vmax, tol, s1, s2, s3, tt, fep
       real*8, allocatable :: err(:), ddiag(:)
       logical :: dodiis
 !
@@ -53,6 +53,15 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
       real*8,  parameter :: ten=10.0d0, tredis=1.d-2
 !
       real*8 :: pot(ngrid), Awlm(nbasis)
+
+      real*8 :: philm_fmm(nbasis,nsph)
+      real*8 :: xs(nsph),ys(nsph),zs(nsph)
+      real*8 :: xt(ngrid*nsph),yt(ngrid*nsph),zt(ngrid*nsph),fmm_vec(ngrid*nsph)
+      real*8 :: phi_j(nbasis,nsph),ggrid(ngrid,nsph),xx(ngrid,nsph)
+      real*8 :: voldgrid(ngrid,nsph),wlm_fmm(nbasis,nsph)
+      real*8 :: basloc_fmm(nbasis,ngrid)
+
+      logical,parameter :: use_fmm = .false.
 !
 !-------------------------------------------------------------------------------
 !
@@ -112,13 +121,157 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
       philm(:,:) = zero ; x(:) = zero ; xlm(:) = zero ; basloc(:) = zero
       vplm(:) = zero ; vcos(:) = zero ; vsin(:) = zero
 !      
-!     loop over atoms
-      do isph = 1,nsph
-!     
-!       phi = A_oo g
-        call mkrvec( isph, zero, glm, philm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
+!
+!===================================================================================
+!     FMM                                                                          |
+!===================================================================================
+!
+      if (use_fmm) then
+!
+!       sources for FMM
+!       ---------------
+        xs(:) = csph(1,:)
+        ys(:) = csph(2,:)
+        zs(:) = csph(3,:)
+        ns = nsph
+!
+!       targets for FMM
+!       ---------------
+        nt = 0
+        do isph = 1,nsph
+          do its = 1,ngrid
+!
+!           non-zero contribution from target point
+            if ( ui(its,isph).gt.zero ) then
+!
+!             increment number of target points
+              nt = nt + 1
+!
+!             store target point
+              xt(nt) = csph(1,isph) + rsph(isph)*grid(1,its)
+              yt(nt) = csph(2,isph) + rsph(isph)*grid(2,its)
+              zt(nt) = csph(3,isph) + rsph(isph)*grid(3,its)
+!
+            endif
+!            
+          enddo
+        enddo
 !        
-      end do
+!                      m'  4 pi l'     l'+1        m'
+!       build [ Phi_j ]  = -------  r_j     [ g_j ]
+!                      l'  2l' + 1                 l'
+!       ---------------------------------------------
+        do jsph = 1,nsph         
+!
+!         initialize r_j^(l+1) 
+          tt = one
+!
+          do l = 0,lmax
+!
+            ind = l*l + l + 1
+!
+!           update r_j^(l+1)
+            tt = tt*rsph(jsph)
+
+            do m = -l,l
+
+              phi_j(ind+m,jsph) = tt * glm(ind+m,jsph) / facl(ind+m) * dble(l)
+
+            enddo
+          enddo
+        enddo
+!
+!       call to FMM
+!       -----------
+        call fmm( lmax, ns, phi_j, xs, ys, zs, nt, xt(1:nt), yt(1:nt), zt(1:nt), fmm_vec(1:nt) )
+!
+!       expand glm at integration points
+!       --------------------------------
+        ggrid(:,:) = zero ; basloc_fmm(:,:) = zero
+        do its=1,ngrid
+!
+          call ylmbas( grid(:,its), basloc_fmm(:,its), vplm, vcos, vsin )
+!
+          do isph = 1,nsph
+            do l = 0,lmax
+!
+              ind = l*l + l + 1
+!
+              do m = -l,l
+!
+                ggrid(its,isph) = ggrid(its,isph) + basloc_fmm(ind+m,its)*glm(ind+m,isph)
+!
+              enddo
+            enddo
+          enddo
+        enddo
+!
+!       explode result of fmm and multiply by U_i^n
+!       -------------------------------------------
+        xx(:,:) = zero
+        nt = 0 
+        do isph = 1,nsph
+          do its = 1,ngrid
+!
+!           non-zero contribution from target point
+            if ( ui(its,isph).gt.zero ) then
+!
+!             advance target point index
+              nt = nt + 1
+!              
+!             retrive and multiply
+              xx(its,isph) = ui(its,isph)*( fmm_vec(nt) - 2.d0*pi*ggrid(its,isph) )
+!              
+            endif
+          enddo
+        enddo
+!
+!       integrate against SH, add action of identity term
+!       -------------------------------------------------
+        do isph = 1,nsph
+
+          call intrhs( isph, xx(:,isph), philm_fmm(:,isph) )
+          philm_fmm(:,isph) = 2*pi * glm(:,isph) - philm_fmm(:,isph)
+
+        enddo
+!
+!       redirect
+        philm = philm_fmm
+!
+!
+!===================================================================================
+!     NON FMM                                                                      |
+!===================================================================================
+!
+      else
+!              
+!       loop over atoms
+        do isph = 1,nsph
+!       
+!         phi = A_oo g
+          call mkrvec(     isph, zero, glm, philm(    :,isph), xlm, x, basloc, vplm, vcos, vsin )
+!!!          call mkrvec_fmm( isph, zero, glm, philm_fmm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
+!          
+        enddo
+!
+!!!        s1 = zero ; s2 = zero ; s3 = zero
+!!!        do isph = 1,nsph
+!!!          do j = 1,nbasis
+!!!!
+!!!            s1 = s1 + ( philm(    j,isph) - philm_fmm(j,isph) )**2
+!!!            s2 = s2 + ( philm(    j,isph)                     )**2
+!!!            s3 = s3 + ( philm_fmm(j,isph)                     )**2
+!!!
+!!!          enddo
+!!!        enddo
+!!!!
+!!!        write(*,1002) sqrt(s2), sqrt(s3), sqrt(s1/s2)
+!!! 1002   format(' FMM : norm,norm_fmm,error = ',3(e12.5,2x))     
+!
+      endif
+!      
+!===================================================================================
+!
 !
 !     $omp parallel do default(shared) private(isph)
 !      
@@ -160,12 +313,131 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !       STEP 2.2 : compute residual R
 !       ------------------------------
 !
-!       loop over atoms
-        do isph = 1,nsph
 !
-          call mkrvec( isph, eps, vold, wlm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
+!===================================================================================
+!       FMM                                                                        |
+!===================================================================================
+!
+        if (use_fmm) then
+!
+!                        m'  4 pi l'     l'+1           m'
+!         build [ Phi_j ]  = -------  r_j     [ vold_j ]
+!                        l'  2l' + 1                    l'
+!         ------------------------------------------------
+          do jsph = 1,nsph         
+!
+!           initialize r_j^(l+1) 
+            tt = one
+!
+            do l = 0,lmax
+!
+              ind = l*l + l + 1
+!
+!             update r_j^(l+1)
+              tt = tt*rsph(jsph)
+
+              do m = -l,l
+
+                phi_j(ind+m,jsph) = tt * vold(ind+m,jsph) / facl(ind+m) * dble(l)
+
+              enddo
+            enddo
+          enddo
+!
+!         call to FMM
+!         -----------
+          call fmm( lmax, ns, phi_j, xs, ys, zs, nt, xt(1:nt), yt(1:nt), zt(1:nt), fmm_vec(1:nt) )
 !          
-        end do
+!         expand vold at integration points
+!         ---------------------------------
+          voldgrid(:,:) = zero
+          do its=1,ngrid
+
+            call ylmbas( grid(:,its), basloc_fmm(:,its), vplm, vcos, vsin )
+
+            do isph = 1,nsph
+!            
+              do l = 0,lmax
+!
+                ind = l*l + l + 1
+!
+                do m = -l,l
+!
+                  voldgrid(its,isph) = voldgrid(its,isph) + basloc_fmm(ind+m,its)*vold(ind+m,isph)
+!
+                enddo
+              enddo
+            enddo
+          enddo
+!          
+!         explode result of fmm and multiply by U_i^n
+!         -------------------------------------------
+          xx(:,:) = zero
+          nt = 0 
+          do isph = 1,nsph
+            do its = 1,ngrid
+!
+!             non-zero contribution from target point
+              if ( ui(its,isph).gt.zero ) then
+!
+!               advance target point index
+                nt = nt + 1
+!                
+!               retrive and multiply
+                xx(its,isph) = ui(its,isph)*( fmm_vec(nt) - 2.d0*pi*voldgrid(its,isph) )
+!                
+              endif
+            enddo
+          enddo
+!
+!         integrate against SH, add action of identity term
+!         -------------------------------------------------
+          fep = two*pi*(eps+one)/(eps-one)
+          if ( eps.eq.zero )  fep = two*pi
+!
+          do isph = 1,nsph
+
+            call intrhs( isph, xx(:,isph), wlm_fmm(:,isph) )
+            wlm_fmm(:,isph) = fep * vold(:,isph) - wlm_fmm(:,isph)
+
+          enddo
+!
+!         redirect
+          wlm = wlm_fmm
+!
+!
+!===================================================================================
+!       NON FMM                                                                    |
+!===================================================================================
+!
+        else
+!
+!         loop over atoms
+          do isph = 1,nsph
+!
+            call mkrvec(     isph, eps, vold, wlm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
+!!!            call mkrvec_fmm( isph, eps, vold, wlm_fmm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
+!          
+          enddo
+!
+!!!          s1 = zero ; s2 = zero ; s3 = zero
+!!!          do isph = 1,nsph
+!!!            do j = 1,nbasis
+!!!!
+!!!              s1 = s1 + ( wlm(    j,isph) - wlm_fmm(j,isph) )**2
+!!!              s2 = s2 + ( wlm(    j,isph)                   )**2
+!!!              s3 = s3 + ( wlm_fmm(j,isph)                   )**2
+!!!
+!!!            enddo
+!!!          enddo
+!!!!
+!!!          write(*,*) 'it = ',it
+!!!          write(*,1002) sqrt(s2), sqrt(s3), sqrt(s1/s2)
+!        
+        endif
+!        
+!===================================================================================
+!
 !
 !       R^n = Phi - A_eps * R^n-1 
         wlm(:,:) = philm(:,:) - wlm(:,:)
@@ -651,6 +923,172 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 endsubroutine mkrvec
 !-------------------------------------------------------------------------------
 !
+!
+!
+!----------------------------------------------------------------------------------------
+! Purpose : action of A_i:^eps , i.e., sum_j A_ij^eps v_j .
+!
+! Let's drop ^eps for semplicity. Then :
+!
+!   dvlm_i =   sum   A_ij vl'm'_j + A_ii vl'm'_i =
+!            j \ne i
+!
+!                            4pi l'                              l'+1
+!          = -  sum     sum  ------ sum w_n  Y_l^m(s_n)  U_i^n  t      Y_l'^m'(s_ijn)  vl'm'_j
+!             j \ne i  l',m' 2l'+1   n
+!
+!                  eps+1                2pi
+!            + 2pi ----- vlm_i +  sum  -----  sum w_n  Y_l^m(s_n)  U_i^n  Y_l'^m'(s_n)  vl'm'_i
+!                  eps-1         l',m' 2l'+1   n      
+!
+!                                                         4pi l'   l'+1
+!          = - sum  w_n  Y_l^m(s_n)  U_i^n   sum     sum  ------  t      Y_l'^m'(s_ijn)  vl'm'_j
+!               n                          j \ne i  l',m' 2l'+1
+! 
+!                                    |------------------------- x1(n) -------------------------|
+!
+!                                                     2pi
+!            - sum  w_n  Y_l^m(s_n)  U_i^n   sum   - -----  Y_l'^m'(s_n)  vl'm'_i
+!                n                          l',m'    2l'+1
+!
+!                                    |----------------- x2(n) ------------------|
+!
+!                  eps+1         
+!            + 2pi ----- vlm_i 
+!                  eps-1        
+!
+!                                                            eps+1         
+!          = - sum  w_n  Y_l^m(s_n)  ( x1(n) + x2(n) ) + 2pi ----- vlm_i
+!               n                                            eps-1        
+!
+! Remark : when eps_s=0, the eps=oo case is triggered.
+!----------------------------------------------------------------------------------------
+!
+subroutine mkrvec_fmm( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
+!
+      use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, ui, facl, &
+                            one, pi, zero, pt5, two, dtslm, dtslm2, intrhs, ylmbas, ext1
+!      
+      implicit none
+      integer,                         intent(in   ) :: isph
+      real*8,                          intent(in   ) :: eps_s
+      real*8,  dimension(nbasis,nsph), intent(in   ) :: vlm
+      real*8,  dimension(nbasis),      intent(inout) :: dvlm
+      real*8,  dimension(ngrid),       intent(inout) :: x
+      real*8,  dimension(nbasis),      intent(inout) :: xlm, basloc, vplm
+      real*8,  dimension(lmax+1),      intent(inout) :: vcos, vsin
+!
+      integer :: its, jsph, m, l, ns, nt, ind
+      real*8  :: fep, xs(nsph),ys(nsph),zs(nsph),xt(ngrid),yt(ngrid),zt(ngrid)
+      real*8  :: phi(nbasis,nsph),tt,fmm_vec(ngrid)
+
+      real*8 :: vgrid(ngrid)
+!
+!----------------------------------------------------------------------------------------
+!
+!     compute f( \eps )
+      fep = two*pi*(eps_s+one)/(eps_s-one)
+      if ( eps_s.eq.zero )  fep = two*pi
+!
+!     initialize
+      x(:) = zero
+!
+!     sources for FMM
+      xs(:) = csph(1,:)
+      ys(:) = csph(2,:)
+      zs(:) = csph(3,:)
+      ns = nsph
+!
+!     targets for FMM
+      nt = 0
+      do its = 1,ngrid
+!
+!       non-zero contribution from target point
+        if ( ui(its,isph).gt.zero ) then
+!
+!         increment number of target points
+          nt = nt + 1
+!
+!         store target point
+          xt(nt) = csph(1,isph) + rsph(isph)*grid(1,its)
+          yt(nt) = csph(2,isph) + rsph(isph)*grid(2,its)
+          zt(nt) = csph(3,isph) + rsph(isph)*grid(3,its)
+!
+        endif
+      enddo
+!      
+!                    m'  4 pi l'     l'+1        m'
+!     build [ Phi_j ]  = -------  r_j     [ v_j ]
+!                    l'  2l' + 1                 l'
+!
+      do jsph = 1,nsph         
+!
+!       initialize r_j^(l+1) 
+        tt = one
+!
+        do l = 0,lmax
+!
+          ind = l*l + l + 1
+!
+!         update r_j^(l+1)
+          tt = tt*rsph(jsph)
+
+          do m = -l,l
+
+            phi(ind+m,jsph) = tt * vlm(ind+m,jsph) / facl(ind+m) * dble(l)
+
+          enddo
+        enddo
+      enddo
+!
+!     call to FMM
+      call fmm( lmax, ns, phi, xs, ys, zs, nt, xt(1:nt), yt(1:nt), zt(1:nt), fmm_vec(1:nt) )
+!
+      vgrid(:) = zero
+      do its=1,ngrid
+
+        call ylmbas( grid(:,its), basloc, vplm, vcos, vsin )
+
+        do l = 0,lmax
+!
+          ind = l*l + l + 1
+!
+          do m = -l,l
+
+            vgrid(its) = vgrid(its) + basloc(ind+m)*vlm(ind+m,isph)
+
+          enddo
+        enddo
+      enddo
+!
+!     expand result of fmm and multiply by U_i^n
+      nt = 0
+      do its = 1,ngrid
+!
+!       non-zero contribution from target point
+        if ( ui(its,isph).gt.zero ) then
+!
+!         advance target point index
+          nt = nt + 1
+!          
+!         retrive and multiply
+          x(its) = ui(its,isph)*( fmm_vec(nt) - 2.d0*pi*vgrid(its) )
+!          
+        endif
+      enddo
+!
+!     integrate against SH
+      call intrhs( isph, x, dvlm )
+!
+!
+!     add action of identity term
+!     ===========================
+!
+      dvlm(:) =  fep * vlm(:,isph) - dvlm(:)
+!
+!
+endsubroutine mkrvec_fmm
+!-------------------------------------------------------------------------------
 !
 !
 !

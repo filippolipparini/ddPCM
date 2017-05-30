@@ -1199,7 +1199,8 @@ endsubroutine ADJcheck
 subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
       use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
-                           eps, ncav, ccav, ngrid, zero, sprod, wghpot, one
+                           eps, ncav, ccav, ngrid, zero, sprod, wghpot, one, &
+                           lmax
 !                           
       implicit none
       real*8, dimension(nbasis,nsph), intent(in) :: Psi0
@@ -1215,6 +1216,10 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
                 hwork(niter,nsph*3)
       real*8 :: E0, E_plus, err, eeps, h
       integer :: iter, icomp, ksph, nsph_save, j, ncav_save, nbasis_save
+!
+      character(len=10) :: x1,x2
+      character(len=30) :: fname
+      integer :: fp
 !
 !---------------------------------------------------------------------------------------
 !
@@ -1234,7 +1239,7 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
       r_save = rsph(  :)
 !
 !     set initial increment
-      eeps=0.1d0
+      eeps=0.0001d0
 !      
 !     initialize
       rwork = zero ; rrate = zero
@@ -1256,9 +1261,9 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
             y = y_save
             z = z_save
             select case(icomp)
-            case(1) ; x(ksph) = x_save(ksph)*(one + eeps) ; h = x_save(ksph)*eeps 
-            case(2) ; y(ksph) = y_save(ksph)*(one + eeps) ; h = y_save(ksph)*eeps
-            case(3) ; z(ksph) = z_save(ksph)*(one + eeps) ; h = z_save(ksph)*eeps
+            case(1) ; x(ksph) = x_save(ksph)*(1.d0+eeps) ; h = eeps*x_save(ksph)
+            case(2) ; y(ksph) = y_save(ksph)*(1.d0+eeps) ; h = eeps*y_save(ksph)
+            case(3) ; z(ksph) = z_save(ksph)*(1.d0+eeps) ; h = eeps*z_save(ksph)
             endselect
 !
 !           allocate new DS      
@@ -1322,6 +1327,42 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
         enddo
       enddo
       write(*,*) ''
+!
+!     print to file
+!     -------------
+!
+      write(x1,'(I2.2)') lmax
+      write(x2,'(I4.4)') ngrid
+      fname = 'May19_3_pcm_lmax' // trim(x1) // '_ngrid' // trim(x2)
+      fp    = 17
+!
+      open( unit=fp, file=fname, form='formatted', access='sequential', status='unknown')
+!      
+      write(fp,*)'lmax,ngrid = ',lmax,ngrid
+      write(fp,*) ''
+!
+!     print relative error
+      write(fp,*)'Relative error : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(fp,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(fp,*) ''
+!      
+!     print rate of convergence
+      write(fp,*)'Rate of convergence : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(fp,"(' dE / dr_'i2','i1' : ',300(f12.3,2x))") j,icomp, ( rrate(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+!
+      close(fp)
 !      
 !     restore DS
       call memfree
