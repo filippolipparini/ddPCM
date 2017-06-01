@@ -714,11 +714,14 @@ subroutine check_forcesCOSMO( E0, charge, f )
             y = y_save
             z = z_save
             select case(icomp)
-            case(1) ; x(ksph) = x_save(ksph) + eeps 
-            case(2) ; y(ksph) = y_save(ksph) + eeps 
-            case(3) ; z(ksph) = z_save(ksph) + eeps 
+!!!            case(1) ; x(ksph) = x_save(ksph) + eeps 
+!!!            case(2) ; y(ksph) = y_save(ksph) + eeps 
+!!!            case(3) ; z(ksph) = z_save(ksph) + eeps 
+            case(1) ; x(ksph) = x_save(ksph)*(1.d0+eeps) ; h = eeps*x_save(ksph)
+            case(2) ; y(ksph) = y_save(ksph)*(1.d0+eeps) ; h = eeps*y_save(ksph)
+            case(3) ; z(ksph) = z_save(ksph)*(1.d0+eeps) ; h = eeps*z_save(ksph)
             endselect
-            h = eeps
+!!!            h = eeps
 !
 !           allocate new DS      
             call ddinit( nsph_save, x, y, z, r_save )
@@ -734,6 +737,12 @@ subroutine check_forcesCOSMO( E0, charge, f )
             if ( abs( h ).gt.1.E-12 ) then
 !                    
               ework(iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
+!!!              if (abs( (E_plus - E0)/h) .ge. 100.d0 ) then
+!!!              write(*,*)'E_plus = ',E_plus
+!!!              write(*,*)'E0     = ',E0
+!!!              stop
+!!!              endif
+!
 !              
             endif
 !
@@ -811,7 +820,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !
       write(x1,'(I2.2)') lmax
       write(x2,'(I4.4)') ngrid
-      fname = 'test_lmax' // trim(x1) // '_ngrid' // trim(x2)
+      fname = 'May_30_cosmo_lmax' // trim(x1) // '_ngrid' // trim(x2)
       fp    = 17
 !
       open( unit=fp, file=fname, form='formatted', access='sequential', status='unknown')

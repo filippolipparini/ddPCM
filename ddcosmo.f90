@@ -1578,7 +1578,7 @@ subroutine itsolv( star, phi, psi, sigma, ene )
       real*8,  parameter :: ten=10.d0, tredis=1.0d-2
       integer :: istatus
 !
-      real*8 :: Lsigma(nbasis), gvoid(nbasis,nsph)
+      real*8 :: Lsigma(nbasis), gvoid(nbasis,nsph),drmsold
 !      
 !-------------------------------------------------------------------------------
 !
@@ -1704,20 +1704,20 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 !           solve : L_ii X_i = vlm  ( L_ii is a diagonal matrix )
             call solve( isph, vlm, sigma(:,isph) )
 !
-!           compute error
-            delta(:) = sigma(:,isph) - sigold(:,isph)
-!
-!           energy norm of error      
-            call hsnorm( delta(:), norm(isph) )
+!!!!           compute error
+!!!            delta(:) = sigma(:,isph) - sigold(:,isph)
+!!!!
+!!!!           energy norm of error      
+!!!            call hsnorm( delta(:), norm(isph) )
 !
           end do
 !    
       !$omp end parallel do
 !
-!         compute root-mean-square and max norm
-          call rmsvec( nsph, norm, drms, dmax )
-!    
-          if ( drms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!!!!         compute root-mean-square and max norm
+!!!          call rmsvec( nsph, norm, drms, dmax )
+!!!!    
+!!!          if ( drms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
 !          
           if ( dodiis ) then
 !                  
@@ -1727,6 +1727,29 @@ subroutine itsolv( star, phi, psi, sigma, ene )
             call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
 !            
           endif
+!
+!!!!         print FIRST
+!!!          if (iprint.gt.1) then
+!!!            ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
+!!!            write(iout,1000) it, ene, drms, dmax
+!!!          end if
+!
+!         recompute 
+          do isph = 1,nsph
+!
+!           compute error
+            delta(:) = sigma(:,isph) - sigold(:,isph)
+!
+!           energy norm of error      
+            call hsnorm( delta(:), norm(isph) )
+!
+          end do
+
+          drmsold = drms
+          call rmsvec( nsph, norm, drms, dmax )
+          if ( drms > drmsold)  write(iout,1030)
+ 1030     format(' residual does not decrease monotonically!')         
+
 
           if (iprint.gt.1) then
             ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
