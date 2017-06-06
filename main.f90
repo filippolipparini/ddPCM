@@ -165,10 +165,12 @@ program main
       close(10)
 !
 !     loop over angular momenta
-      do lmax=2,10
+      do lmax=2,8
 !
 !       adjust number of grid points so that 2*lmax is integrated exactly
         call reset_ngrid00(igrid)
+
+!!!          ngrid = ngrid_vec(3)
 !
 !       loop over extra grids
         do ig = 1,4

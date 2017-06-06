@@ -59,7 +59,7 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
       real*8 :: xt(ngrid*nsph),yt(ngrid*nsph),zt(ngrid*nsph),fmm_vec(ngrid*nsph)
       real*8 :: phi_j(nbasis,nsph),ggrid(ngrid,nsph),xx(ngrid,nsph)
       real*8 :: voldgrid(ngrid,nsph),wlm_fmm(nbasis,nsph)
-      real*8 :: basloc_fmm(nbasis,ngrid)
+      real*8 :: basloc_fmm(nbasis,ngrid),vrmsold
 
       logical,parameter :: use_fmm = .false.
 !
@@ -477,10 +477,25 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !
         err = sqrt(err/dble(nsph))
 !
-!       compute rms- and max-norm of v_old
-        call rmsvec( nbasis*nsph, vold, vrms, vmax )
 !
-        if ( vrms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!!!!===================================================================
+!!!!       OLD VERSION
+!!!!       compute rms- and max-norm of v_old
+!!!        call rmsvec( nbasis*nsph, vold, vrms, vmax )
+!!!!===================================================================
+!
+!
+!!!!===================================================================
+!!!!       OLD VERSION
+!!!        if ( vrms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!!!!===================================================================
+!
+!
+!===================================================================
+!       NEW VERSION
+        if ( ndiis.gt.0 )  dodiis = .true.
+!===================================================================
+!
 !
 !       diis extrapolation
         if ( dodiis ) then
@@ -491,6 +506,15 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
           call diis( nbasis*nsph, nmat, xdiis, ediis, bmat, wlm )
 !          
         end if
+!        
+!        
+!===================================================================
+!       NEW VERSION
+!!!        vold = vold - wlm
+        vrmsold = vrms
+        call rmsvec( nbasis*nsph, vold, vrms, vmax )
+!===================================================================
+!
 !        
         write(iout,1020) it, vrms, err(1)
  1020   format(1x,i4,f14.8,121d12.4)
@@ -508,10 +532,58 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !
   999 continue
 !  
+!
+!     compute charge distribution and energy
+!
+!
+!!!!     initialize
+!!!      sigma_g = zero
+!!!!
+!!!!     solve  L sigma = W , compute energy
+!!!      call itsolv2( .false., .true., wlm, psi, sigma_g, ene )
+!!!!
+!!!!     save phi_eps for computing forces
+!!!      phi_eps = wlm
+!
+!
+!     check solution
+!     --------------
+      if (iprint.gt.1) then
+!              
+        s1 = zero ; s2 = zero ; s3 = zero ; Awlm = zero
+!
+        do isph = 1,nsph
+!       
+!         action of ( A_eps )_ij 
+          call mkrvec( isph, eps, wlm, Awlm, xlm, x, basloc, vplm, vcos, vsin )
+!        
+          do j=1,nbasis
+!          
+            s1 = s1 + ( philm(j,isph) - Awlm(j) )**2
+            s2 = s2 + ( philm(j,isph)           )**2
+            s3 = s3 + ( wlm(  j,isph)           )**2
+!            
+          enddo
+        enddo
+!
+        write(*,*) 'ddPCM : '
+        write(*,*) ' '
+        write(*,1001) sqrt(s3) , sqrt(s1) / sqrt(s2)
+!!!        write(*,1002) sqrt(s2)
+ 1001   format(' || Phi_eps || , || A_oo Phi - A_eps Phi_eps || / || A_oo Phi || =  ',2(e12.5,2x) )     
+ 1002   format(' || A_oo Phi || = ',e12.5)
+!
+        if ( abs(sqrt(s1)/sqrt(s2)) .gt. 1.E-06 ) then
+          write(*,*) 'solution failed!'
+          write(*,*)'PAUSE - type any key to continue'
+          read(*,*)
+        endif        
+!      
+      endif        
+!      
       write(iout,2000)
  2000 format('   first loop has converged.',/,'   second loop: solving ddCOSMO equations for V(eps)')
 !
-!     compute charge distribution and energy
 !
 !===================================================================================
 ! ddCOSMO                                                                          |
@@ -526,29 +598,6 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
 !     save phi_eps for computing forces
       phi_eps = wlm
 !
-!
-!     check solution
-!     --------------
-      s1 = zero ; s2 = zero ; s3 = zero ; Awlm = zero
-!
-      do isph = 1,nsph
-!     
-!       action of ( A_eps )_ij 
-        call mkrvec( isph, eps, wlm, Awlm, xlm, x, basloc, vplm, vcos, vsin )
-!      
-        do j=1,nbasis
-!        
-          s1 = s1 + ( philm(j,isph) - Awlm(j) )**2
-          s2 = s2 + ( philm(j,isph)           )**2
-          s3 = s3 + ( wlm(  j,isph)           )**2
-!          
-        enddo
-      enddo
-!
-      write(*,*) 'ddPCM : '
-      write(*,*) ' '
-      write(*,1001) sqrt(s3) , sqrt(s1) / sqrt(s2)
- 1001 format(' || Phi_eps || , || A_oo Phi - A_eps Phi_eps || / || A_oo Phi || =  ',2(e12.5,2x) )     
 !
 !
 !     free the memory
@@ -594,7 +643,7 @@ subroutine ADJpcm( philm, wlm )
       real*8, allocatable :: prec(:,:,:), precm1(:,:,:)
 !
       integer :: it, isph, nmat, lenb, istatus
-      real*8  :: ene, vrms, vmax, tol
+      real*8  :: ene, vrms, vmax, tol,vrmsold
       real*8, allocatable :: err(:), ddiag(:)
       logical :: dodiis
 !
@@ -713,11 +762,24 @@ subroutine ADJpcm( philm, wlm )
 !
         err = sqrt(err/dble(nsph))
 !
-!       compute rms- and max-norm of v_old
-        vrms=zero ; vmax=zero
-        call rmsvec( nbasis*nsph, vold, vrms, vmax )
+!!!!===================================================================
+!!!!       OLD VERSION
+!!!!       compute rms- and max-norm of v_old
+!!!        vrms=zero ; vmax=zero
+!!!        call rmsvec( nbasis*nsph, vold, vrms, vmax )
+!!!!===================================================================
 !
-        if ( vrms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!!!!===================================================================
+!!!!       OLD VERSION
+!!!        if ( vrms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!!!!===================================================================
+!
+!
+!===================================================================
+!       NEW VERSION
+        if ( ndiis.gt.0 )  dodiis = .true.
+!===================================================================
+!
 !
 !       diis extrapolation
         if ( dodiis ) then
@@ -728,6 +790,14 @@ subroutine ADJpcm( philm, wlm )
           call diis( nbasis*nsph, nmat, xdiis, ediis, bmat, wlm )
 !          
         end if
+!        
+!        
+!===================================================================
+!       NEW VERSION
+        vrmsold = vrms
+        call rmsvec( nbasis*nsph, vold, vrms, vmax )
+!===================================================================
+!
 !        
         if ( .not. iquiet ) then
           write(iout,1020) it, vrms, err(1)

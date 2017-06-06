@@ -1670,6 +1670,11 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 !
       if (.not. star) then
 !
+!       print header
+        if (iprint.gt.1) then
+          write(iout,*)'Solution of DIRECT system:'      
+        endif
+!
 !       build g
         g(:,:) = zero
         call wghpot( phi, g )
@@ -1704,21 +1709,37 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 !           solve : L_ii X_i = vlm  ( L_ii is a diagonal matrix )
             call solve( isph, vlm, sigma(:,isph) )
 !
+!
+!!!!===================================================================
+!!!!           OLD VERSION
 !!!!           compute error
 !!!            delta(:) = sigma(:,isph) - sigold(:,isph)
 !!!!
 !!!!           energy norm of error      
 !!!            call hsnorm( delta(:), norm(isph) )
+!!!!===================================================================
+!
 !
           end do
 !    
       !$omp end parallel do
 !
+!
+!!!!===================================================================
+!!!!         OLD VERSION
 !!!!         compute root-mean-square and max norm
 !!!          call rmsvec( nsph, norm, drms, dmax )
 !!!!    
 !!!          if ( drms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!!!!===================================================================
+!
+!
+!===================================================================
+!         NEW VERSION
+          if ( ndiis.gt.0 )  dodiis = .true.
+!===================================================================
 !          
+!
           if ( dodiis ) then
 !                  
             xdiis(:,:,nmat) = sigma
@@ -1728,13 +1749,9 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 !            
           endif
 !
-!!!!         print FIRST
-!!!          if (iprint.gt.1) then
-!!!            ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
-!!!            write(iout,1000) it, ene, drms, dmax
-!!!          end if
 !
-!         recompute 
+!===================================================================
+!         NEW VERSION
           do isph = 1,nsph
 !
 !           compute error
@@ -1747,22 +1764,31 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 
           drmsold = drms
           call rmsvec( nsph, norm, drms, dmax )
-          if ( drms > drmsold)  write(iout,1030)
+!!!          if ( drms > drmsold)  write(iout,1030)
  1030     format(' residual does not decrease monotonically!')         
-
-
+!===================================================================
+!
+!
+!         printing
           if (iprint.gt.1) then
             ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
             write(iout,1000) it, ene, drms, dmax
           end if
-
+!
+!         tolerance has been reached, exit loop
           if (drms.le.tol) goto 900
+!
+!         tolerance has NOT been reached, update solution
           sigold = sigma
-
+!
+!       end of Jacobi iterations
         end do
-
+!
+!       UNSUCCESSFUL solve, end here
         write(iout,1020) 
         stop
+!
+!       SUCCESSFUL solve, just continue
   900   continue
 !
 !       compute energy :
@@ -1774,37 +1800,46 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 ! 
 !       check solution
 !       ==============
+        if (iprint.gt.1) then
 !
-!       compute action
-        s1 = zero ; s2 = zero ; s3 = zero ; pot = zero ; Lsigma = zero ; gvoid = zero
-!        
-        do isph = 1,nsph
-!        
-!         action of g_i - L_ij , j \ne i
-          call calcv( first, isph, g(:,isph), pot, sigma, basloc, vplm, vcos, vsin )
-          call intrhs( isph, pot, Lsigma )
-          Lsigma = Lsigma
+!         compute action
+          s1 = zero ; s2 = zero ; s3 = zero ; pot = zero ; Lsigma = zero ; gvoid = zero
 !          
-!         action of L_ii
-          Lsigma = Lsigma - sigma(:,isph) / facl
-!        
-          do j=1,nbasis
+          do isph = 1,nsph
 !          
-            s1 = s1 + ( Lsigma(j) )**2
-            s3 = s3 + ( sigma(j,isph) )**2
+!           action of g_i - L_ij , j \ne i
+            call calcv( first, isph, g(:,isph), pot, sigma, basloc, vplm, vcos, vsin )
+            call intrhs( isph, pot, Lsigma )
+            Lsigma = Lsigma
 !            
+!           action of L_ii
+            Lsigma = Lsigma - sigma(:,isph) / facl
+!          
+            do j=1,nbasis
+!            
+              s1 = s1 + ( Lsigma(j) )**2
+              s3 = s3 + ( sigma(j,isph) )**2
+!              
+            enddo
+!
+            do j=1,ngrid
+              s2 = s2 + ( g(j,isph) )**2
+            enddo
+!
           enddo
 !
-          do j=1,ngrid
-            s2 = s2 + ( g(j,isph) )**2
-          enddo
-!
-        enddo
-!
-        write(*,*) 'ddCOSMO : '
-        write(*,*) ' '
-        write(*,1002) sqrt(s3) , sqrt(s1) / sqrt(s2)
- 1002   format(' || sigma || , || Phi - L sigma || / || Phi || =  ',2(e12.5,2x) )    
+          write(*,*) 'ddCOSMO : '
+          write(*,*) ' '
+          write(*,1002) sqrt(s3) , sqrt(s1) / sqrt(s2)
+ 1002     format(' || sigma || , || Phi - L sigma || / || Phi || =  ',2(e12.5,2x) )    
+! 
+          if ( abs(sqrt(s1)/sqrt(s2)) .gt. 1.E-10 ) then
+            write(*,*) 'solution failed!'
+            write(*,*)'PAUSE - type any key to continue'
+            read(*,*)
+          endif        
+! 
+        endif
 !
 !
 !
@@ -1812,6 +1847,11 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 !     --------------------------------------------
 !
       else
+!
+!       print header
+        if (iprint.gt.1) then
+          write(iout,*)'Solution of ADJOINT system:'     
+        endif
 !
 !       Jacobi method iterations
         do it = 1, nitmax
@@ -1849,29 +1889,77 @@ subroutine itsolv( star, phi, psi, sigma, ene )
 !           solve L_ii X_i = vlm  ( matrix L_ii is diagonal )
             call solve(isph,vlm,sigma(:,isph))
 !            
-            delta = sigma(:,isph) - sigold(:,isph)
-            call hsnorm(delta,norm(isph))
+!
+!!!!===================================================================
+!!!!           OLD VERSION
+!!!            delta = sigma(:,isph) - sigold(:,isph)
+!!!            call hsnorm(delta,norm(isph))
+!!!!===================================================================
+!            
 !            
           end do
 !            
       !$omp end parallel do
 !            
-          call rmsvec(nsph,norm,drms,dmax)
-          if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
+!!!!===================================================================
+!!!!         OLD VERSION
+!!!          call rmsvec(nsph,norm,drms,dmax)
+!!!          if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
+!!!!===================================================================
+!
+!
+!===================================================================
+!         NEW VERSION
+          if ( ndiis.gt.0 )  dodiis = .true.
+!===================================================================
+!
+!
           if (dodiis) then
             xdiis(:,:,nmat) = sigma
             ediis(:,:,nmat) = sigma - sigold
             call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
           end if
+!
+!
+!===================================================================
+!         NEW VERSION
+          do isph = 1,nsph
+!
+!           compute error
+            delta(:) = sigma(:,isph) - sigold(:,isph)
+!
+!           energy norm of error      
+            call hsnorm( delta(:), norm(isph) )
+!
+          end do
+
+          drmsold = drms
+          call rmsvec( nsph, norm, drms, dmax )
+!!!          if ( drms > drmsold)  write(iout,1030)
+!===================================================================
+!
+!
+!         printing
           if (iprint.gt.1) then
             write(iout,1000) it, zero, drms, dmax
           end if
+!
+!         tolerance has been reached, exit loop
           if (drms.le.tol) goto 910
+!
+!         tolerance has NOT been reached, update solution
           sigold = sigma
+!          
+!       end of Jacobi iterations
         end do
+!
+!       UNSUCCESSFUL solve, end here
         write(iout,1020) 
         stop
-      910 continue
+!
+!       SUCCESSFUL solve, just continue
+  910   continue
+!
       end if
       !
       ! free the memory:
@@ -2213,12 +2301,13 @@ end subroutine adjrhs
                '   number of spheres:                      '8x,i8,/,   &
                '   lmax for the spherical harmonics basis: '8x,i8,/,   &
                '   convergence threshold:                  '8x,d8.1,/, &
-               '   regularization parameters (eta,s):      ',f8.3,f8.3/)
+               '   regularization parameters (eta,s):      ',f8.3,f8.3,/,&
+               '   dielectric constant:                   ',e12.5/)
 !               
   if ( iprint.gt.0 ) then
 !          
     write(iout,1000)
-    write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, se
+    write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, se,eps
 !    
     if ( iscrf.eq.0 ) then 
       write(iout,1011) 
@@ -2632,7 +2721,7 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
       integer, parameter :: nitmax=300
       real*8,  parameter :: ten=10.d0, tredis=1.0d-2
       !
-      real*8 :: Lsigma(nbasis), s1, s2, s3
+      real*8 :: Lsigma(nbasis), s1, s2, s3, drmsold
       integer :: j
 !      
 !---------------------------------------------------------------------
@@ -2695,11 +2784,18 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
 !     solve the direct equations
 !
       if (.not. star) then
+!              
+!       print header
+        if (iprint.gt.1) then
+          write(iout,*)'Solution of DIRECT system:'      
+        endif
+!
 !
 !!!!       build g:
 !!!        g(:,:) = zero
 !!!        call wghpot( phi, g )
 !        
+!       Jacobi iterations
         do it = 1, nitmax
 !        
           first = ( it.eq.1 )
@@ -2717,16 +2813,31 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
 !            
             call solve( isph, vlm, sigma(:,isph) )
 !            
-            delta = sigma(:,isph) - sigold(:,isph)
-            call hsnorm(delta,norm(isph))
+!            
+!!!!===================================================================
+!!!            OLD VERSION
+!!!            delta = sigma(:,isph) - sigold(:,isph)
+!!!            call hsnorm(delta,norm(isph))
+!!!!===================================================================
+!            
 !            
           enddo
 !          
       !$omp end parallel do
 !      
-          call rmsvec(nsph,norm,drms,dmax)
-!          
-          if ( drms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!            
+!!!!===================================================================
+!!!!         OLD VERSION
+!!!          call rmsvec(nsph,norm,drms,dmax)
+!!!          if ( drms.le.tredis .and. ndiis.gt.0 )  dodiis = .true.
+!!!!===================================================================
+!
+!
+!===================================================================
+!         NEW VERSION
+          if ( ndiis.gt.0 )  dodiis = .true.
+!===================================================================
+!
 !          
           if (dodiis) then
 !                  
@@ -2737,54 +2848,90 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
 !            
           end if
 !          
+!          
+!===================================================================
+!         NEW VERSION
+          do isph = 1,nsph
+!
+!           compute error
+            delta(:) = sigma(:,isph) - sigold(:,isph)
+!
+!           energy norm of error      
+            call hsnorm( delta(:), norm(isph) )
+!
+          end do
+
+          drmsold = drms
+          call rmsvec( nsph, norm, drms, dmax )
+!===================================================================
+!
+!
+!         printing
           if ( iprint.gt.1 ) then
             ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
             write(iout,1000) it, ene, drms, dmax
           end if
 !          
+!         tolerance has been reached, exit loop
           if ( drms.le.tol ) goto 900
+!
+!         tolerance has NOT been reached, update solution
           sigold = sigma
 !          
+!       end of Jacobi iterations
         end do
 !
+!       SUCCESSFUL solve, just continue
         write(iout,1020) 
         stop
 !        
+!       SUCCESSFUL solve, just continue
   900   continue
 !  
 !
 !       check solution
-        s1 = zero ; s2 = zero ; s3 = zero ; pot = zero ; Lsigma = zero
-!        
-        do isph = 1,nsph
+!       ==============
+        if (iprint.gt.1) then
 !
-!         action of L_ij , j \ne i
-          call calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
-          call intrhs( isph, pot, Lsigma )
-          Lsigma = -Lsigma
-!
-!         action of L_ii
-          Lsigma = Lsigma + sigma(:,isph) / facl
+          s1 = zero ; s2 = zero ; s3 = zero ; pot = zero ; Lsigma = zero
 !          
-          do j = 1,nbasis
+          do isph = 1,nsph
 !
-            s1 = s1 + ( phi(  j,isph) - Lsigma(j) )**2
-            s2 = s2 + ( phi(  j,isph)             )**2
-            s3 = s3 + ( sigma(j,isph)             )**2
+!           action of L_ij , j \ne i
+            call calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
+            call intrhs( isph, pot, Lsigma )
+            Lsigma = -Lsigma
+!
+!           action of L_ii
+            Lsigma = Lsigma + sigma(:,isph) / facl
 !            
-          enddo
-        enddo
+            do j = 1,nbasis
 !
-        write(*,*) 'ddPCM :'
-        write(*,*) ' '
-        write(*,1001) sqrt(s3) , sqrt(s1) / sqrt(s2)
- 1001   format(' || sigma || , || Phi_eps - L sigma || / || Phi_eps || = ',2(e12.5,2x) )       
+              s1 = s1 + ( phi(  j,isph) - Lsigma(j) )**2
+              s2 = s2 + ( phi(  j,isph)             )**2
+              s3 = s3 + ( sigma(j,isph)             )**2
+!              
+            enddo
+          enddo
+!
+          write(*,*) 'ddPCM :'
+          write(*,*) ' '
+          write(*,1001) sqrt(s3) , sqrt(s1) / sqrt(s2)
+ 1001     format(' || sigma || , || Phi_eps - L sigma || / || Phi_eps || = ',2(e12.5,2x) )       
+!
+        endif
 !
 !
 !       compute energy : 1/2 f(eps) < psi , sigma >
         ene = pt5*fep*sprod(nbasis*nsph,sigma,psi)
 !
       else
+!              
+!       print header
+        if (iprint.gt.1) then
+          write(iout,*)'Solution of ADJOINT system:'     
+        endif
+!
       !
       ! solve the adjoint equations:
       !
@@ -2805,17 +2952,58 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
           do isph = 1, nsph
             call adjrhs(first,isph,psi(:,isph),xi,vlm,basloc,vplm,vcos,vsin)
             call solve(isph,vlm,sigma(:,isph))
-            delta = sigma(:,isph) - sigold(:,isph)
-            call hsnorm(delta,norm(isph))
+!
+!
+!!!!===================================================================
+!!!!           OLD VERSION
+!!!            delta = sigma(:,isph) - sigold(:,isph)
+!!!            call hsnorm(delta,norm(isph))
+!!!!===================================================================
+!
+!
           end do
       !$omp end parallel do
-          call rmsvec(nsph,norm,drms,dmax)
-          if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
+!
+!
+!!!!===================================================================
+!!!!         OLD VERSION
+!!!          call rmsvec(nsph,norm,drms,dmax)
+!!!          if (drms.le.tredis .and. ndiis.gt.0) dodiis = .true.
+!!!!===================================================================
+!
+!
+!===================================================================
+!         NEW VERSION
+          if ( ndiis.gt.0 )  dodiis = .true.
+!===================================================================
+!
+!
           if (dodiis) then
             xdiis(:,:,nmat) = sigma
             ediis(:,:,nmat) = sigma - sigold
             call diis(nbasis*nsph,nmat,xdiis,ediis,bmat,sigma)
           end if
+!
+!
+!===================================================================
+!         NEW VERSION
+          do isph = 1,nsph
+!
+!           compute error
+            delta(:) = sigma(:,isph) - sigold(:,isph)
+!
+!           energy norm of error      
+            call hsnorm( delta(:), norm(isph) )
+!
+          end do
+
+          drmsold = drms
+          call rmsvec( nsph, norm, drms, dmax )
+!!!          if ( drms > drmsold)  write(iout,1030)
+!===================================================================
+!
+!
+!         printing
           if (iprint.gt.1) then
             write(iout,1000) it, zero, drms, dmax
           end if
@@ -2882,7 +3070,7 @@ subroutine itsolv2( star, iefpcm, phi, psi, sigma, ene )
           call prtsph('solution to the ddcosmo equations:',nsph,0,sigma)
         end if
       end if
- 1000 format(' energy at iteration ',i4,': ',f14.7,' error (rms,max):',2f14.7)
+ 1000 format(' energy at iteration ',i4,': ',f14.7,' error(rms,max):',2(e12.5,2x))
  1010 format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
  1020 format(' ddCOSMO did not converge! Aborting...')
       return

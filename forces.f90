@@ -733,35 +733,30 @@ subroutine check_forcesCOSMO( E0, charge, f )
             E_plus = zero ; sigma = zero
             call itsolv( .false., phi, psi, sigma, E_plus )
 !
-!           store numerical derivative of energy
+!           account for a potentially null shift
             if ( abs( h ).gt.1.E-12 ) then
 !                    
+!             numerical derivative of energy
               ework(iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
-!!!              if (abs( (E_plus - E0)/h) .ge. 100.d0 ) then
-!!!              write(*,*)'E_plus = ',E_plus
-!!!              write(*,*)'E0     = ',E0
-!!!              stop
-!!!              endif
-!
 !              
-            endif
+!             account for a potentially null component of the force
+              if ( abs( f(icomp,ksph) ).gt.1.E-12 ) then
+!                      
+!               compute relative error
+!!!                err = abs( (E_plus - E0) / eeps + f(icomp,ksph) ) / abs( f(icomp,ksph) )
+                err = abs( (E_plus - E0) / h + f(icomp,ksph) ) / abs( f(icomp,ksph) )
 !
-            if ( abs( f(icomp,ksph) ).gt.1.E-12 ) then
-!                    
-!             compute relative error
-!!!              err = abs( (E_plus - E0) / eeps + f(icomp,ksph) ) / abs( f(icomp,ksph) )
-              err = abs( (E_plus - E0) / h + f(icomp,ksph) ) / abs( f(icomp,ksph) )
-!
-!             store
-              rwork(iter,(ksph-1)*3+icomp) = err
-              hwork(iter,(ksph-1)*3+icomp) = h
-!              
-!             compute rate
-              if ( iter.gt.1 ) then 
-                rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
-                                                     rwork(iter  ,(ksph-1)*3+icomp)   ) / &
-                                                log( hwork(iter  ,(ksph-1)*3+icomp) / & 
-                                                     hwork(iter-1,(ksph-1)*3+icomp)   )
+!               store
+                rwork(iter,(ksph-1)*3+icomp) = err
+                hwork(iter,(ksph-1)*3+icomp) = h
+!                
+!               compute rate
+                if ( iter.gt.1 ) then 
+                  rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
+                                                       rwork(iter  ,(ksph-1)*3+icomp)   ) / &
+                                                  log( hwork(iter  ,(ksph-1)*3+icomp) / & 
+                                                       hwork(iter-1,(ksph-1)*3+icomp)   )
+                endif
               endif
             endif
 !
@@ -772,7 +767,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !
       enddo
 !      
-!     print relative error
+!     print numerical derivative of energy
       write(*,*)'Numerical derivative of energy : '
       do j = 1,nsph
         do icomp = 1,3
@@ -820,13 +815,24 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !
       write(x1,'(I2.2)') lmax
       write(x2,'(I4.4)') ngrid
-      fname = 'May_30_cosmo_lmax' // trim(x1) // '_ngrid' // trim(x2)
+      fname = 'lmax' // trim(x1) // '_ngrid' // trim(x2)
       fp    = 17
 !
       open( unit=fp, file=fname, form='formatted', access='sequential', status='unknown')
 !      
       write(fp,*)'lmax,ngrid = ',lmax,ngrid
       write(fp,*) ''
+!
+!     print numerical derivative of energy
+      write(fp,*)'Numerical derivative of energy : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(fp,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( ework(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
 !
 !     print relative error
       write(fp,*)'Relative error : '

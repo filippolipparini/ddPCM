@@ -27,7 +27,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
       use ddcosmo , only : zero, ngrid, nsph, nbasis, zero, lmax, intrhs, itsolv2, &
                            basis, fdoka, fdokb, iprint, ncav, ui, ccav, csph, &
-                           w, fdoga, eps
+                           w, fdoga, eps, sprod
 !      
       implicit none
       real*8, dimension( ngrid,nsph), intent(in)  :: Phi
@@ -43,11 +43,12 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       real*8, dimension(nbasis) :: xlm, basloc, vplm
       real*8, dimension(3,nbasis) :: dbsloc
       real*8, dimension(lmax+1) :: vcos, vsin
-      real*8 :: rvoid
+      real*8 :: rvoid,e0
       real*8 :: ef(3,ncav),zeta(ncav)
 !
       integer :: isph, jsph, icomp, n, i, c1, c2, cr
       logical, parameter :: star=.true.
+      real*8, parameter :: tokcal=627.509469d0
 !
 !-------------------------------------------------------------------------------------
 !
@@ -93,6 +94,21 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       f = -f
 !
 !
+      write(*,*)'----------------------------------------------'
+      write(*,*)'ddPCM forces (atomic units): [1]'
+      write(*,*)''
+      write(*,1004)
+      do isph = 1,nsph
+!
+        write(*,1005) isph, f(isph,:)
+! 
+      enddo
+      write(*,*)'----------------------------------------------'
+      write(*,*)''
+!!!      read(*,*)
+!
+!
+!
 !     STEP 3 : compute f = f - < A_oo^T s , Phi' >
 !     --------------------------------------------
 !
@@ -126,6 +142,21 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
         call fdoga( isph, xi, Phi, f(isph,:) ) 
 !        
       enddo
+!
+!
+      write(*,*)'----------------------------------------------'
+      write(*,*)'ddPCM forces (atomic units): [2]'
+      write(*,*)''
+      write(*,1004)
+      do isph = 1,nsph
+!
+        write(*,1005) isph, f(isph,:)
+! 
+      enddo
+      write(*,*)'----------------------------------------------'
+      write(*,*)''
+!!!      read(*,*)
+!
 !
 !     initialize index
       i=0
@@ -177,6 +208,21 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
         enddo
       enddo
 !
+!
+      write(*,*)'----------------------------------------------'
+      write(*,*)'ddPCM forces (atomic units): [3]'
+      write(*,*)''
+      write(*,1004)
+      do isph = 1,nsph
+!
+        write(*,1005) isph, f(isph,:)
+! 
+      enddo
+      write(*,*)'----------------------------------------------'
+      write(*,*)''
+!!!      read(*,*)
+!
+!
 !     electric field produced by the cavity, at the nuclei [ TARGETS ]
       call efld( ncav, zeta, ccav, nsph, csph, ef )
 !
@@ -189,6 +235,21 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       enddo
 !
 ! ==========================  E N D    M O D I F Y  ==========================
+!
+!
+      write(*,*)'----------------------------------------------'
+      write(*,*)'ddPCM forces (atomic units): [4]'
+      write(*,*)''
+      write(*,1004)
+      do isph = 1,nsph
+!
+        write(*,1005) isph, f(isph,:)
+! 
+      enddo
+      write(*,*)'----------------------------------------------'
+      write(*,*)''
+!!!      read(*,*)
+!
 !
 !
 !     STEP 4 : compute f = f + < y , L' sigma >
@@ -228,7 +289,10 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
  1010   format(' computation of ddPCM forces : ',f8.3,' sec')
 ! 
       endif
-
+!
+!     energy
+      e0 = 0.5d0 * sprod( nbasis*nsph, sigma, psi )
+!
 !     printing
       if ( iprint.ge.2 ) then
 !              
@@ -243,8 +307,12 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
  1005     format( 1x,i4,3(2x,e12.5) )       
 ! 
         enddo
+        write(*,*)''
+        write(*,1006) e0*tokcal
+ 1006   format(' energy = ',e12.5)     
         write(*,*)'----------------------------------------------'
         write(*,*)''
+!!!        read(*,*)
 !        
       endif
 !
@@ -1208,12 +1276,12 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
       real*8, dimension(       nsph), intent(in) :: charge
       real*8, dimension(     nsph,3), intent(in) :: f
 !
-      integer,parameter :: niter = 6
+      integer,parameter :: niter = 4
 !
       real*8 :: phi(ncav), psi(nbasis,nsph), g(ngrid,nsph), sigma(nbasis,nsph)
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
       real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3), rrate(niter,nsph*3), &
-                hwork(niter,nsph*3)
+                hwork(niter,nsph*3),ework(niter,nsph*3),fwork(niter,nsph*3)
       real*8 :: E0, E_plus, err, eeps, h
       integer :: iter, icomp, ksph, nsph_save, j, ncav_save, nbasis_save
 !
@@ -1239,10 +1307,10 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
       r_save = rsph(  :)
 !
 !     set initial increment
-      eeps=0.0001d0
+      eeps=0.001d0
 !      
 !     initialize
-      rwork = zero ; rrate = zero
+      rwork = zero ; rrate = zero ; ework = zero ; fwork = zero
 !
 !     loop over increments
       do iter = 1,niter
@@ -1280,22 +1348,36 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !           compute energy
             E_plus = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma, psi )
 !
-            if ( abs( f(ksph,icomp) ).gt.1.E-12 ) then
-!                      
-!             compute relative error
-!!!              err = abs( (E_plus - E0) / eeps + f(ksph,icomp) ) / abs( f(ksph,icomp) )
-              err = abs( (E_plus - E0) / h + f(ksph,icomp) ) / abs( f(ksph,icomp) )
+!           account for a potentially null shift
+            if ( abs(h) .gt. 1.E-12 ) then
 !
-!             store
-              rwork(iter,(ksph-1)*3+icomp) = err
-              hwork(iter,(ksph-1)*3+icomp) = h
+!             account for a potentially null component of the force
+              if ( abs( f(ksph,icomp) ).gt.1.E-12 ) then
+!                        
+!               compute relative error
+!!!                err = abs( (E_plus - E0) / eeps + f(ksph,icomp) ) / abs( f(ksph,icomp) )
+                err = abs( (E_plus - E0) / h + f(ksph,icomp) ) / abs( f(ksph,icomp) )
+!
+!               store
+                rwork(iter,(ksph-1)*3+icomp) = err
+                hwork(iter,(ksph-1)*3+icomp) = h
+                ework(iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
+                fwork(iter,(ksph-1)*3+icomp) = f(ksph,icomp)
 
-!             compute rate
-              if ( iter.gt.1 ) then 
-                rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
-                                                     rwork(iter  ,(ksph-1)*3+icomp)   ) / &
-                                                log( hwork(iter  ,(ksph-1)*3+icomp) / &
-                                                     hwork(iter-1,(ksph-1)*3+icomp)   )
+                
+!!!                if ( abs( ( E_plus - E0 ) / h ) .gt. 1.E+03) then
+!!!                  write(*,*) 'E_plus = ',E_plus
+!!!                  write(*,*) 'E0     = ',E0
+!!!                  stop
+!!!                endif
+
+!               compute rate
+                if ( iter.gt.1 ) then 
+                  rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
+                                                       rwork(iter  ,(ksph-1)*3+icomp)   ) / &
+                                                  log( hwork(iter  ,(ksph-1)*3+icomp) / &
+                                                       hwork(iter-1,(ksph-1)*3+icomp)   )
+                endif
               endif
             endif
 !
@@ -1306,6 +1388,28 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
       enddo
 !      
+!     print numerical derivative of energy
+      write(*,*)'Numerical derivative of energy : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(*,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( ework(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
+!      
+!     print analytical force
+      write(*,*)'Analytical force : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(*,"(' force  _'i2','i1' : ',300(e12.5,2x))") j,icomp, ( fwork(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
+!
 !     print relative error
       write(*,*)'Relative error : '
       do j = 1,nsph
@@ -1333,12 +1437,34 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
       write(x1,'(I2.2)') lmax
       write(x2,'(I4.4)') ngrid
-      fname = 'May19_3_pcm_lmax' // trim(x1) // '_ngrid' // trim(x2)
+      fname = 'lmax' // trim(x1) // '_ngrid' // trim(x2)
       fp    = 17
 !
       open( unit=fp, file=fname, form='formatted', access='sequential', status='unknown')
 !      
       write(fp,*)'lmax,ngrid = ',lmax,ngrid
+      write(fp,*) ''
+!
+!     print numerical derivative of energy
+      write(fp,*)'Numerical derivative of energy : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(fp,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( ework(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(fp,*) ''
+!      
+!     print analytical force
+      write(fp,*)'Analytical force : '
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(fp,"(' force  _'i2','i1' : ',300(e12.5,2x))") j,icomp, ( fwork(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
       write(fp,*) ''
 !
 !     print relative error
