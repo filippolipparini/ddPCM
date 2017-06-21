@@ -307,7 +307,7 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
         wlm(:,:) = zero
 !
 !
-      !$omp parallel do default(shared) private(isph,xlm,x,basloc,vplm,vcos,vsin)
+    !!!$omp parallel do default(shared) private(isph,xlm,x,basloc,vplm,vcos,vsin)
 !
 !                                    n
 !       STEP 2.2 : compute residual R

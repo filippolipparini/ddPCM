@@ -1,19 +1,16 @@
 #
 #   Makefile for ddCOSMO
 #
-#RunF77 = ifort
-#FFLAGS = -O3 -xHost -qopenmp 
-RunF77 = gfortran
-#FFLAGS = -O1 -fbacktrace -g -march=native -fopenmp -llapack -lblas
-FFLAGS = -O0 -fbacktrace -fbounds-check -g -march=native -fopenmp -llapack -lblas
-#RunF77 = pgfortran
-#FFLAGS = -O3 -mp
+RunF77 = ifort
+FFLAGS = -O3 -xHost -qopenmp  -i8 -mkl=sequential 
+LIBS =  -lpthread -lm -ldl
 
-MODS   = ddcosmo.o
-OBJS   = mkrhs.o llgnew.o main.o ddcosmo.o forces.o efld.o iefpcm.o compute_forces.o
+MODS   = ddcosmo.o matvec.o
+OBJS   = mkrhs.o llgnew.o main.o forces.o efld.o iefpcm.o compute_forces.o fmm_dummy.o\
+	jacobi_diis.o cosmo.o
 #
 all:    $(MODS) $(OBJS)
-	$(RunF77) $(FFLAGS) -o main.exe $(OBJS)
+	$(RunF77) $(FFLAGS) -o main.exe $(MODS) $(OBJS) $(LIBS) 
 #
 %.o: %.f
 	$(RunF77) $(FFLAGS) -c $*.f

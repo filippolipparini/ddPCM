@@ -164,16 +164,16 @@ program main
 !     close control file
       close(10)
 !
-!     loop over angular momenta
-      do lmax=2,8
-!
-!       adjust number of grid points so that 2*lmax is integrated exactly
-        call reset_ngrid00(igrid)
-
-!!!          ngrid = ngrid_vec(3)
-!
-!       loop over extra grids
-        do ig = 1,4
+!fl!     loop over angular momenta
+!fl      do lmax=2,8
+!fl!
+!fl!       adjust number of grid points so that 2*lmax is integrated exactly
+!fl        call reset_ngrid00(igrid)
+!fl
+!fl!!!          ngrid = ngrid_vec(3)
+!fl!
+!fl!       loop over extra grids
+!fl        do ig = 1,4
 !          
 !
 !     open atoms file
@@ -261,6 +261,9 @@ program main
 !              
 !       1. solve cosmo equations
 !       ------------------------
+!fl new:
+        call cosmo(.false., phi, psi, sigma, esolv)
+        write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
         call itsolv( .false., phi, psi, sigma, esolv )
         write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
@@ -287,8 +290,12 @@ program main
           memuse = memuse + nbasis*nsph + 3*nsph
           memmax = max(memmax,memuse)
 !
+!fl new:
+          call cosmo(.true., phi, psi, s, esolv)
+          call prtsph('s:', nsph, 0, s)
 !         solve adjoint problem
           call itsolv( .true., phi, psi, s, rvoid )
+          call prtsph('s from itsolv:', nsph, 0, s)
 !
 !         now call the routine that computes the forces. such a routine requires the potential 
 !         derivatives at the cavity points and the electric field at the cavity points: it has
@@ -297,7 +304,7 @@ program main
 !
           call forces( nsph, charge, phi, sigma, s, fx )
 !!!          call check_derivativesCOSMO()
-          call check_forcesCOSMO( esolv, charge, fx )
+!!!          call check_forcesCOSMO( esolv, charge, fx )
 !           
 !         deallocate workspaces
           deallocate( s, fx , stat=istatus )
@@ -378,14 +385,14 @@ program main
       write(6,*) 'maximum quantity of memory allocated:', memmax
 !
 !
-!         increment grid number        
-          igrid = igrid + 1
-!
-!         update number of grid points
-          ngrid = ngrid_vec(igrid)
-!
-        enddo
-      enddo
+!fl!         increment grid number        
+!fl          igrid = igrid + 1
+!fl!
+!fl!         update number of grid points
+!fl          ngrid = ngrid_vec(igrid)
+!fl!
+!fl        enddo
+!fl      enddo
 !
 !
 endprogram main
