@@ -22,7 +22,8 @@ end if
 !
 y = zero
 !
-!$omp parallel do default(shared) private(isph,pot,basloc,vplm,vcos,vsin)
+!$omp parallel do default(shared) private(isph,pot,basloc,vplm,vcos,vsin) &
+!$omp schedule(dynamic)
 do isph = 1, nsph
   call calcv2(.false., isph, pot, x, basloc, vplm, vcos, vsin)
   call intrhs(isph, pot, y(:,isph))
@@ -39,7 +40,7 @@ subroutine lstarx(n, x, y)
 use ddcosmo
 implicit none 
 !
-! given a vector x, compute y = Lx, where L is the ddCOSMO matrix.
+! given a vector x, compute y = L*x, where L* is the adjoint ddCOSMO matrix.
 ! if dodiag is set to .true., L includes the diagonal blocks, otherwise
 ! L only includes the off-diagonal ones.
 !
@@ -66,7 +67,8 @@ do isph = 1, nsph
   end do
 end do
 !
-!$omp parallel do default(shared) private(isph,basloc,vplm,vcos,vsin)
+!$omp parallel do default(shared) private(isph,basloc,vplm,vcos,vsin) &
+!$omp schedule(dynamic)
 do isph = 1, nsph
   call adjrhs1(isph, xi, y(:,isph), basloc, vplm, vcos, vsin)
   y(:,isph) = - y(:,isph)
@@ -124,5 +126,42 @@ end do
 call rmsvec(nsph,u,vrms,vmax)
 !
 hnorm = vrms
+return
+!
+end
+!
+subroutine plx(n, x, y)
+use ddcosmo
+implicit none 
+!
+! given a vector x, compute y = Lx, where L is the ddCOSMO matrix, then
+! apply the inverse diagonal as a preconditioner.
+!
+integer, intent(in) :: n
+real*8,  dimension(nbasis,nsph), intent(in)    :: x
+real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+do_diag = .true.
+call lx(n,x,y)
+call ldm1x(n,y,y)
+!
+return
+end
+!
+subroutine plstarx(n, x, y)
+use ddcosmo
+implicit none 
+!
+! given a vector x, compute y = L*x, where L* is the adjoint ddCOSMO matrix,
+! then apply the inverse diagonal as a preconditioner.
+!
+integer, intent(in) :: n
+real*8,  dimension(nbasis,nsph), intent(in)    :: x
+real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+do_diag = .true.
+call lstarx(n,x,y)
+call ldm1x(n,y,y)
+!
 return
 end

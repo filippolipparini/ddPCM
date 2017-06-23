@@ -95,7 +95,7 @@ real*8,  parameter :: zero=0.d0, pt5=0.5d0, one=1.d0, two=2.d0, four=4.d0
 !    eps    - dielectric constant of solvent
 !    eta    - regularization parameter
 !
-integer :: nsph, ngrid, ncav, lmax, nbasis, iconv, igrad, &
+integer :: nsph, ngrid, ncav, lmax, nbasis, iconv, igrad, isolver, &
            iprint, nproc, memuse, memmax, iunit, iscrf, ext0, ext1
 real*8  :: eps, eta, se, pi, sq2
 logical :: grad, do_diag
@@ -1043,12 +1043,12 @@ subroutine calcv( first, isph, g, pot, sigma, basloc, vplm, vcos, vsin )
               oij = xij
             end if
 !
-!           compute spherical harmonics at integration point 
-            call ylmbas( sij, basloc, vplm, vcos, vsin )
-!
 !           point vij is inside j-sphere
 !           ----------------------------
             if ( tij.lt.one ) then
+!
+!           compute spherical harmonics at integration point 
+            call ylmbas( sij, basloc, vplm, vcos, vsin )
 !                    
               pot(ig) = pot(ig) + oij*intmlp(tij,sigma(:,jsph),basloc)
 !
@@ -1061,6 +1061,9 @@ subroutine calcv( first, isph, g, pot, sigma, basloc, vplm, vcos, vsin )
 !
 !             t^l extension
               case(0)
+!
+!             compute spherical harmonics at integration point 
+              call ylmbas( sij, basloc, vplm, vcos, vsin )
               pot(ig) = pot(ig) + oij*intmlp(tij,sigma(:,jsph),basloc)
 !
 !             constant extension
@@ -3198,12 +3201,12 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !
             end if
 !
-!           compute spherical harmonics at s
-            call ylmbas( sij, basloc, vplm, vcos, vsin )
-!
 !           point vij is inside j-sphere
 !           ----------------------------
             if ( tij.lt.one ) then
+!
+!             compute spherical harmonics at s
+              call ylmbas( sij, basloc, vplm, vcos, vsin )
 !                    
 !             compute l,m-th row of L_jk * X_k vector
               pot(its) = pot(its) + oij * intmlp( tij, sigma(:,jsph), basloc )
@@ -3217,6 +3220,9 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !
 !             t^l extension
               case(0)
+!
+!             compute spherical harmonics at s
+              call ylmbas( sij, basloc, vplm, vcos, vsin )
               pot(its) = pot(its) + oij*intmlp(tij,sigma(:,jsph),basloc)
 !
 !             constant extension

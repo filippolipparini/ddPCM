@@ -160,6 +160,7 @@ program main
       read(10,*) iunit       ! whether to convert to bohr (0) or not (1)
       read(10,*) eta, se     ! regularization parameters
       read(10,*) ext0, ext1  ! extension of potential for COSMO and PCM
+      read(10,*) isolver     ! whether to use the jacobi/diis (0) or gmres (1) solver
 !
 !     close control file
       close(10)
@@ -264,8 +265,8 @@ program main
 !fl new:
         call cosmo(.false., phi, psi, sigma, esolv)
         write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
-        call itsolv( .false., phi, psi, sigma, esolv )
-        write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+!       call itsolv( .false., phi, psi, sigma, esolv )
+!       write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
 !
 !       this is all for the energy. if the forces are also required, call the solver for
@@ -290,19 +291,18 @@ program main
           memuse = memuse + nbasis*nsph + 3*nsph
           memmax = max(memmax,memuse)
 !
-!fl new:
           call cosmo(.true., phi, psi, s, esolv)
-          call prtsph('s:', nsph, 0, s)
+!         call prtsph('s:', nsph, 0, s)
 !         solve adjoint problem
-          call itsolv( .true., phi, psi, s, rvoid )
-          call prtsph('s from itsolv:', nsph, 0, s)
+!         call itsolv( .true., phi, psi, s, rvoid )
+!         call prtsph('s from itsolv:', nsph, 0, s)
 !
 !         now call the routine that computes the forces. such a routine requires the potential 
 !         derivatives at the cavity points and the electric field at the cavity points: it has
 !         therefore to be personalized by the user. it is included in this sample program as
 !         forces.f90.
 !
-          call forces( nsph, charge, phi, sigma, s, fx )
+!         call forces( nsph, charge, phi, sigma, s, fx )
 !!!          call check_derivativesCOSMO()
 !!!          call check_forcesCOSMO( esolv, charge, fx )
 !           
