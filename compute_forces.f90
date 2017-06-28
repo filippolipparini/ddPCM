@@ -1345,10 +1345,10 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !           solve PCM equations       
             g(:,:)=zero ; sigma(:,:)=zero
             call wghpot( phi, g )
-            call iefpcm( g, psi, sigma, phi_eps )
+            call iefpcm( g, psi, sigma, phi_eps, E_plus )
 !
 !           compute energy
-            E_plus = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma, psi )
+!!!            E_plus = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma, psi )
 !
 !           account for a potentially null shift
             if ( abs(h) .gt. 1.E-12 ) then
