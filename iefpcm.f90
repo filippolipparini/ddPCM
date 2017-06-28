@@ -16,7 +16,7 @@
 !
 !   sigma_g - IN : g ; OUT : sigma
 !-------------------------------------------------------------------------------
-subroutine iefpcm( phi, psi, sigma_g, phi_eps )
+subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
 !
       use  ddcosmo
 !      
@@ -26,6 +26,7 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
       real*8, dimension(nbasis,nsph), intent(in)    :: psi
       real*8, dimension(nbasis,nsph), intent(inout) :: sigma_g
       real*8, dimension(nbasis,nsph), intent(out)   :: phi_eps
+      real*8,                         intent(inout) :: esolv
 !      
 !     P. Gatto, Nov 2016      
 !     real*8, dimension(ngrid, nsph), intent(inout) :: sigma_g
@@ -593,7 +594,9 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps )
       sigma_g = zero
 !
 !     solve  L sigma = W , compute energy
-      call itsolv2( .false., .true., wlm, psi, sigma_g, ene )
+      call cosmo(.false., .false., phi, wlm, psi, sigma_g, ene)
+      esolv = ene
+!     call itsolv2( .false., .true., wlm, psi, sigma_g, ene )
 !
 !     save phi_eps for computing forces
       phi_eps = wlm

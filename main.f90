@@ -98,7 +98,7 @@ program main
       implicit none
 !
       integer :: i, j, istatus, ig
-      real*8  :: tobohr, esolv, rvoid
+      real*8  :: tobohr, esolv, rvoid, xx(1)
       real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
 !     quantities to be allocated by the user.
@@ -262,12 +262,8 @@ program main
 !              
 !       1. solve cosmo equations
 !       ------------------------
-!fl new:
-        call cosmo(.false., phi, psi, sigma, esolv)
+        call cosmo(.false., .true., phi, xx, psi, sigma, esolv)
         write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
-!       call itsolv( .false., phi, psi, sigma, esolv )
-!       write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
-!
 !
 !       this is all for the energy. if the forces are also required, call the solver for
 !       the adjoint problem. 
@@ -291,18 +287,14 @@ program main
           memuse = memuse + nbasis*nsph + 3*nsph
           memmax = max(memmax,memuse)
 !
-          call cosmo(.true., phi, psi, s, esolv)
-!         call prtsph('s:', nsph, 0, s)
-!         solve adjoint problem
-!         call itsolv( .true., phi, psi, s, rvoid )
-!         call prtsph('s from itsolv:', nsph, 0, s)
+          call cosmo(.true., .false., phi, xx, psi, s, esolv)
 !
 !         now call the routine that computes the forces. such a routine requires the potential 
 !         derivatives at the cavity points and the electric field at the cavity points: it has
 !         therefore to be personalized by the user. it is included in this sample program as
 !         forces.f90.
 !
-!         call forces( nsph, charge, phi, sigma, s, fx )
+          call forces( nsph, charge, phi, sigma, s, fx )
 !!!          call check_derivativesCOSMO()
 !!!          call check_forcesCOSMO( esolv, charge, fx )
 !           
@@ -340,13 +332,14 @@ program main
 !       ----------------------
         g=zero
         call wghpot( phi, g )
-        call iefpcm( g, psi, sigma, phi_eps )
+        call iefpcm( g, psi, sigma, phi_eps, esolv)
+        write (6,'(1x,a,f14.6)') 'ddpcm electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
 !        
 !       2. compute forces
 !       -----------------
-        call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
-        call check_forcesPCM( psi, sigma, charge, f_PCM )
+!       call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
+!       call check_forcesPCM( psi, sigma, charge, f_PCM )
 !        
 !       deallocate workspaces
         deallocate( phi_eps, f_PCM , stat=istatus )

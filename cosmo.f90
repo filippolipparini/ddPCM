@@ -1,9 +1,60 @@
-subroutine cosmo(star, phi, psi, sigma, esolv)
+subroutine cosmo(star, cart, phi, glm, psi, sigma, esolv)
 use ddcosmo
 implicit none
-logical,                         intent(in)    :: star
+!
+! wrapper for the linear solvers for COSMO.
+! 
+! input:
+! 
+!   star   logical, true:  solve the adjoint COSMO equations,
+!                   false: solve the COSMO equatiosn
+!
+!   cart   logical, true:  the right-hand side for the COSMO has to be assembled 
+!                          inside this routine and the unscaled potential at the 
+!                          external points of the cavity is provided in phi. 
+!                   false: the right-hand side for the COSMO equations is provided
+!                          in glm.
+!                   cart is not referenced if star is true. 
+!
+!   phi    real,    contains the potential at the external cavity points if star is
+!                   false and cart is true.
+!                   phi is not referenced in any other case.
+!
+!   glm    real,    contains the right-hand side for the COSMO equations if star is
+!                   false and cart is true.
+!                   glm is not referenced in anu other case
+!
+!   psi    real,    the psi vector. it is used to compute the energy if star is false,
+!                   as a right-hand side if star is true.
+!
+! output:
+!
+!   sigma: real,    the solution to the COSMO (adjoint) equations
+!
+!   esolv: real,    if star is false, the solvation energy.
+!                   if star is true, it is not referenced.
+!            
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! this routine performs the following operations:
+!
+!   - allocates memory for the linear solvers, and fixes dodiag.
+!     This parameters controls whether the diagonal part of the matrix is considered 
+!     in matvec, which depends on the solver used. It is false for jacobi_diis and
+!     true for GMRES. 
+!
+!   - if star is false and cart is true, assembles the right-hand side for the COSMO
+!     equations. Note that for GMRES, a preconditioner is applied.
+!
+!   - computes a guess for the solution (using the inverse diagonal)
+!
+!   - calls the required iterative solver
+!
+!   - if star is false, computes the solvation energy.
+!
+logical,                         intent(in)    :: star, cart
 real*8,  dimension(ncav),        intent(in)    :: phi
-real*8,  dimension(nbasis,nsph), intent(in)    :: psi
+real*8,  dimension(nbasis,nsph), intent(in)    :: glm, psi
 real*8,  dimension(nbasis,nsph), intent(inout) :: sigma
 real*8,                          intent(inout) :: esolv
 !
@@ -30,33 +81,53 @@ call system_clock(count=c1)
 ! set solver-specific options:
 !
 if (isolver .eq. 0) then
+!
+! jacobi_diis
+!
   do_diag = .false.
+!
 else
+!
+! GMRES
+!
   do_diag = .true.
+!
   allocate (work(nsph*nbasis,0:2*gmj+gmm+2 -1), stat=istatus)
   if (istatus .ne. 0) then
     write(*,*) ' cosmo: [1] failed allocation for GMRES'
     stop
   end if
   work  = zero
+!
 end if
 !
 if (.not. star) then
+!
+! solve LX = g.
 !
   allocate (g(ngrid,nsph), rhs(nbasis,nsph), stat=istatus)
   if (istatus .ne. 0) then
     write(*,*) ' cosmo: [2] failed allocation'
   end if
 !
-! weight the potential
+  if (cart) then
 !
-  call wghpot(phi, g)
+!   we need to assemble the right-hand side by weighting the potential
+!   and calling intrhs. Start weighting the potential...
+! 
+    call wghpot(phi, g)
 !
-! and compute its multipolar expansion
+!   and compute its multipolar expansion
 !
-  do isph = 1, nsph
-    call intrhs(isph, g(:,isph), rhs(:,isph))
-  end do
+    do isph = 1, nsph
+      call intrhs(isph, g(:,isph), rhs(:,isph))
+    end do
+!
+  else
+!
+    rhs = glm
+!
+  end if
 !
 ! assemble a guess:
 !
@@ -71,6 +142,7 @@ if (.not. star) then
 !   jacobi/diis
 !
     call jacobi_diis(nsph*nbasis, iprint, ndiis, 4, tol, rhs, sigma, n_iter, ok, lx, ldm1x, hnorm)
+!
   else if (isolver .eq. 1) then
 !
 !   gmres. the gmres solver can not handle preconditioners, so we will solve 
@@ -82,6 +154,7 @@ if (.not. star) then
     call ldm1x(nsph*nbasis,rhs,rhs)
     call gmresr(iprint.gt.0, nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plx, info)
     ok = info .eq. 0
+!
   end if
 !
   esolv = pt5 * ((eps - one)/eps) * sprod(nsph*nbasis,sigma,psi)
@@ -124,7 +197,11 @@ end if
 if (isolver .eq. 1) deallocate (work)
 !
 if (.not. ok) then
-  write(iout,1020)
+  if (star) then
+    write(iout,1020) 'adjoint '
+  else
+    write(iout,1020) ''
+  end if
   stop
 end if
 !
