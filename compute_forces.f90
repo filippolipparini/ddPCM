@@ -25,9 +25,9 @@
 !
 subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
-      use ddcosmo , only : zero, ngrid, nsph, nbasis, zero, lmax, intrhs, itsolv2, &
+      use ddcosmo , only : zero, ngrid, nsph, nbasis, zero, lmax, intrhs,     &
                            basis, fdoka, fdokb, iprint, ncav, ui, ccav, csph, &
-                           w, fdoga, eps, sprod
+                           w, fdoga, eps, sprod, isolver
 !      
       implicit none
       real*8, dimension( ngrid,nsph), intent(in)  :: Phi
@@ -43,7 +43,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       real*8, dimension(nbasis) :: xlm, basloc, vplm
       real*8, dimension(3,nbasis) :: dbsloc
       real*8, dimension(lmax+1) :: vcos, vsin
-      real*8 :: rvoid,e0
+      real*8 :: rvoid,e0,xx(1)
       real*8 :: ef(3,ncav),zeta(ncav)
 !
       integer :: isph, jsph, icomp, n, i, c1, c2, cr
@@ -64,7 +64,9 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     --------------------------------------------------
 !   
 !     solve L^T y = Psi     
-      call itsolv2( star, .true., Psi, Psi, y, rvoid )
+!fl new
+      call cosmo(.true., .false., xx, xx, psi, y, rvoid)
+!     call itsolv2( star, .true., Psi, Psi, y, rvoid )
 !
 !     solve A_eps^T s = y
       call ADJpcm( y, s )

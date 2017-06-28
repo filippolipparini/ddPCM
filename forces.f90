@@ -655,7 +655,7 @@ endsubroutine check_derivativesCOSMO
 subroutine check_forcesCOSMO( E0, charge, f )
 !
       use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
-                           ncav, ccav, ngrid, zero, itsolv, one, lmax
+                           ncav, ccav, ngrid, zero, one, lmax
 !                           
       implicit none
       real*8,                    intent(in) :: E0
@@ -731,7 +731,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !
 !           solve COSMO equations       
             E_plus = zero ; sigma = zero
-            call cosmo( .false., phi, psi, sigma, E_plus )
+            call cosmo(.false., .true., phi, psi, sigma, E_plus)
 !
 !           account for a potentially null shift
             if ( abs( h ).gt.1.E-12 ) then
