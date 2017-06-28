@@ -129,6 +129,10 @@ do it = 1, n_iter
 !
   else if (norm .eq. 4) then
 !
+!
+!   just a placeholder for printing
+    max_norm = -1.d0
+!
 ! use a user-provided norm function
 !
     rms_norm = u_norm(n,x)

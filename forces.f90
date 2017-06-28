@@ -664,7 +664,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !
       integer,parameter :: niter = 4
 !
-      real*8 :: phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph)
+      real*8 :: phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph), xx(1)
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
       real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3),rrate(niter,nsph*3) , &
                 hwork(niter,nsph*3),ework(niter,nsph*3)
@@ -731,7 +731,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !
 !           solve COSMO equations       
             E_plus = zero ; sigma = zero
-            call cosmo(.false., .true., phi, psi, sigma, E_plus)
+            call cosmo(.false., .true., phi, xx, psi, sigma, E_plus)
 !
 !           account for a potentially null shift
             if ( abs( h ).gt.1.E-12 ) then
