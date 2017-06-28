@@ -1307,7 +1307,7 @@ subroutine check_forcesPCM( Psi0, sigma0, charge, f )
       r_save = rsph(  :)
 !
 !     set initial increment
-      eeps=0.001d0
+      eeps=0.01d0
 !      
 !     initialize
       rwork = zero ; rrate = zero ; ework = zero ; fwork = zero

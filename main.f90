@@ -165,16 +165,16 @@ program main
 !     close control file
       close(10)
 !
-!fl!     loop over angular momenta
-!fl      do lmax=2,8
-!fl!
-!fl!       adjust number of grid points so that 2*lmax is integrated exactly
-!fl        call reset_ngrid00(igrid)
-!fl
-!fl!!!          ngrid = ngrid_vec(3)
-!fl!
-!fl!       loop over extra grids
-!fl        do ig = 1,4
+!     loop over angular momenta
+      do lmax=2,10
+!
+!       adjust number of grid points so that 2*lmax is integrated exactly
+        call reset_ngrid00(igrid)
+
+!!!          ngrid = ngrid_vec(3)
+!
+!       loop over extra grids
+        do ig = 1,4
 !          
 !
 !     open atoms file
@@ -302,9 +302,9 @@ program main
 !         therefore to be personalized by the user. it is included in this sample program as
 !         forces.f90.
 !
-!         call forces( nsph, charge, phi, sigma, s, fx )
+         call forces( nsph, charge, phi, sigma, s, fx )
 !!!          call check_derivativesCOSMO()
-!!!          call check_forcesCOSMO( esolv, charge, fx )
+          call check_forcesCOSMO( esolv, charge, fx )
 !           
 !         deallocate workspaces
           deallocate( s, fx , stat=istatus )
@@ -385,14 +385,14 @@ program main
       write(6,*) 'maximum quantity of memory allocated:', memmax
 !
 !
-!fl!         increment grid number        
-!fl          igrid = igrid + 1
-!fl!
-!fl!         update number of grid points
-!fl          ngrid = ngrid_vec(igrid)
-!fl!
-!fl        enddo
-!fl      enddo
+!         increment grid number        
+          igrid = igrid + 1
+!
+!         update number of grid points
+          ngrid = ngrid_vec(igrid)
+!
+        enddo
+      enddo
 !
 !
 endprogram main

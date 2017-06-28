@@ -692,7 +692,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
       r_save = rsph(  :)
 !
 !     set initial increment
-      eeps=0.001d0
+      eeps=0.01d0
 !
 !     initialize
       rwork = zero ; rrate = zero ; ework = zero ; hwork = zero
@@ -731,7 +731,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !
 !           solve COSMO equations       
             E_plus = zero ; sigma = zero
-            call itsolv( .false., phi, psi, sigma, E_plus )
+            call cosmo( .false., phi, psi, sigma, E_plus )
 !
 !           account for a potentially null shift
             if ( abs( h ).gt.1.E-12 ) then
@@ -832,7 +832,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !        
         enddo
       enddo
-      write(*,*) ''
+      write(fp,*) ''
 !
 !     print relative error
       write(fp,*)'Relative error : '

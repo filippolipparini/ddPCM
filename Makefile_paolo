@@ -11,7 +11,8 @@ FFLAGS =  -g -O0 -fbacktrace -fbounds-check -march=native -llapack -lblas -lstdc
 #FFLAGS = -O3 -march=native -fopenmp -llapack -lblas
 
 MODS   = ddcosmo.o
-OBJS   = mkrhs.o llgnew.o main.o ddcosmo.o forces.o efld.o iefpcm.o compute_forces.o numgrad.o fmm.o
+OBJS   = mkrhs.o llgnew.o main.o ddcosmo.o forces.o efld.o iefpcm.o compute_forces.o numgrad.o fmm.o\
+	jacobi_diis.o cosmo.o gmres.o matvec.o
 #
 all:    $(MODS) $(OBJS)
 	$(RunF77) $(FFLAGS) -o main.exe $(OBJS) /home/gatto/RWTH/scalFMM/Build/lib/Release/libscalfmm.a
