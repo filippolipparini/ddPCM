@@ -72,6 +72,8 @@ external             :: lx, ldm1x, hnorm, lstarx, plx, plstarx
 !
 tol     = 10.0d0**(-iconv)
 n_iter  = 100
+!fl
+write(6,*) 'iprint = ', iprint
 !
 ! initialize the timer:
 !

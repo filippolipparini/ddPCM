@@ -256,3 +256,99 @@ call ldm1x(n,y,y)
 return
 end
 !
+subroutine precx(n, x, y)
+use ddcosmo
+implicit none
+!
+! given a vector x, solve Px = y, where P is a given preconditioner.
+! note that we assume that P^{-1} is available in precm1 here...
+!
+integer, intent(in) :: n
+real*8,  dimension(nbasis,nsph), intent(in)    :: x
+real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+integer :: isph
+!
+do isph = 1, nsph
+  call DGEMV( 'N', nbasis, nbasis, one, precm1(:,:,isph), nbasis, x(:,isph), 1, zero, y(:,isph), 1 )
+end do
+!
+return
+end
+!
+subroutine rx(n,x,y)
+use ddcosmo
+implicit none
+!
+! given a vector x, compute y = R_\eps x
+!
+integer, intent(in) :: n
+real*8,  dimension(nbasis,nsph), intent(in)    :: x
+real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+integer                           :: isph, istatus
+real*8, allocatable, dimension(:) :: ulm, u, basloc, vplm, vcos, vsin
+!
+allocate (ulm(nbasis), u(ngrid), basloc(nbasis), vplm(nbasis), vcos(lmax+1), vsin(lmax+1), &
+          stat=istatus)
+if (istatus .ne. 0) then
+  write(*,*) ' rx: allocation failed'
+end if
+!
+do isph = 1, nsph
+  call mkrvec(isph, eps, x, y(:,isph), ulm, u, basloc, vplm, vcos, vsin )
+end do
+!
+deallocate (ulm, u, basloc, vplm, vcos, vsin)
+!
+return
+end  
+!
+subroutine prx(n,x,y)
+use ddcosmo
+implicit none
+!
+! given a vector x, compute z = R_\eps x. 
+! then, solve y = Py.
+!
+integer, intent(in) :: n
+real*8,  dimension(nbasis,nsph), intent(in)    :: x
+real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+integer                              :: istatus
+real*8,  allocatable, dimension(:,:) :: z(:,:)
+!
+allocate (z(nbasis,nsph), stat=istatus)
+if (istatus .ne. 0) then
+  write(*,*) ' prx: allocation failed'
+end if
+!
+do_diag = .true.
+!
+call rx(n,x,z)
+call precx(n,z,y)
+!
+deallocate (z)
+!
+return
+end  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

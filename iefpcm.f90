@@ -40,9 +40,6 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
 !     diis arrays:
       real*8, allocatable :: xdiis(:,:,:), ediis(:,:,:), bmat(:)
 !
-!     preconditioner:
-      real*8, allocatable :: prec(:,:,:), precm1(:,:,:)
-!
       integer :: it, isph, nmat, lenb, istatus, j, jsph,l,m,ind,nt,ns,its
       real*8  :: ene, vrms, vmax, tol, s1, s2, s3, tt, fep
       real*8, allocatable :: err(:), ddiag(:)
@@ -291,6 +288,13 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
 !        
       end do
 !
+!fl NEW
+      call pcm(.false., .false., phi, philm, wlm)
+!
+      call prtsph('wlm from new code:', nsph, 0, wlm)
+!
+      wlm = zero
+      do_diag = .true.
 !                                   n
 !     STEP 2.1 : Jacobi method for W
 !     -------------------------------
@@ -549,6 +553,8 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
 !
 !     check solution
 !     --------------
+      call prtsph(' wlm from old code', nsph, 0, wlm)
+!
       if (iprint.gt.1) then
 !              
         s1 = zero ; s2 = zero ; s3 = zero ; Awlm = zero
@@ -581,6 +587,8 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
         endif        
 !      
       endif        
+!
+      stop
 !      
       write(iout,2000)
  2000 format('   first loop has converged.',/,'   second loop: solving ddCOSMO equations for V(eps)')
@@ -641,9 +649,6 @@ subroutine ADJpcm( philm, wlm )
 !
 !     diis arrays:
       real*8, allocatable :: xdiis(:,:,:), ediis(:,:,:), bmat(:)
-!
-!     preconditioner:
-      real*8, allocatable :: prec(:,:,:), precm1(:,:,:)
 !
       integer :: it, isph, nmat, lenb, istatus
       real*8  :: ene, vrms, vmax, tol,vrmsold
@@ -884,7 +889,8 @@ endsubroutine ADJpcm
 subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
       use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, ui, facl, &
-                            one, pi, zero, pt5, two, dtslm, dtslm2, intrhs, ylmbas, ext1
+                            one, pi, zero, pt5, two, dtslm, dtslm2, intrhs, ylmbas, ext1, &
+                            do_diag
 !      
       implicit none
       integer,                         intent(in   ) :: isph
@@ -968,7 +974,8 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !           action of A_ii [ excluding identity term ]
 !           ==============
 !                      
-            else
+!fl            else
+            else if (do_diag) then
 !
               xlm(:) = -pt5 * vlm(:,isph) / facl(:)
 !
@@ -990,7 +997,11 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !     add action of identity term
 !     ===========================
 !
-      dvlm(:) = fep * vlm(:,isph) - dvlm(:)
+      if (do_diag) then
+        dvlm(:) = fep * vlm(:,isph) - dvlm(:)
+      else
+        dvlm(:) = -dvlm(:)
+      end if
 !
 !
 endsubroutine mkrvec
@@ -1408,7 +1419,7 @@ endsubroutine ADJvec
 !
 !-------------------------------------------------------------------------------
 !
-subroutine mkprec( isph, doinv, prec, precm1 )
+subroutine mkprec( isph, doinv, p, pm1 )
 !
       use  ddcosmo
 !     use  dd_utils , only : nbasis, ngrid, basis, lmax, ui, w, eps
@@ -1416,8 +1427,8 @@ subroutine mkprec( isph, doinv, prec, precm1 )
       implicit none
       integer,                          intent(in   ) :: isph
       logical,                          intent(in   ) :: doinv
-      real*8, dimension(nbasis,nbasis), intent(inout) :: prec
-      real*8, dimension(nbasis,nbasis), intent(inout) :: precm1
+      real*8, dimension(nbasis,nbasis), intent(inout) :: p
+      real*8, dimension(nbasis,nbasis), intent(inout) :: pm1
 !
       integer :: l, m, ind, l1, m1, ind1, info, its, istatus
       real*8  :: f, f1
@@ -1434,7 +1445,7 @@ subroutine mkprec( isph, doinv, prec, precm1 )
       endif
 !
 !     initialize
-      prec(:,:) = zero
+      p(:,:) = zero
 !      
 !      
 !     STEP 1
@@ -1466,7 +1477,7 @@ subroutine mkprec( isph, doinv, prec, precm1 )
                 f1 = two * pi / (two*dble(l1) + one) * basis(ind1+m1,its)
 !                
 !               accumulate
-                prec(ind+m,ind1+m1) = prec(ind+m,ind1+m1) + f * f1
+                p(ind+m,ind1+m1) = p(ind+m,ind1+m1) + f * f1
 !                
               end do
             end do
@@ -1490,7 +1501,7 @@ subroutine mkprec( isph, doinv, prec, precm1 )
           f = two * pi * (eps+one) / (eps-one)
 !
 !         accumulate
-          prec(ind+m,ind+m) = prec(ind+m,ind+m) + f
+          p(ind+m,ind+m) = p(ind+m,ind+m) + f
 !          
         end do
       end do
@@ -1501,10 +1512,10 @@ subroutine mkprec( isph, doinv, prec, precm1 )
 !
       if ( doinv ) then
 !              
-        precm1(:,:) = prec(:,:)
+        pm1(:,:) = p(:,:)
 !        
 !       compute LU factorization
-        call DGETRF( nbasis, nbasis, precm1, nbasis, ipiv, info )
+        call DGETRF( nbasis, nbasis, pm1, nbasis, ipiv, info )
 !
 !       check
         if ( info.ne.0 ) then
@@ -1512,7 +1523,7 @@ subroutine mkprec( isph, doinv, prec, precm1 )
         end if
 !        
 !       invert factorization
-        call DGETRI( nbasis, precm1, nbasis, ipiv, work, nbasis*nbasis, info )
+        call DGETRI( nbasis, pm1, nbasis, ipiv, work, nbasis*nbasis, info )
 !        
 !       check
         if ( info.ne.0 ) then
@@ -1537,7 +1548,7 @@ endsubroutine mkprec
 !
 !
 !-------------------------------------------------------------------------------
-subroutine ADJprec( isph, doinv, prec, precm1 )
+subroutine ADJprec( isph, doinv, p, pm1 )
 !
       use  ddcosmo
 !     use  dd_utils , only : nbasis, ngrid, basis, lmax, ui, w, eps
@@ -1545,8 +1556,8 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
       implicit none
       integer,                          intent(in   ) :: isph
       logical,                          intent(in   ) :: doinv
-      real*8, dimension(nbasis,nbasis), intent(inout) :: prec
-      real*8, dimension(nbasis,nbasis), intent(inout) :: precm1
+      real*8, dimension(nbasis,nbasis), intent(inout) :: p
+      real*8, dimension(nbasis,nbasis), intent(inout) :: pm1
 !
       integer :: l, m, ind, l1, m1, ind1, info, its, istatus, iiprint
       real*8  :: f, f1
@@ -1563,7 +1574,7 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
       endif
 !
 !     initialize
-      prec(:,:) = zero
+      p(:,:) = zero
 !      
 !      
 !     STEP 1
@@ -1593,7 +1604,7 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
               do m1 = -l1, l1
 !                
 !               accumulate
-                prec(ind+m,ind1+m1) = prec(ind+m,ind1+m1) + f * basis(ind1+m1,its)
+                p(ind+m,ind1+m1) = p(ind+m,ind1+m1) + f * basis(ind1+m1,its)
 !                
               end do
             end do
@@ -1617,7 +1628,7 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
           f = two * pi * (eps+one) / (eps-one)
 !
 !         accumulate
-          prec(ind+m,ind+m) = prec(ind+m,ind+m) + f
+          p(ind+m,ind+m) = p(ind+m,ind+m) + f
 !          
         end do
       end do
@@ -1632,7 +1643,7 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
       write(*,*) 'M = '
       do l= 1,nbasis
 !      
-        write(*,"(4x,300(e12.5,2x))") ( prec(l,l1), l1=1,nbasis )
+        write(*,"(4x,300(e12.5,2x))") ( p(l,l1), l1=1,nbasis )
 !
       enddo
       write(*,*)''
@@ -1645,10 +1656,10 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
 !
       if ( doinv ) then
 !              
-        precm1(:,:) = prec(:,:)
+        pm1(:,:) = p(:,:)
 !        
 !       compute LU factorization
-        call DGETRF( nbasis, nbasis, precm1, nbasis, ipiv, info )
+        call DGETRF( nbasis, nbasis, pm1, nbasis, ipiv, info )
 !
 !       check
         if ( info.ne.0 ) then
@@ -1656,7 +1667,7 @@ subroutine ADJprec( isph, doinv, prec, precm1 )
         end if
 !        
 !       invert factorization
-        call DGETRI( nbasis, precm1, nbasis, ipiv, work, nbasis*nbasis, info )
+        call DGETRI( nbasis, pm1, nbasis, ipiv, work, nbasis*nbasis, info )
 !        
 !       check
         if ( info.ne.0 ) then

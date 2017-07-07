@@ -166,7 +166,7 @@ program main
       close(10)
 !
 !     loop over angular momenta
-      do lmax=2,10
+!     do lmax=2,10
 !
 !       adjust number of grid points so that 2*lmax is integrated exactly
         call reset_ngrid00(igrid)
@@ -174,7 +174,7 @@ program main
 !!!          ngrid = ngrid_vec(3)
 !
 !       loop over extra grids
-        do ig = 1,4
+!       do ig = 1,4
 !          
 !
 !     open atoms file
@@ -379,13 +379,13 @@ program main
 !
 !
 !         increment grid number        
-          igrid = igrid + 1
+!         igrid = igrid + 1
 !
 !         update number of grid points
-          ngrid = ngrid_vec(igrid)
+!         ngrid = ngrid_vec(igrid)
 !
-        enddo
-      enddo
+!       enddo
+!     enddo
 !
 !
 endprogram main

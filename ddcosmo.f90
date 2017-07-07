@@ -106,6 +106,7 @@ real*8,  allocatable :: rsph(:), csph(:,:), ccav(:,:)
 real*8,  allocatable :: w(:), grid(:,:), basis(:,:)
 real*8,  allocatable :: fact(:), facl(:), facs(:)
 real*8,  allocatable :: fi(:,:), ui(:,:), zi(:,:,:)
+real*8,  allocatable :: prec(:,:,:), precm1(:,:,:)
 !
 contains
 !
