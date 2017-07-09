@@ -21,8 +21,8 @@ implicit none
 !                   phi is not referenced in any other case.
 !
 !   glm    real,    contains the right-hand side for the COSMO equations if star is
-!                   false and cart is true.
-!                   glm is not referenced in anu other case
+!                   false and cart is false.
+!                   glm is not referenced in any other case
 !
 !   psi    real,    the psi vector. it is used to compute the energy if star is false,
 !                   as a right-hand side if star is true.
@@ -72,8 +72,6 @@ external             :: lx, ldm1x, hnorm, lstarx, plx, plstarx
 !
 tol     = 10.0d0**(-iconv)
 n_iter  = 100
-!fl
-write(6,*) 'iprint = ', iprint
 !
 ! initialize the timer:
 !
@@ -107,12 +105,17 @@ if (.not. star) then
 !
 ! solve LX = g.
 !
-  allocate (g(ngrid,nsph), rhs(nbasis,nsph), stat=istatus)
+  allocate (rhs(nbasis,nsph), stat=istatus)
   if (istatus .ne. 0) then
     write(*,*) ' cosmo: [2] failed allocation'
   end if
 !
   if (cart) then
+!
+    allocate (g(ngrid,nsph), stat=istatus)
+    if (istatus .ne. 0) then
+      write(*,*) ' cosmo: [3] failed allocation'
+    end if
 !
 !   we need to assemble the right-hand side by weighting the potential
 !   and calling intrhs. Start weighting the potential...
@@ -124,6 +127,8 @@ if (.not. star) then
     do isph = 1, nsph
       call intrhs(isph, g(:,isph), rhs(:,isph))
     end do
+!
+    deallocate (g)
 !
   else
 !
@@ -161,7 +166,7 @@ if (.not. star) then
 !
   esolv = pt5 * ((eps - one)/eps) * sprod(nsph*nbasis,sigma,psi)
 !
-  deallocate (g, rhs)
+  deallocate (rhs)
 !
 else
 !
@@ -178,7 +183,7 @@ else
   else if (isolver .eq. 1) then
     allocate (rhs(nbasis,nsph), stat=istatus)
     if (istatus .ne. 0) then
-      write(*,*) 'cosmo: [3] failed allocation'
+      write(*,*) 'cosmo: [4] failed allocation'
       stop
     end if
 !

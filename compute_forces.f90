@@ -71,6 +71,8 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     solve A_eps^T s = y
       call ADJpcm( y, s )
 !
+      stop
+!
 !
 !     STEP 2 : compute f = - < s , A' ( Phi - Phi_eps ) >
 !     ---------------------------------------------------

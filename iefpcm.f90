@@ -16,12 +16,13 @@
 !
 !   sigma_g - IN : g ; OUT : sigma
 !-------------------------------------------------------------------------------
-subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
+subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !
       use  ddcosmo
 !      
       implicit none
 !
+      real*8, dimension(ncav),        intent(in)    :: expot
       real*8, dimension( ngrid,nsph), intent(in)    :: phi
       real*8, dimension(nbasis,nsph), intent(in)    :: psi
       real*8, dimension(nbasis,nsph), intent(inout) :: sigma_g
@@ -247,6 +248,7 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
         do isph = 1,nsph
 !       
 !         phi = A_oo g
+          do_diag = .true.
           call mkrvec(     isph, zero, glm, philm(    :,isph), xlm, x, basloc, vplm, vcos, vsin )
 !!!          call mkrvec_fmm( isph, zero, glm, philm_fmm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
 !          
@@ -288,10 +290,7 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
 !        
       end do
 !
-!fl NEW
       call pcm(.false., .false., phi, philm, wlm)
-!
-      call prtsph('wlm from new code:', nsph, 0, wlm)
 !
       wlm = zero
       do_diag = .true.
@@ -553,7 +552,6 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
 !
 !     check solution
 !     --------------
-      call prtsph(' wlm from old code', nsph, 0, wlm)
 !
       if (iprint.gt.1) then
 !              
@@ -588,8 +586,6 @@ subroutine iefpcm( phi, psi, sigma_g, phi_eps , esolv)
 !      
       endif        
 !
-      stop
-!      
       write(iout,2000)
  2000 format('   first loop has converged.',/,'   second loop: solving ddCOSMO equations for V(eps)')
 !
@@ -651,7 +647,7 @@ subroutine ADJpcm( philm, wlm )
       real*8, allocatable :: xdiis(:,:,:), ediis(:,:,:), bmat(:)
 !
       integer :: it, isph, nmat, lenb, istatus
-      real*8  :: ene, vrms, vmax, tol,vrmsold
+      real*8  :: ene, vrms, vmax, tol,vrmsold, xx(1)
       real*8, allocatable :: err(:), ddiag(:)
       logical :: dodiis
 !
@@ -712,6 +708,10 @@ subroutine ADJpcm( philm, wlm )
       endif
  1000 format('   first loop: computing V(eps)')
  1010 format('   it        error        err-00')
+!fl NEW:
+      call pcm(.true., .false., xx, philm, wlm)
+!
+       call prtsph('adj wlm from new code:', nsph, 0, wlm)
 !      
 !     Jacobi iteration
       do it = 1,nitmax
@@ -825,6 +825,7 @@ subroutine ADJpcm( philm, wlm )
 !
   999 continue
 !  
+      call prtsph('adj wlm from old code:', nsph, 0, wlm)
       if ( .not. iquiet ) then
         write(iout,2000)
       endif
@@ -1206,7 +1207,7 @@ endsubroutine mkrvec_fmm
 subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
       use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, ui, facl, &
-                            two, pi, one, zero, pt5, w, ylmbas, ext1
+                            two, pi, one, zero, pt5, w, ylmbas, ext1, do_diag
 !      
       implicit none
       integer,                         intent(in   ) :: isph
@@ -1293,7 +1294,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
 !             point vij is INSIDE i-sphere [ extension of potential ]
 !             -------------------------------------------------------
-              else
+              else 
 !
 !               extension of potential
                 select case(ext1)
@@ -1380,7 +1381,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !           action of ( A^T )_ii [ excluding identity term ]
 !           ====================
 !                      
-            else
+            else if (do_diag) then
 !
 !             contract over l', m'
               ss = dot_product( basis(:,n), vlm(:,isph) )
@@ -1401,7 +1402,11 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !     add action of identity term
 !     ===========================
 !
-      dvlm(:) = fep*vlm(:,isph) - pt5/facl(:)*dvlm(:)
+      if (do_diag) then 
+        dvlm(:) = fep*vlm(:,isph) - pt5/facl(:)*dvlm(:)
+      else
+        dvlm(:) = - pt5/facl(:)*dvlm(:)
+      end if
 !
 !
 endsubroutine ADJvec

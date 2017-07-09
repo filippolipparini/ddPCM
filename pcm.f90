@@ -2,17 +2,21 @@ subroutine pcm(star, cart, phi, glm, phi_eps)
 use ddcosmo
 implicit none
 !
-! wrapper for the linear solvers for COSMO.
+! wrapper for the linear solvers for IEFPCM. The IEFPCM equation we are want to solve is
+!
+!     R_\eps \Phi_\eps = R_\infty \Phi.
 ! 
+! the right-hand side is therefore g = R_\infty \Phi.
+!
 ! input:
 ! 
-!   star     logical, true:  solve the adjoint COSMO equations,
-!                     false: solve the COSMO equatiosn
+!   star     logical, true:  solve the adjoint PCM equations,
+!                     false: solve the PCM equatiosn
 !
-!   cart     logical, true:  the right-hand side for the COSMO has to be assembled 
+!   cart     logical, true:  the right-hand side for the PCM has to be assembled 
 !                            inside this routine and the unscaled potential at the 
 !                            external points of the cavity is provided in phi. 
-!                     false: the right-hand side for the COSMO equations is provided
+!                     false: the right-hand side for the PCM equations is provided
 !                            in glm.
 !                     cart is not referenced if star is true. 
 !
@@ -20,9 +24,8 @@ implicit none
 !                     false and cart is true.
 !                     phi is not referenced in any other case.
 !
-!   glm      real,    contains the right-hand side for the COSMO equations if star is
-!                     false and cart is true.
-!                     glm is not referenced in anu other case
+!   glm      real,    contains the right-hand side for the PCM (adjoint) equations. 
+!                     if star is false and cart is true, glm is not referenced. 
 !
 ! output:
 !
@@ -37,14 +40,12 @@ implicit none
 !     in matvec, which depends on the solver used. It is false for jacobi_diis and
 !     true for GMRES. 
 !
-!   - if star is false and cart is true, assembles the right-hand side for the COSMO
+!   - if star is false and cart is true, assembles the right-hand side for the PCM
 !     equations. Note that for GMRES, a preconditioner is applied.
 !
-!   - computes a guess for the solution (using the inverse diagonal)
+!   - computes a guess for the solution (using the preconditioner)
 !
 !   - calls the required iterative solver
-!
-!   - if star is false, computes the solvation energy.
 !
 logical,                         intent(in)    :: star, cart
 real*8,  dimension(ncav),        intent(in)    :: phi
@@ -55,7 +56,8 @@ integer              :: isph, istatus, n_iter, info, c1, c2, cr
 real*8               :: tol, r_norm
 logical              :: ok
 !
-real*8, allocatable  :: g(:,:), rhs(:,:), work(:,:), prhs(:,:)
+real*8, allocatable  :: g(:,:), rhs(:,:), work(:,:), x(:,:), u(:), ulm(:), basloc(:), &
+                        vplm(:), vcos(:), vsin(:)
 !
 integer, parameter   :: gmm = 20, gmj = 25
 !
@@ -64,7 +66,7 @@ external             :: rx, prx, precx, hnorm, rstarx, prstarx
 ! set a few parameters for the solver and matvec routine:
 !
 tol     = 10.0d0**(-iconv)
-n_iter  = 100
+n_iter  = 300
 !
 ! initialize the timer:
 !
@@ -85,9 +87,9 @@ else
 !
   do_diag = .true.
 !
-  allocate (work(nsph*nbasis,0:2*gmj+gmm+2 -1), prhs(nbasis,nsph), stat=istatus)
+  allocate (work(nsph*nbasis,0:2*gmj+gmm+2 -1), stat=istatus)
   if (istatus .ne. 0) then
-    write(*,*) ' cosmo: [1] failed allocation for GMRES'
+    write(*,*) ' pcm: [1] failed allocation for GMRES'
     stop
   end if
   work  = zero
@@ -98,14 +100,21 @@ if (.not. star) then
 !
 ! solve LX = g.
 !
-  allocate (g(ngrid,nsph), rhs(nbasis,nsph), stat=istatus)
+  allocate (rhs(nbasis,nsph), stat=istatus)
+!
+  rhs = zero
+!
   if (istatus .ne. 0) then
-    write(*,*) ' cosmo: [2] failed allocation'
+    write(*,*) ' pcm: [2] failed allocation'
   end if
 !
   if (cart) then
-    write(6,*) 'not yet implemented.'
-    stop
+    allocate (g(ngrid,nsph), x(nbasis,nsph), u(ngrid), ulm(nbasis), basloc(nbasis), &
+              vplm(nbasis), vcos(lmax+1), vsin(lmax+1), stat=istatus)
+!
+    if (istatus .ne. 0) then
+      write(*,*) ' pcm: [3] failed allocation'
+    end if
 !
 !   we need to assemble the right-hand side by weighting the potential
 !   and calling intrhs. Start weighting the potential...
@@ -115,8 +124,23 @@ if (.not. star) then
 !   and compute its multipolar expansion
 !
     do isph = 1, nsph
-      call intrhs(isph, g(:,isph), rhs(:,isph))
+      call intrhs(isph, g(:,isph), x(:,isph))
     end do
+!
+!   now, apply R_\infty:
+!
+    do isph = 1, nsph
+      call mkrvec(isph, zero, x, rhs(:,isph), ulm, u, basloc, vplm, vcos, vsin)
+    end do
+!
+    if (isolver .eq. 1) then
+      do_diag = .true.
+      x = rhs
+      call precx(nbasis*nsph, x, rhs)
+    else
+      do_diag = .false.
+    end if
+    deallocate (g, x, u, ulm, basloc, vplm, vcos, vsin)
 !
   else
 !
@@ -130,15 +154,7 @@ if (.not. star) then
 !
 ! assemble a guess:
 !
-  call prtsph('rhs in pcm', nsph, 0, rhs)
-!
-! call prx(nsph*nbasis,rhs,phi_eps)
-! call prtsph('action of pr on rhs in pcm', nsph, 0, phi_eps)
-! phi_eps = zero
-!
   call precx(nsph*nbasis,rhs,phi_eps)
-! phi_eps = rhs
-! call prtsph('guess in pcm', nsph, 0, phi_eps)
 !
 ! call the solver:
 !
@@ -146,9 +162,8 @@ if (.not. star) then
 !
 !   jacobi/diis
 !
-    write(6,*) 'dodiag:', do_diag
     call jacobi_diis(nsph*nbasis, iprint, ndiis, 3, tol, rhs, phi_eps, n_iter, ok, rx, precx)
-    pause
+    do_diag = .true.
 !
   else if (isolver .eq. 1) then
 !
@@ -158,23 +173,55 @@ if (.not. star) then
 !
 !   where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
 !
-!   call precx(nsph*nbasis,rhs,prhs)
     call gmresr(iprint.gt.0, nsph*nbasis, gmj, gmm, rhs, phi_eps, work, tol, 'abs', n_iter, r_norm, prx, info)
-    call prtsph('solution in pcm', nsph, 0, phi_eps)
     ok = info .eq. 0
 !
   end if
 !
 ! esolv = pt5 * ((eps - one)/eps) * sprod(nsph*nbasis,sigma,psi)
 !
-  deallocate (g, rhs)
+  deallocate (rhs)
 !
 else
-  write(6,*) 'not yet implemented'
-  stop
+!
+  allocate (rhs(nbasis,nsph), stat=istatus)
+  if (istatus .ne. 0) then
+    write(6,*) 'pcm: [4] allocation failed '
+    stop
+  end if
+!
+  if (isolver .eq. 0) then
+    rhs = glm
+  else if (isolver .eq. 1) then
+    call precx(nbasis*nsph,glm,rhs)
+  end if
 !
 ! assemble a guess:
 !
+  call precx(nbasis*nsph,rhs,phi_eps)
+!
+! call the solver
+!
+  if (isolver .eq. 0) then
+!
+!   jacobi/diis
+!
+    call jacobi_diis(nsph*nbasis, iprint, ndiis, 3, tol, rhs, phi_eps, n_iter, ok, rstarx, precx)
+!fl
+    do_diag = .true.
+!
+  else if (isolver .eq. 1) then
+!
+!   gmres. the gmres solver can not handle preconditioners, so we will solve 
+!  
+!     PR_\eps^* Phi_eps = P g,
+!
+!   where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
+!
+    call gmresr(iprint.gt.0, nsph*nbasis, gmj, gmm, rhs, phi_eps, work, tol, 'abs', n_iter, r_norm, prstarx, info)
+    ok = info .eq. 0
+!
+  end if
 !fl   do isph = 1, nsph
 !fl     sigma(:,isph) = facl(:)*psi(:,isph)
 !fl   end do
@@ -204,7 +251,7 @@ else
 !
 end if
 !
-if (isolver .eq. 1) deallocate (work, prhs)
+if (isolver .eq. 1) deallocate (work)
 !
 if (.not. ok) then
   if (star) then
