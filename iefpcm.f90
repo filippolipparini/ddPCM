@@ -33,7 +33,8 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !     real*8, dimension(ngrid, nsph), intent(inout) :: sigma_g
 !
 !     local arrays:
-      real*8, allocatable :: philm(:,:), wlm(:,:), glm(:,:), vold(:,:)
+      real*8, allocatable :: philm(:,:), wlm(:,:), glm(:,:), vold(:,:), &
+                             wlm_new(:,:)
 !
 !     scratch arrays:
       real*8, allocatable :: basloc(:), vplm(:), vcos(:), vsin(:), xlm(:), x(:)
@@ -79,6 +80,7 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
                 vold(  nbasis,nsph)     , &
                 philm( nbasis,nsph)     , &
                 wlm(   nbasis,nsph)     , &
+                wlm_new(   nbasis,nsph) , &
                 glm(   nbasis,nsph)     , &
                 basloc(nbasis)          , &  ! spherical harmonics (SH)
                 vplm(  nbasis)          , &  ! service array for SH
@@ -87,9 +89,10 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
                 xdiis(nbasis,nsph,ndiis), &
                 ediis(nbasis,nsph,ndiis), &
                 bmat(lenb*lenb)         , &
-                prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph) , stat=istatus )
+                stat=istatus )
+!               prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
-        write(*,*)'iefpcm : allocation failed !'
+        write(*,*)'iefpcm : allocation failed ! [1]'
         stop
       endif
 !      
@@ -279,11 +282,14 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !     -----------------------------
 !    
 !fl NEW
-      call pcm(.false., .false., .true., xx, philm, wlm)
-      call prtsph('solution to the pcm equations - new:', nsph, 0, wlm)
+      call pcm(.false., .false., .true., xx, philm, wlm_new)
+      call prtsph('solution to the pcm equations - new:', nsph, 0, wlm_new)
 !     initialize
 !fl
-      allocate (prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph))
+      allocate (prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph) , stat=istatus)
+      if ( istatus.ne.1 ) then
+        write(*,*)'iefpcm : allocation failed ! [2]'
+      endif
       prec(:,:,:) = zero ; precm1(:,:,:) = zero
 !      
 !     loop over atoms
@@ -538,6 +544,11 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
   999 continue
 !  
       call prtsph('solution to the PCM equations - old:', nsph, 0, wlm)
+
+
+!     overwrite with new
+      wlm = wlm_new
+
 !
 !     compute charge distribution and energy
 !
@@ -608,13 +619,18 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
       phi_eps = wlm
 !
 !
+      deallocate(prec,precm1 , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*)'iefpcm : deallocation failed ! [1]'
+        stop
+      endif
 !
 !     free the memory
-      deallocate( err, xlm, x, vold, philm, wlm, glm, basloc, vplm, vcos, vsin, &
+      deallocate( err, xlm, x, vold, philm, wlm, wlm_new, glm, basloc, vplm, vcos, vsin, &
                   xdiis, ediis, bmat, stat=istatus )
 !                 xdiis, ediis, bmat, prec, precm1 , stat=istatus )
       if ( istatus.ne.0 ) then
-        write(*,*)'iefpcm : deallocation failed !'
+        write(*,*)'iefpcm : deallocation failed ! [2]'
         stop
       endif
 !      

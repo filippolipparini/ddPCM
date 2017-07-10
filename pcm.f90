@@ -2,7 +2,7 @@ subroutine pcm(star, cart, doprec, phi, glm, phi_eps)
 use ddcosmo
 implicit none
 !
-! wrapper for the linear solvers for IEFPCM. The IEFPCM equation we are want to solve is
+! wrapper for the linear solvers for IEFPCM. The IEFPCM equation we want to solve is
 !
 !     R_\eps \Phi_\eps = R_\infty \Phi.
 ! 
