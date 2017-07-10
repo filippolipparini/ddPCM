@@ -85,6 +85,7 @@ end if
 allocate (x_new(n), y(n), stat=istatus)
 if (istatus .ne. 0) then
   write(*,*) ' jacobi_diis: [2] failed allocation (scratch)' 
+  stop
 end if
 !
 do it = 1, n_iter

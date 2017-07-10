@@ -50,7 +50,7 @@ implicit none
 !
 !   - calls the required iterative solver
 !
-logical,                         intent(in)    :: star, cart
+logical,                         intent(in)    :: star, cart, doprec
 real*8,  dimension(ncav),        intent(in)    :: phi
 real*8,  dimension(nbasis,nsph), intent(in)    :: glm
 real*8,  dimension(nbasis,nsph), intent(inout) :: phi_eps
@@ -76,7 +76,7 @@ n_iter  = 300
 call system_clock(count_rate=cr)
 call system_clock(count=c1)
 !
-if (isolver .eq. 1)
+if (isolver .eq. 1) then
 !
 ! allocate additional memory for GMRES
 !
@@ -104,8 +104,22 @@ if (.not. star) then
 ! if required, set up the preconditioner:
 !
   if (doprec) then
+!
+!   check whether prec and precm1 are allocated. 
+!   if they are allocated, deallocate them and start from scratch.
+!
+    if (allocated(prec))   deallocate(prec)
+    if (allocated(precm1)) deallocate(precm1)
+    allocate (prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph), stat=istatus)
+    if (istatus .ne. 0) then
+      write(*,*) ' pcm: [3] failed allocation of the preconditioner'
+      stop
+    end if
+!
+!   now, build the preconditioner
+!
     do isph = 1, nsph
-      call mkprec(isph, .true., prec(:,:,isph), precm1(:,:,isph)
+      call mkprec(isph, .true., prec(:,:,isph), precm1(:,:,isph))
     end do
   end if 
 !
@@ -114,7 +128,7 @@ if (.not. star) then
               vplm(nbasis), vcos(lmax+1), vsin(lmax+1), stat=istatus)
 !
     if (istatus .ne. 0) then
-      write(*,*) ' pcm: [3] failed allocation'
+      write(*,*) ' pcm: [4] failed allocation'
     end if
 !
 !   we need to assemble the right-hand side by weighting the potential
@@ -181,17 +195,38 @@ if (.not. star) then
 !
   deallocate (rhs)
 !
+  if (doprec) deallocate (prec, precm1)
+!
 else
 !
   allocate (rhs(nbasis,nsph), stat=istatus)
   if (istatus .ne. 0) then
-    write(6,*) 'pcm: [4] allocation failed '
+    write(6,*) 'pcm: [5] allocation failed '
     stop
   end if
 !
 ! if required, assemble the preconditioner:
 !
-  allocate 
+  if (doprec) then
+!
+!   check whether prec and precm1 are allocated. 
+!   if they are allocated, deallocate them and start from scratch.
+!
+    if (allocated(prec))   deallocate(prec)
+    if (allocated(precm1)) deallocate(precm1)
+    allocate (prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph), stat=istatus)
+    if (istatus .ne. 0) then
+      write(*,*) ' pcm: [3] failed allocation of the preconditioner'
+      stop
+    end if
+!
+!   build the preconditioner
+!
+    do isph = 1, nsph
+      call adjprec(isph, .true., prec(:,:,isph), precm1(:,:,isph))
+    end do
+  end if
+!
   if (isolver .eq. 0) then
     rhs = glm
   else if (isolver .eq. 1) then
@@ -208,8 +243,8 @@ else
 !
 !   jacobi/diis
 !
+    do_diag = .false.
     call jacobi_diis(nsph*nbasis, iprint, ndiis, 3, tol, rhs, phi_eps, n_iter, ok, rstarx, precx)
-!fl
     do_diag = .true.
 !
   else if (isolver .eq. 1) then
@@ -224,33 +259,9 @@ else
     ok = info .eq. 0
 !
   end if
-!fl   do isph = 1, nsph
-!fl     sigma(:,isph) = facl(:)*psi(:,isph)
-!fl   end do
-!fl !
-!fl ! call the solver:
-!fl !
-!fl   if (isolver .eq. 0) then
-!fl     call jacobi_diis(nsph*nbasis, iprint, ndiis, 4, tol, psi, sigma, n_iter, ok, lstarx, ldm1x, hnorm)
-!fl   else if (isolver .eq. 1) then
-!fl     allocate (rhs(nbasis,nsph), stat=istatus)
-!fl     if (istatus .ne. 0) then
-!fl       write(*,*) 'cosmo: [3] failed allocation'
-!fl       stop
-!fl     end if
-!fl !
-!fl !   gmres. the gmres solver can not handle preconditioners, so we will solve 
-!fl !  
-!fl !     PL*S = P\Psi,
-!fl !
-!fl !   where P is a jacobi preconditioner. note thus the pstarlx matrix-vector multiplication routine.
-!fl !
-!fl     call ldm1x(nsph*nbasis,psi,rhs)
-!fl     call gmresr(iprint.gt.0, nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plstarx, info)
-!fl     ok = info .eq. 0
-!fl     deallocate (rhs)
-!fl   end if
 !
+  deallocate (rhs)
+  if (doprec) deallocate (prec, precm1)
 end if
 !
 if (isolver .eq. 1) deallocate (work)
@@ -267,6 +278,7 @@ end if
 call system_clock(count=c2)
 !
 if (iprint.gt.0) then
+  write(iout,*)
   if (star) then
     write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
   else
@@ -275,8 +287,10 @@ if (iprint.gt.0) then
   write(iout,*)
 end if
 !
- 1010 format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
- 1020 format(' ddCOSMO did not converge! Aborting...')
+write(iout,*)
+!
+ 1010 format(' the solution to the ddPCM ',a,'R_\eps equations took ',f8.3,' seconds.')
+ 1020 format(' ddPCM did not converge! Aborting...')
 !
 return
 end

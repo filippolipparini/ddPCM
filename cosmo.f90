@@ -215,6 +215,7 @@ end if
 call system_clock(count=c2)
 !
 if (iprint.gt.0) then
+  write(iout,*)
   if (star) then
     write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
   else
@@ -222,6 +223,7 @@ if (iprint.gt.0) then
   end if
   write(iout,*)
 end if
+write(iout,*)
 !
  1010 format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
  1020 format(' ddCOSMO did not converge! Aborting...')

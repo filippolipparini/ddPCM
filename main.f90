@@ -334,12 +334,13 @@ program main
         call wghpot( phi, g )
         call iefpcm( phi, g, psi, sigma, phi_eps, esolv)
         write (6,'(1x,a,f14.6)') 'ddpcm electrostatic solvation energy (kcal/mol):', esolv*tokcal
+        write (6,*)
 !
 !       2. compute forces
 !       -----------------
         call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
         stop
-        call check_forcesPCM( psi, sigma, charge, f_PCM )
+!       call check_forcesPCM( psi, sigma, charge, f_PCM )
 !        
 !       deallocate workspaces
         deallocate( phi_eps, f_PCM , stat=istatus )

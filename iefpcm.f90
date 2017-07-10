@@ -278,7 +278,12 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !     STEP 2 : solve A_eps W = phi
 !     -----------------------------
 !    
+!fl NEW
+      call pcm(.false., .false., .true., xx, philm, wlm)
+      call prtsph('solution to the pcm equations - new:', nsph, 0, wlm)
 !     initialize
+!fl
+      allocate (prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph))
       prec(:,:,:) = zero ; precm1(:,:,:) = zero
 !      
 !     loop over atoms
@@ -288,8 +293,6 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
         call mkprec( isph, .true., prec(:,:,isph), precm1(:,:,isph) )
 !        
       end do
-!
-      call pcm(.false., .false., .false., phi, philm, wlm)
 !
       wlm = zero
 !                                   n
@@ -534,6 +537,7 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !
   999 continue
 !  
+      call prtsph('solution to the PCM equations - old:', nsph, 0, wlm)
 !
 !     compute charge distribution and energy
 !
@@ -607,7 +611,8 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !
 !     free the memory
       deallocate( err, xlm, x, vold, philm, wlm, glm, basloc, vplm, vcos, vsin, &
-                  xdiis, ediis, bmat, prec, precm1 , stat=istatus )
+                  xdiis, ediis, bmat, stat=istatus )
+!                 xdiis, ediis, bmat, prec, precm1 , stat=istatus )
       if ( istatus.ne.0 ) then
         write(*,*)'iefpcm : deallocation failed !'
         stop
@@ -706,10 +711,6 @@ subroutine ADJpcm( philm, wlm )
       endif
  1000 format('   first loop: computing V(eps)')
  1010 format('   it        error        err-00')
-!fl NEW:
-!     call pcm(.true., .false., xx, philm, wlm)
-!
-!      call prtsph('adj wlm from new code:', nsph, 0, wlm)
 !      
 !     Jacobi iteration
       do it = 1,nitmax
@@ -823,7 +824,6 @@ subroutine ADJpcm( philm, wlm )
 !
   999 continue
 !  
-      call prtsph('adj wlm from old code:', nsph, 0, wlm)
       if ( .not. iquiet ) then
         write(iout,2000)
       endif

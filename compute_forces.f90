@@ -27,7 +27,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
       use ddcosmo , only : zero, ngrid, nsph, nbasis, zero, lmax, intrhs,     &
                            basis, fdoka, fdokb, iprint, ncav, ui, ccav, csph, &
-                           w, fdoga, eps, sprod, isolver
+                           w, fdoga, eps, sprod, prtsph
 !      
       implicit none
       real*8, dimension( ngrid,nsph), intent(in)  :: Phi
@@ -69,9 +69,12 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     call itsolv2( star, .true., Psi, Psi, y, rvoid )
 !
 !     solve A_eps^T s = y
+!fl new
+      call pcm(.true., .false., .true., xx, y, s)
+      call prtsph('adjoint pcm solution - new:', nsph, 0, s)
       call ADJpcm( y, s )
+      call prtsph('adjoint pcm solution - old:', nsph, 0, s)
 !
-      stop
 !
 !
 !     STEP 2 : compute f = - < s , A' ( Phi - Phi_eps ) >
