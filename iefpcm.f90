@@ -248,7 +248,6 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
         do isph = 1,nsph
 !       
 !         phi = A_oo g
-          do_diag = .true.
           call mkrvec(     isph, zero, glm, philm(    :,isph), xlm, x, basloc, vplm, vcos, vsin )
 !!!          call mkrvec_fmm( isph, zero, glm, philm_fmm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
 !          
@@ -290,10 +289,9 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !        
       end do
 !
-      call pcm(.false., .false., phi, philm, wlm)
+      call pcm(.false., .false., .false., phi, philm, wlm)
 !
       wlm = zero
-      do_diag = .true.
 !                                   n
 !     STEP 2.1 : Jacobi method for W
 !     -------------------------------
@@ -709,9 +707,9 @@ subroutine ADJpcm( philm, wlm )
  1000 format('   first loop: computing V(eps)')
  1010 format('   it        error        err-00')
 !fl NEW:
-      call pcm(.true., .false., xx, philm, wlm)
+!     call pcm(.true., .false., xx, philm, wlm)
 !
-       call prtsph('adj wlm from new code:', nsph, 0, wlm)
+!      call prtsph('adj wlm from new code:', nsph, 0, wlm)
 !      
 !     Jacobi iteration
       do it = 1,nitmax
@@ -972,10 +970,9 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
               end if
 !                      
 !                      
-!           action of A_ii [ excluding identity term ]
+!           action of A_ii [ excluding identity term ], if required
 !           ==============
 !                      
-!fl            else
             else if (do_diag) then
 !
               xlm(:) = -pt5 * vlm(:,isph) / facl(:)
@@ -995,7 +992,7 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
       call intrhs( isph, x, dvlm )
 !
 !
-!     add action of identity term
+!     if required, add action of identity term
 !     ===========================
 !
       if (do_diag) then
@@ -1378,7 +1375,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
               dijvlm(:) = dijvlm(:) + ui(n,jsph) * f1(:) * ss
 !                      
 !                      
-!           action of ( A^T )_ii [ excluding identity term ]
+!           action of ( A^T )_ii [ excluding identity term ], if required
 !           ====================
 !                      
             else if (do_diag) then
@@ -1399,7 +1396,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
       enddo
 !
 !
-!     add action of identity term
+!     if required, add action of identity term
 !     ===========================
 !
       if (do_diag) then 

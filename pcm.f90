@@ -1,4 +1,4 @@
-subroutine pcm(star, cart, phi, glm, phi_eps)
+subroutine pcm(star, cart, doprec, phi, glm, phi_eps)
 use ddcosmo
 implicit none
 !
@@ -19,6 +19,9 @@ implicit none
 !                     false: the right-hand side for the PCM equations is provided
 !                            in glm.
 !                     cart is not referenced if star is true. 
+!
+!   doprec   logical, true:  assemble the preconditioner 
+!                     false: the preconditioner is already assembled and available
 !
 !   phi      real,    contains the potential at the external cavity points if star is
 !                     false and cart is true.
@@ -73,19 +76,9 @@ n_iter  = 300
 call system_clock(count_rate=cr)
 call system_clock(count=c1)
 !
-! set solver-specific options:
+if (isolver .eq. 1)
 !
-if (isolver .eq. 0) then
-!
-! jacobi_diis
-!
-  do_diag = .false.
-!
-else
-!
-! GMRES
-!
-  do_diag = .true.
+! allocate additional memory for GMRES
 !
   allocate (work(nsph*nbasis,0:2*gmj+gmm+2 -1), stat=istatus)
   if (istatus .ne. 0) then
@@ -98,7 +91,7 @@ end if
 !
 if (.not. star) then
 !
-! solve LX = g.
+! solve R_\eps \Phi_\eps = R_\infty\Phi
 !
   allocate (rhs(nbasis,nsph), stat=istatus)
 !
@@ -107,6 +100,14 @@ if (.not. star) then
   if (istatus .ne. 0) then
     write(*,*) ' pcm: [2] failed allocation'
   end if
+!
+! if required, set up the preconditioner:
+!
+  if (doprec) then
+    do isph = 1, nsph
+      call mkprec(isph, .true., prec(:,:,isph), precm1(:,:,isph)
+    end do
+  end if 
 !
   if (cart) then
     allocate (g(ngrid,nsph), x(nbasis,nsph), u(ngrid), ulm(nbasis), basloc(nbasis), &
@@ -134,11 +135,8 @@ if (.not. star) then
     end do
 !
     if (isolver .eq. 1) then
-      do_diag = .true.
       x = rhs
       call precx(nbasis*nsph, x, rhs)
-    else
-      do_diag = .false.
     end if
     deallocate (g, x, u, ulm, basloc, vplm, vcos, vsin)
 !
@@ -162,6 +160,7 @@ if (.not. star) then
 !
 !   jacobi/diis
 !
+    do_diag = .false.
     call jacobi_diis(nsph*nbasis, iprint, ndiis, 3, tol, rhs, phi_eps, n_iter, ok, rx, precx)
     do_diag = .true.
 !
@@ -190,6 +189,9 @@ else
     stop
   end if
 !
+! if required, assemble the preconditioner:
+!
+  allocate 
   if (isolver .eq. 0) then
     rhs = glm
   else if (isolver .eq. 1) then

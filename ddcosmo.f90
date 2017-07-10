@@ -612,6 +612,11 @@ subroutine ddinit( n, x, y, z, rvdw )
           end if
         end do
       end do
+!
+!     safely initialize do_diag:
+!
+      do_diag = .true.
+!
       return
 !
 !
