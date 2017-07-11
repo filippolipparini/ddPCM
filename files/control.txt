@@ -2,11 +2,11 @@
 1                            # nproc
 10                          # lmax
 302                           # ngrid
-9                            # iconv
+12                            # iconv
 1                            # igrad
-0                            # iscrf
+1                            # iscrf
 78.3553                   # eps
 1                            # iunit
-0.1d0  -1.d0              # eta, se
+0.01d0  0.d0              # eta, se
 1 1                     # ext0 ext1
-1                       # isolver
+0                       # isolver

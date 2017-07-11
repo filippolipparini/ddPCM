@@ -287,8 +287,9 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !     initialize
 !fl
       allocate (prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph) , stat=istatus)
-      if ( istatus.ne.1 ) then
+      if ( istatus.ne.0 ) then
         write(*,*)'iefpcm : allocation failed ! [2]'
+        stop
       endif
       prec(:,:,:) = zero ; precm1(:,:,:) = zero
 !      
