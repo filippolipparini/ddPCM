@@ -664,6 +664,20 @@ subroutine ddinit( n, x, y, z, rvdw )
           enddo
         enddo
       enddo
+
+!!!      do ig = 1,ngrid
+!!!        do isph = 1,nsph
+!!!          do jsph = 1,nsph
+!!!
+!!!            write(*,3131) ig, isph, jsph, du(1:3,isph,ig,jsph) 
+!!! 3131       format( ' n = ',i2,'; i = ',i2,'; j = ',i2,'; du = ',3(e12.5,2x) )
+!!!
+!!!          enddo
+!!!        enddo
+!!!      enddo
+!!!      read(*,*)
+
+
 !
       return
 !
