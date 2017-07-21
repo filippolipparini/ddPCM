@@ -7,6 +7,6 @@
 1                            # iscrf
 78.3553                   # eps
 1                            # iunit
-0.2d0  -1.d0              # eta, se
+0.2d0  0.d0              # eta, se
 0 0                     # ext0 ext1
 0                       # isolver

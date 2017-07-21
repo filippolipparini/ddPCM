@@ -169,7 +169,7 @@ program main
       do lmax=2,2
 !
 !       adjust number of grid points so that 2*lmax is integrated exactly
-        call reset_ngrid00(igrid)
+!       call reset_ngrid00(igrid)
 
 !!!          ngrid = ngrid_vec(6)
 !
@@ -298,7 +298,7 @@ program main
 !
          call forces( nsph, charge, phi, sigma, s, fx )
 !!!          call check_derivativesCOSMO()
-          call check_forcesCOSMO( esolv, charge, fx )
+!!!          call check_forcesCOSMO( esolv, charge, fx )
 !           
 !         deallocate workspaces
           deallocate( s, fx , stat=istatus )
@@ -386,7 +386,6 @@ program main
  
 !         update number of grid points
           ngrid = ngrid_vec(igrid)
- 
 
       write(*,*)'np_switch = ',np_switch
       write(*,*)'np_switch_adj = ',np_switch_adj
@@ -394,7 +393,6 @@ program main
 
         enddo
       enddo
-      
 !
 !
 endprogram main
