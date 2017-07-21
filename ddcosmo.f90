@@ -105,8 +105,11 @@ integer, allocatable :: inl(:), nl(:)
 real*8,  allocatable :: rsph(:), csph(:,:), ccav(:,:)
 real*8,  allocatable :: w(:), grid(:,:), basis(:,:)
 real*8,  allocatable :: fact(:), facl(:), facs(:)
-real*8,  allocatable :: fi(:,:), ui(:,:), zi(:,:,:)
+real*8,  allocatable :: fi(:,:), ui(:,:), zi(:,:,:), du(:,:,:,:)
 real*8,  allocatable :: prec(:,:,:), precm1(:,:,:)
+
+integer :: np_switch
+integer :: np_switch_adj
 !
 contains
 !
@@ -313,10 +316,12 @@ subroutine ddinit( n, x, y, z, rvdw )
       integer,               intent(in) :: n
       real*8,  dimension(n), intent(in) :: x, y, z, rvdw
 !
-      integer :: isph, jsph, i, ii, lnl, l, ind, m, igrid, inear, jnear, istatus
+      integer :: isph, jsph, i, ii, lnl, l, ind, m, igrid, inear, jnear, &
+      istatus, ig, ji
       real*8  :: fac, fl, ffl, fnorm, d2, r2, v(3), vv, t, xt, swthr
 !
       real*8,  allocatable :: vcos(:), vsin(:), vplm(:)
+      real*8 :: tji,vji(3),vvji,sji(3)
 !
 !-------------------------------------------------------------------------------
 !
@@ -352,6 +357,7 @@ subroutine ddinit( n, x, y, z, rvdw )
                 nl(nsph*nngmax), &
                 fi(ngrid,nsph), &
                 ui(ngrid,nsph), &
+                du(3,nsph,ngrid,nsph), &
                 zi(3,ngrid,nsph), &
                 fact(max(2*lmax+1,2)), &
                 facl(nbasis), &
@@ -617,6 +623,48 @@ subroutine ddinit( n, x, y, z, rvdw )
 !
       do_diag = .true.
 !
+!
+!     derivatives d_i U_j^n
+!     ---------------------
+!
+!     initialize
+!
+!          i n j
+      du(:,:,:,:) = zero
+!
+!     loop over integration points
+      do ig = 1, ngrid
+!
+!       loop over i-derivatives
+        do isph = 1,nsph
+!   
+!         loop over neighbors of i-sphere
+          do ji = inl(isph), inl(isph+1) - 1
+!          
+!           neighbor is j-sphere
+            jsph  = nl(ji)
+!            
+            vji   = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
+            vvji  = sqrt(dot_product(vji,vji))
+            tji   = vvji/rsph(isph)
+!            
+!           switch region
+            swthr = one + (se + 1.d0)*eta / 2.d0
+!            
+            if ( tji.lt.swthr .and. tji.gt.swthr-eta ) then
+!                    
+              sji = vji/vvji
+              fac = - dfsw(tji,se,eta)/rsph(isph)
+!
+!             accumulate
+              du(1:3,isph,ig,jsph) = du(1:3,isph,ig,jsph) + fac*sji
+
+            endif
+!            
+          enddo
+        enddo
+      enddo
+!
       return
 !
 !
@@ -654,6 +702,8 @@ endsubroutine ddinit
   if(allocated(facs))  deallocate(facs, stat=istatus)  
   istatus0 = istatus0 + istatus
   if(allocated(ui))    deallocate(ui, stat=istatus)
+  istatus0 = istatus0 + istatus
+  if(allocated(du))    deallocate(du, stat=istatus)
   istatus0 = istatus0 + istatus
   if(allocated(fi))    deallocate(fi, stat=istatus)
   istatus0 = istatus0 + istatus
