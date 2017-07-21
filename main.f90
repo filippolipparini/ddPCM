@@ -166,7 +166,7 @@ program main
       close(10)
 !
 !     loop over angular momenta
-      do lmax=3,8
+      do lmax=2,2
 !
 !       adjust number of grid points so that 2*lmax is integrated exactly
         call reset_ngrid00(igrid)
@@ -174,8 +174,10 @@ program main
 !!!          ngrid = ngrid_vec(6)
 !
 !       loop over extra grids
-        do ig = 1,4
+        do ig = 1,2
 !          
+          np_switch = 0
+          np_switch_adj = 0
 !
 !     open atoms file
       open( unit=10, file=args(2) )
@@ -339,7 +341,8 @@ program main
 !       2. compute forces
 !       -----------------
         call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
-        call check_forcesPCM( psi, sigma, charge, f_PCM )
+!!!        call ADJcheck()
+        call check_forcesPCM( psi, sigma, charge, f_PCM, esolv )
 !        
 !       deallocate workspaces
         deallocate( phi_eps, f_PCM , stat=istatus )
@@ -384,8 +387,14 @@ program main
 !         update number of grid points
           ngrid = ngrid_vec(igrid)
  
+
+      write(*,*)'np_switch = ',np_switch
+      write(*,*)'np_switch_adj = ',np_switch_adj
+      read(*,*)
+
         enddo
       enddo
+      
 !
 !
 endprogram main
