@@ -651,10 +651,12 @@ subroutine ddinit( n, x, y, z, rvdw )
 !           switch region
             swthr = one + (se + 1.d0)*eta / 2.d0
 !            
-            if ( tji.lt.swthr .and. tji.gt.swthr-eta ) then
+            if ( tji.lt.swthr .and. tji.gt.swthr-eta .and. ui(ig,jsph).gt.zero ) then
 !                    
               sji = vji/vvji
-              fac = - dfsw(tji,se,eta)/rsph(isph)
+!                old            
+!!!              fac = - dfsw(tji,se,eta)/rsph(isph)
+              fac = + dfsw(tji,se,eta)/rsph(isph)
 !
 !             accumulate
               du(1:3,isph,ig,jsph) = du(1:3,isph,ig,jsph) + fac*sji
@@ -2168,6 +2170,7 @@ real*8 function dtslm( t, nu, basloc )
         do m = -l, l
 !
 !         accumulate
+<<<<<<< HEAD
           ss = ss + fac*nu(ind+m)*basloc(ind+m)
 !          
         end do
