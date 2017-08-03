@@ -1,7 +1,7 @@
 #
 #   Makefile for ddCOSMO
 #
-#RunF77 = ifort
+###RunF77 = ifort
 #FFLAGS = -O3 -xHost -qopenmp 
 RunF77 = gfortran
 #FFLAGS = -O1 -fbacktrace -g -march=native -fopenmp -llapack -lblas
@@ -12,7 +12,7 @@ FFLAGS =  -g -O0 -fbacktrace -fbounds-check -march=native -llapack -lblas -lstdc
 
 MODS   = ddcosmo.o
 OBJS   = mkrhs.o llgnew.o main.o ddcosmo.o forces.o efld.o iefpcm.o compute_forces.o numgrad.o fmm.o\
-	jacobi_diis.o cosmo.o gmres.o matvec.o pcm.o
+	jacobi_diis.o cosmo.o gmres.o matvec.o pcm.o debug.o
 #
 all:    $(MODS) $(OBJS)
 	$(RunF77) $(FFLAGS) -o main.exe $(OBJS) /home/gatto/RWTH/scalFMM/Build/lib/Release/libscalfmm.a

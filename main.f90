@@ -93,49 +93,44 @@
 !
 program main
 !
-      use ddcosmo
+      use ddcosmo , only : memuse, memmax, args, nsph, read_x, read_y, read_z, &
+                           read_r, read_q, read_control_file, read_molecule_file, &
+                           reset_ngrid00, ddinit, ncav, nbasis, ccav, iscrf, &
+                           igrad, tokcal, memfree
 !      
       implicit none
 !
-      integer :: i, j, istatus, ig
-      real*8  :: tobohr, esolv, rvoid, xx(1)
-      real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
+!     - point charges [ THIS WILL NEED TO BE CLEANED UP ]
 !
-!     quantities to be allocated by the user.
-!     - solute's parameters, such as coordinates, vdw radii and
-!       point charges used to model the solute (or multipoles, or
-!       qm density...)
-!
-      real*8, allocatable :: x(:), y(:), z(:), rvdw(:), charge(:)
+      real*8, allocatable :: charge(:)
 !
 !     - electrostatic potential phi(ncav) and psi vector psi(nbasis,nsph)
 !
-      real*8, allocatable :: phi(:), psi(:,:), g(:,:), phi_eps(:,:)
+      real*8, allocatable :: phi(:), psi(:,:)
 !
-!     - ddcosmo solution sigma (nbasis,nsph) and adjoint solution s(nbasis,nsph)
+!     - ddcosmo solution sigma(nbasis,nsph) and adjoint solution s(nbasis,nsph)
 !
       real*8, allocatable :: sigma(:,:), s(:,:)
 !
-!     - forces:
+!     - ddpcm solution phi_eps(nbasis,nsph)   
+! 
+      real*8, allocatable :: phi_eps(:,:)
 !
-      real*8, allocatable :: fx(:,:), f_PCM(:,:)
+!     - forces ( cosmo : fx(3,nsph) , pcm : fx (nsph,3) ) [ THIS WILL NEED TO BE CLEANED UP ]
 !
-!     - for qm solutes, fock matrix contribution.
+      real*8, allocatable :: fx(:,:)
 !
-      character(len=64), dimension(2) :: args
-
-      integer :: igrid
-      integer, parameter, dimension(32) :: ngrid_vec = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
-                                                          146, 170, 194, 230, 266, 302, 350, 434,  &
-                                                          590, 770, 974,1202,1454,1730,2030,2354,  &
-                                                         2702,3074,3470,3890,4334,4802,5294,5810/)
- 
+!     - miscellanea
+!
+      integer :: i, istatus, idec, iidec, igrid
+      real*8  :: esolv, xx(1)
+!
+      logical :: interactive_mode = .true.
 !
 !-------------------------------------------------------------------------------
 !
 !     initialize
-      memuse = 0
-      memmax = 0
+      memuse = 0 ; memmax = 0
 !
 !     check number of variables in script file
       if ( iargc().ne.2 ) stop
@@ -145,95 +140,30 @@ program main
         call getarg( i, args(i) )
       enddo
 !
-!     open control file
-      open( unit=10, file=args(1) )
-
-!     read control parameters
-      read(10,*) iprint      ! printing flag
-      read(10,*) nproc       ! number of openmp threads
-      read(10,*) lmax        ! max angular momentum of spherical harmonics basis
-      read(10,*) ngrid       ! number of lebedev points
-      read(10,*) iconv       ! 10^(-iconv) is the convergence threshold for the iterative solver
-      read(10,*) igrad       ! whether to compute (1) or not (0) forces
-      read(10,*) iscrf       ! whether to use cosmo (0) or pcm (1)
-      read(10,*) eps         ! dielectric constant of the solvent
-      read(10,*) iunit       ! whether to convert to bohr (0) or not (1)
-      read(10,*) eta, se     ! regularization parameters
-      read(10,*) ext0, ext1  ! extension of potential for COSMO and PCM
-      read(10,*) isolver     ! whether to use the jacobi/diis (0) or gmres (1) solver
+!     read control file
+      call read_control_file() 
 !
-!     close control file
-      close(10)
+!     adjust number of grid points so that 2*lmax is integrated exactly
+      call reset_ngrid00( igrid )
 !
-!     loop over angular momenta
-      do lmax=2,2
+!     read molecule file
+      call read_molecule_file()
 !
-!       adjust number of grid points so that 2*lmax is integrated exactly
-!       call reset_ngrid00(igrid)
-
-!!!          ngrid = ngrid_vec(6)
-!
-!       loop over extra grids
-        do ig = 1,2
-!          
-          np_switch = 0
-          np_switch_adj = 0
-!
-!     open atoms file
-      open( unit=10, file=args(2) )
-!
-!     read number of atoms
-      read(10,*) nsph
-!
-!     allocate arrays for centers, radii, charges
-      allocate( x(nsph), y(nsph), z(nsph), rvdw(nsph), charge(nsph) , stat=istatus )
+!     redirect read_q to charge [ THIS WILL NEED TO BE CLEANED UP ]
+      allocate( charge(nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
-        write(*,*)'main : [1] failed allocation !'
+        write(*,*)'main : [1] allocation failed !'
         stop
       endif
+      charge = read_q
 !
-!     update memory usage
-      memuse = memuse + 5*nsph
-      memmax = max(memmax,memuse)
-!
-!     read atoms file
-      do i = 1, nsph
-        read(10,*) charge(i), x(i), y(i), z(i), rvdw(i)
-      end do
+!     initialize
+      call ddinit( nsph, read_x, read_y, read_z, read_r )
 !      
-!     convert to Angstrom if required
-      tobohr = 1.0d0
-      if ( iunit.eq.0 ) tobohr = 1.0d0/toang
-      x    = x*tobohr
-      y    = y*tobohr
-      z    = z*tobohr
-      rvdw = rvdw*tobohr
 !
-!     close atoms file
-      close (10)
+! ==============================  M O D I F Y   H E R E  ============================== 
 !
-!     Call the initialization routine. this routine allocates memory, computes some
-!     quantities for internal use and creates and fills an array ccav(3,ncav) with
-!     the coordinates of the grid points at which the user needs to compute the potential.
-!     ncav is the number of external grid points and nbasis the number of spherical
-!     harmonics functions used for the expansion of the various ddcosmo quantities;
-!     both are computed by ddinit and defined as common variables in ddcosmo.mod.
-      call ddinit( nsph, x, y, z, rvdw )
-!      
-      allocate( phi(ncav), psi(nbasis,nsph), g(ngrid,nsph) , stat=istatus )
-      if ( istatus.ne.0 ) then
-        write(*,*)'main : [2] failed allocation !'
-        stop
-      endif
-!
-!     update memory usage
-      memuse = memuse + ncav + nbasis*nsph
-      memmax = max(memmax,memuse)
-!
-!
-! --------------------------   modify here  --------------------------  
-!
-! place here your favorite routine to assemble the solute's electrostatic potential
+! Place here your favorite routine to assemble the solute's electrostatic potential
 ! "phi" and the "psi" vector. Such a routine should replace "mkrhs".
 ! for classical solutes, assembling the psi vector is straightforward; for qm solutes
 ! it requires a numerical integration (similar to the one used to compute the xc 
@@ -241,69 +171,242 @@ program main
 ! here, we compute the potential and the psi vector using the supplied routine mkrhs,
 ! which needs to be replaced by your routine.
 !
-      call mkrhs( nsph, charge, x, y, z, ncav, ccav, phi, nbasis, psi )
+! -------------------------------------------------------------------------------------
 !
-! --------------------------   end modify   --------------------------  
-!
-!
-!     allocate solution vector
-      allocate( sigma(nbasis,nsph) , stat=istatus )
+!     allocate workspaces
+      allocate( phi(ncav), psi(nbasis,nsph) , stat=istatus )
       if ( istatus.ne.0 ) then
-        write(*,*)'main : [3] failed allocation !'
+        write(*,*)'main : [2] allocation failed !'
         stop
       endif
 !
 !     update memory usage
-      memuse = memuse + nbasis*nsph
+      memuse = memuse + ncav + nbasis*nsph
       memmax = max(memmax,memuse)
 !
+!     compute electrostatic potential phi and psi vector
+      call mkrhs( nsph, charge, read_x, read_y, read_z, ncav, ccav, phi, nbasis, psi )
 !
-!     COSMO
-!     =====
-      if ( iscrf.eq.0 ) then
-!              
-!       1. solve cosmo equations
-!       ------------------------
-        call cosmo(.false., .true., phi, xx, psi, sigma, esolv)
-        write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+! ===============================  E N D   M O D I F Y  =============================== 
 !
-!       this is all for the energy. if the forces are also required, call the solver for
-!       the adjoint problem. 
-!       the solution to the adjoint system is required also to compute the Fock matrix 
-!       contributions.
 !
-!       2. compute forces
-!       -----------------
-        if ( igrad.eq.1 ) then
+!
+!======================================================================================
+!  I N T E R A C T I V E   M O D E                                                    |
+!======================================================================================
+!
+      if ( interactive_mode ) then
+!
+!       display option menu in infinite loop 
+        do
+!         
+          write(*,*)'========================================'
+          write(*,*)'COSMO .................................1'
+          write(*,*)'COSMO & FORCES ........................2'
+          write(*,*)'PCM & FORCES ..........................3'
+          write(*,*)''
+          write(*,*)'DEBUG TESTS ..........................-1'
+          write(*,*)'QUIT ..................................0'
+          write(*,*)'========================================'
+!
+          read(*,*) idec
+!
+!         menu selection
+          select case(idec)
+!
+!         debug tests
+!         ===========
+          case(-1)
+!
+            call debug_tests()
+!
+!         quit
+!         ====
+          case(0)
+!
+!           break free of infinite loop
+            exit
+!
+!         cosmo
+!         =====  
+          case(1)
+!                  
+!           allocate workspace
+            allocate( sigma(nbasis,nsph) , stat=istatus )
+            if ( istatus.ne.0 ) then
+              write(*,*)'main : COSMO allocation failed !'
+              stop
+            endif
+!
+!           solve cosmo equation
+            call cosmo( .false., .true., phi, xx, psi, sigma, esolv )
+            write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+!            
+!           deallocate workspace
+            deallocate( sigma , stat=istatus )
+            if ( istatus.ne.0 ) then
+              write(*,*)'main : COSMO deallocation failed !'
+              stop
+            endif 
+!
+!         cosmo & forces
+!         ==============
+          case(2)
+!                  
+!           allocate workspaces
+            allocate( sigma(nbasis,nsph), s(nbasis,nsph), fx(3,nsph) , stat=istatus )
+            if ( istatus.ne.0 ) then
+              write(*,*)'main : COSMO & FORCES allocation failed !'
+              stop
+            endif 
+!
+!           solve cosmo equation
+            call cosmo( .false., .true., phi, xx, psi, sigma, esolv )
+            write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+!
+!           solve cosmo adjoint equation [ esolv is not touchedi! ]
+            call cosmo( .true., .false., phi, xx, psi, s, esolv )
+!
+!           compute forces
+            call forces( nsph, charge, phi, sigma, s, fx )
+!
+!           check forces
+            write(*,*)'check forces ? 1 - Yes'
+            read(*,*) iidec
+            if (iidec.eq.1)  call check_forcesCOSMO( esolv, charge, fx )
+!             
+!           deallocate workspaces
+            deallocate( sigma, s, fx , stat=istatus )
+            if ( istatus.ne.0 ) then
+              write(*,*)'main : COSMO & FORCES deallocation failed !'
+              stop
+            endif 
+!
+!         pcm & forces
+!         ============
+          case(3)
+!                  
+!           allocate workspaces
+            allocate( sigma(nbasis,nsph), phi_eps(nbasis,nsph), fx(nsph,3) , stat=istatus )
+            if ( istatus.ne.0 ) then
+              write(*,*)'main : PCM & FORCES allocation failed !'
+              stop
+            endif 
+!                  
+!           solve pcm equations
+            call pcm(   .false.,  .true., .true., phi,      xx, phi_eps )
+            call cosmo( .false., .false.,          xx, phi_eps, psi, sigma, esolv )
+            write (6,'(1x,a,f14.6)') 'ddpcm electrostatic solvation energy (kcal/mol):', esolv*tokcal
+!
+!           compute forces
+            call compute_forces( phi, charge, psi, sigma, phi_eps, fx )
+!
+!           check forces
+            write(*,*)'check forces ? 1 - Yes'
+            read(*,*) iidec
+            if (iidec.eq.1)  call check_forcesPCM( charge, fx, esolv )
+!            
+!           deallocate workspaces
+            deallocate( sigma, phi_eps, fx , stat=istatus )
+            if ( istatus.ne.0 ) then
+              write(*,*)'main : PCM & FORCES deallocation failed !'
+              stop
+            endif 
+!
+          endselect
+        enddo
+!
+!
+!======================================================================================
+!  N O N - I N T E R A C T I V E   M O D E                                            |
+!======================================================================================
+!
+      else
+!
+!
+!       allocate solution vector sigma
+        allocate( sigma(nbasis,nsph) , stat=istatus )
+        if ( istatus.ne.0 ) then
+          write(*,*)'main : [3] allocation failed !'
+          stop
+        endif
+!
+!       update memory usage
+        memuse = memuse + nbasis*nsph
+        memmax = max(memmax,memuse)
+!
+!
+!       COSMO
+!       =====
+        if ( iscrf.eq.0 ) then
 !                
-          write(6,*)
-!          
+!         solve cosmo equation
+          call cosmo( .false., .true., phi, xx, psi, sigma, esolv )
+          write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
+!
+!         forces
+          if ( igrad.eq.1 ) then
+!            
+!           allocate workspaces
+            allocate( s(nbasis,nsph), fx(3,nsph) , stat=istatus )
+            if ( istatus.ne.0 ) then
+              write(*,*)'main : [4] allocation failed !'
+              stop
+            endif 
+!            
+!           update memory usage
+            memuse = memuse + nbasis*nsph + 3*nsph
+            memmax = max(memmax,memuse)
+!
+!           solve cosmo adjoint equation
+            call cosmo( .true., .false., phi, xx, psi, s, esolv )
+!
+!           compute forces
+            call forces( nsph, charge, phi, sigma, s, fx )
+!!!            call check_forcesCOSMO( esolv, charge, fx )
+!             
+!           deallocate workspaces
+            deallocate( s, fx , stat=istatus )
+            if ( istatus.ne.0 ) then
+              write(*,*)'main : [1] deallocation failed !'
+              stop
+            endif 
+!            
+!           update memory usage
+            memuse = memuse - nbasis*nsph - 3*nsph
+            memmax = max(memmax,memuse)
+!
+          endif
+!
+!
+!       PCM        
+!       ===
+        else
+!
 !         allocate workspaces
-          allocate( s(nbasis,nsph), fx(3,nsph) , stat=istatus )
+          allocate( phi_eps(nbasis,nsph), fx(nsph,3) , stat=istatus )
           if ( istatus.ne.0 ) then
-            write(*,*)'main : [4] failed allocation !'
+            write(*,*)'main : [5] failed allocation !'
             stop
           endif 
 !          
 !         update memory usage
           memuse = memuse + nbasis*nsph + 3*nsph
           memmax = max(memmax,memuse)
+!                
+!         solve pcm equations
+          call pcm(   .false.,  .true., .true., phi,      xx, phi_eps )
+          call cosmo( .false., .false.,          xx, phi_eps, psi, sigma, esolv )
+          write (6,'(1x,a,f14.6)') 'ddpcm electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
-          call cosmo(.true., .false., phi, xx, psi, s, esolv)
-!
-!         now call the routine that computes the forces. such a routine requires the potential 
-!         derivatives at the cavity points and the electric field at the cavity points: it has
-!         therefore to be personalized by the user. it is included in this sample program as
-!         forces.f90.
-!
-         call forces( nsph, charge, phi, sigma, s, fx )
-!!!          call check_derivativesCOSMO()
-!!!          call check_forcesCOSMO( esolv, charge, fx )
-!           
+!         compute forces
+          call compute_forces( phi, charge, psi, sigma, phi_eps, fx )
+!!!          call check_forcesPCM( charge, fx, esolv )
+!          
 !         deallocate workspaces
-          deallocate( s, fx , stat=istatus )
+          deallocate( phi_eps, fx , stat=istatus )
           if ( istatus.ne.0 ) then
-            write(*,*)'main : [1] failed deallocation !'
+            write(*,*)'main : [2] deallocation failed !'
             stop
           endif 
 !          
@@ -313,61 +416,22 @@ program main
 !
         endif
 !
-!
-!     PCM        
-!     ===
-      else
-!
-!       allocate workspaces
-        allocate( phi_eps(nbasis,nsph), f_PCM(nsph,3) , stat=istatus )
+!       deallocate solution vector sigma
+        deallocate( sigma , stat=istatus )
         if ( istatus.ne.0 ) then
-          write(*,*)'main : [5] failed allocation !'
+          write(*,*)'main : [3] deallocation failed !'
           stop
         endif 
-!        
-!       update memory usage
-        memuse = memuse + nbasis*nsph + 3*nsph
-        memmax = max(memmax,memuse)
 !
-!              
-!       1. solve pcm equations
-!       ----------------------
-        g=zero
-        call wghpot( phi, g )
-        call iefpcm( phi, g, psi, sigma, phi_eps, esolv)
-        write (6,'(1x,a,f14.6)') 'ddpcm electrostatic solvation energy (kcal/mol):', esolv*tokcal
-        write (6,*)
-!
-!       2. compute forces
-!       -----------------
-        call compute_forces( g, charge, psi, sigma, phi_eps, f_PCM )
-!!!        call ADJcheck()
-        call check_forcesPCM( psi, sigma, charge, f_PCM, esolv )
-!        
-!       deallocate workspaces
-        deallocate( phi_eps, f_PCM , stat=istatus )
-        if ( istatus.ne.0 ) then
-          write(*,*)'main : [3] failed deallocation !'
-          stop
-        endif 
-!        
-!       update memory usage
-        memuse = memuse - nbasis*nsph - 3*nsph
-        memmax = max(memmax,memuse)
-!
+!     end of non-interactive mode
       endif
+!======================================================================================
 !
-!fl
-!!!      if (.false.) then
-!!!        deallocate (phi,psi,sigma)
-!!!        call memfree
-!!!        call numgrad(fx,x,y,z,rvdw,charge)
-!!!      end if
 !
 !     deallocate workspaces
-      deallocate( x, y, z, rvdw, charge, phi, psi, sigma, g , stat=istatus )
+      deallocate( charge, phi, psi , stat=istatus )
       if ( istatus.ne.0 ) then
-        write(*,*)'main : [2] failed deallocation !'
+        write(*,*)'main : [4] deallocation failed !'
         stop
       endif 
 !      
@@ -379,20 +443,6 @@ program main
       call memfree
 !
       write(6,*) 'maximum quantity of memory allocated:', memmax
-!
-!
-!         increment grid number        
-          igrid = igrid + 1
- 
-!         update number of grid points
-          ngrid = ngrid_vec(igrid)
-
-      write(*,*)'np_switch = ',np_switch
-      write(*,*)'np_switch_adj = ',np_switch_adj
-      read(*,*)
-
-        enddo
-      enddo
 !
 !
 endprogram main

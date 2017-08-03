@@ -1,6 +1,4 @@
-subroutine cosmo(star, cart, phi, glm, psi, sigma, esolv)
-use ddcosmo
-implicit none
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 ! wrapper for the linear solvers for COSMO.
 ! 
@@ -52,181 +50,245 @@ implicit none
 !
 !   - if star is false, computes the solvation energy.
 !
-logical,                         intent(in)    :: star, cart
-real*8,  dimension(ncav),        intent(in)    :: phi
-real*8,  dimension(nbasis,nsph), intent(in)    :: glm, psi
-real*8,  dimension(nbasis,nsph), intent(inout) :: sigma
-real*8,                          intent(inout) :: esolv
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-integer              :: isph, istatus, n_iter, info, c1, c2, cr
-real*8               :: tol, r_norm
-logical              :: ok
+subroutine cosmo(star, cart, phi, glm, psi, sigma, esolv)
 !
-real*8, allocatable  :: g(:,:), rhs(:,:), work(:,:)
+      use ddcosmo
+!      
+      implicit none
+      logical,                         intent(in)    :: star, cart
+      real*8,  dimension(ncav),        intent(in)    :: phi
+      real*8,  dimension(nbasis,nsph), intent(in)    :: glm, psi
+      real*8,  dimension(nbasis,nsph), intent(inout) :: sigma
+      real*8,                          intent(inout) :: esolv
 !
-integer, parameter   :: gmm = 20, gmj = 25
+      integer              :: isph, istatus, n_iter, info, c1, c2, cr
+      real*8               :: tol, r_norm
+      logical              :: ok
 !
-external             :: lx, ldm1x, hnorm, lstarx, plx, plstarx
+      real*8, allocatable  :: g(:,:), rhs(:,:), work(:,:)
 !
-! set a few parameters for the solver and matvec routine:
+      integer, parameter   :: gmm = 20, gmj = 25
 !
-tol     = 10.0d0**(-iconv)
-n_iter  = 100
+      external             :: lx, ldm1x, hnorm, lstarx, plx, plstarx
 !
-! initialize the timer:
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-call system_clock(count_rate=cr)
-call system_clock(count=c1)
+!     set a few parameters for the solver and matvec routine:
 !
-! set solver-specific options:
+      tol     = 10.0d0**(-iconv)
+      n_iter  = 100
 !
-if (isolver .eq. 0) then
+!     initialize the timer:
 !
-! jacobi_diis
+      call system_clock(count_rate=cr)
+      call system_clock(count=c1)
 !
-  do_diag = .false.
+!     set solver-specific options:
 !
-else
+!     jacobi/diis
+      if ( isolver.eq.0 ) then
 !
-! GMRES
+        do_diag = .false.
 !
-  do_diag = .true.
+!     GMRES
+      else
 !
-  allocate (work(nsph*nbasis,0:2*gmj+gmm+2 -1), stat=istatus)
-  if (istatus .ne. 0) then
-    write(*,*) ' cosmo: [1] failed allocation for GMRES'
-    stop
-  end if
-  work  = zero
+        do_diag = .true.
 !
-end if
+!       allocate workspace 
+        allocate( work(nsph*nbasis,0:2*gmj+gmm+2 -1) , stat=istatus )
+        if ( istatus.ne.0) then
+          write(*,*) ' cosmo: [1] failed allocation for GMRES'
+          stop
+        endif
 !
-if (.not. star) then
+!       initialize workspace
+        work = zero
 !
-! solve LX = g.
+      endif
 !
-  allocate (rhs(nbasis,nsph), stat=istatus)
-  if (istatus .ne. 0) then
-    write(*,*) ' cosmo: [2] failed allocation'
-  end if
 !
-  if (cart) then
+!     DIRECT COSMO EQUATION L X = g
+!     -----------------------------
+      if ( .not.star ) then
 !
-    allocate (g(ngrid,nsph), stat=istatus)
-    if (istatus .ne. 0) then
-      write(*,*) ' cosmo: [3] failed allocation'
-    end if
+!       allocate workspace for rhs
+        allocate( rhs(nbasis,nsph), stat=istatus )
+        if (istatus .ne. 0) then
+          write(*,*) ' cosmo: [2] failed allocation'
+        endif
 !
-!   we need to assemble the right-hand side by weighting the potential
-!   and calling intrhs. Start weighting the potential...
+!       assemble the right-hand side by weighting the potential and integrating
+        if ( cart ) then
+!
+!         allocate workspace for weighted potential
+          allocate( g(ngrid,nsph), stat=istatus )
+          if (istatus .ne. 0) then
+            write(*,*) ' cosmo: [3] failed allocation'
+          endif
+!
+!         Start weighting the potential...
 ! 
-    call wghpot(phi, g)
+          call wghpot( phi, g )
 !
-!   and compute its multipolar expansion
+!         ... and compute its multipolar expansion
 !
-    do isph = 1, nsph
-      call intrhs(isph, g(:,isph), rhs(:,isph))
-    end do
+          do isph = 1, nsph
+            call intrhs( isph, g(:,isph), rhs(:,isph) )
+          enddo
 !
-    deallocate (g)
+!         deallocate workspace
+          deallocate( g , stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*) 'cosmo: [1] failed deallocation'
+          endif
 !
-  else
+!       no need to manipulate rhs
+        else
 !
-    rhs = glm
+          rhs = glm
 !
-  end if
+        endif
 !
-! assemble a guess:
+!       assemble a guess:
 !
-  do isph = 1, nsph
-    sigma(:,isph) = facl(:)*rhs(:,isph)
-  end do
+        do isph = 1, nsph
+          sigma(:,isph) = facl(:)*rhs(:,isph)
+        enddo
 !
-! call the solver:
+!       call the solver:
 !
-  if (isolver .eq. 0) then
+!       jacobi/diis
+        if ( isolver.eq.0 ) then
 !
-!   jacobi/diis
+!         Jacobi method : 
 !
-    call jacobi_diis(nsph*nbasis, iprint, ndiis, 4, tol, rhs, sigma, n_iter, ok, lx, ldm1x, hnorm)
+!           L X = ( diag + offdiag ) X = g   ==>    X = diag^-1 ( g - offdiag X_guess )
 !
-  else if (isolver .eq. 1) then
+!           action of  diag^-1 :  ldm1x
+!           action of  offdiag :  lx
 !
-!   gmres. the gmres solver can not handle preconditioners, so we will solve 
+          call jacobi_diis( nsph*nbasis, iprint, ndiis, 4, tol, rhs, sigma, n_iter, ok, lx, ldm1x, hnorm )
+!
+!       GMRES
+        elseif ( isolver.eq.1 ) then
+!
+!         the gmres solver can not handle preconditioners, so we will solve 
+!        
+!           PLX = Pg,
+!      
+!         where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
+!
+          call ldm1x( nsph*nbasis, rhs, rhs )
+          call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plx, info )
+!          
+!         gmres success flag
+          ok = ( info.eq.0 )
+!
+        endif
+!
+!       compute solvation energy :
+!
+        esolv = pt5 * ((eps - one)/eps) * sprod(nsph*nbasis,sigma,psi)
+!
+!       deallocate workspace
+        deallocate( rhs , stat=istatus )
+        if ( istatus.ne.0 ) then
+           write(*,*) 'cosmo: [2] failed deallocation'
+        endif
+!
+!     ADJOINT COSMO EQUATION L^T X = g
+!     --------------------------------
+      else
+!
+!       assemble a guess:
+!
+        do isph = 1, nsph
+          sigma(:,isph) = facl(:)*psi(:,isph)
+        enddo
+!
+!       call the solver:
+!
+!       jacobi/diis
+        if (isolver .eq. 0) then
+!                
+          call jacobi_diis( nsph*nbasis, iprint, ndiis, 4, tol, psi, sigma, n_iter, ok, lstarx, ldm1x, hnorm )
+!          
+!       GMRES
+        else if ( isolver.eq.1 ) then
+!                
+!         allocate workspace for rhs
+          allocate ( rhs(nbasis,nsph), stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*) 'cosmo: [4] failed allocation'
+            stop
+          endif
+!
+!         the gmres solver can not handle preconditioners, so we will solve 
 !  
-!     PLX = Pg,
+!           PL*S = P\Psi,
 !
-!   where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
+!         where P is a jacobi preconditioner. note thus the pstarlx matrix-vector multiplication routine.
 !
-    call ldm1x(nsph*nbasis,rhs,rhs)
-    call gmresr(iprint.gt.0, nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plx, info)
-    ok = info .eq. 0
+          call ldm1x( nsph*nbasis, psi, rhs )
+          call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plstarx, info )
+!          
+!         gmres success flag
+          ok = (info .eq. 0)
+!          
+!         deallocate workspace for rhs
+          deallocate (rhs , stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*) 'cosmo: [3] failed deallocation'
+          endif
 !
-  end if
+        endif
 !
-  esolv = pt5 * ((eps - one)/eps) * sprod(nsph*nbasis,sigma,psi)
+      endif
 !
-  deallocate (rhs)
+!     deallocate workspace for GMRES
+      if ( isolver.eq.1 ) then
+!              
+        deallocate( work , stat=istatus )
+        if ( istatus.ne.0 ) then
+          write(*,*) 'cosmo: [4] failed deallocation'
+        endif
 !
-else
+      endif
 !
-! assemble a guess:
+!     check solution
+      if ( .not.ok ) then
+!              
+        if ( star ) then
+          write(iout,1020)
+ 1020     format(' adjoint ddCOSMO did not converge! Aborting...')
+        else
+          write(iout,1021)
+ 1021     format(' ddCOSMO did not converge! Aborting...')
+        endif
+!        
+        stop
+!        
+      endif
 !
-  do isph = 1, nsph
-    sigma(:,isph) = facl(:)*psi(:,isph)
-  end do
+      call system_clock(count=c2)
 !
-! call the solver:
+!     printing
+      if (iprint.gt.0) then
+!              
+        write(iout,*)
+        if (star) then
+          write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
+ 1010     format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
+        else
+          write(iout,1010) '', dble(c2-c1)/dble(cr)
+        end if
+        write(iout,*)
+! 
+      endif
 !
-  if (isolver .eq. 0) then
-    call jacobi_diis(nsph*nbasis, iprint, ndiis, 4, tol, psi, sigma, n_iter, ok, lstarx, ldm1x, hnorm)
-  else if (isolver .eq. 1) then
-    allocate (rhs(nbasis,nsph), stat=istatus)
-    if (istatus .ne. 0) then
-      write(*,*) 'cosmo: [4] failed allocation'
-      stop
-    end if
 !
-!   gmres. the gmres solver can not handle preconditioners, so we will solve 
-!  
-!     PL*S = P\Psi,
-!
-!   where P is a jacobi preconditioner. note thus the pstarlx matrix-vector multiplication routine.
-!
-    call ldm1x(nsph*nbasis,psi,rhs)
-    call gmresr(iprint.gt.0, nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plstarx, info)
-    ok = info .eq. 0
-    deallocate (rhs)
-  end if
-!
-end if
-!
-if (isolver .eq. 1) deallocate (work)
-!
-if (.not. ok) then
-  if (star) then
-    write(iout,1020) 'adjoint '
-  else
-    write(iout,1020) ''
-  end if
-  stop
-end if
-!
-call system_clock(count=c2)
-!
-if (iprint.gt.0) then
-  write(iout,*)
-  if (star) then
-    write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
-  else
-    write(iout,1010) '', dble(c2-c1)/dble(cr)
-  end if
-  write(iout,*)
-end if
-write(iout,*)
-!
- 1010 format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
- 1020 format(' ddCOSMO did not converge! Aborting...')
-!
-return
-end
+      return
+endsubroutine cosmo

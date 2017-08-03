@@ -61,7 +61,7 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
       real*8 :: voldgrid(ngrid,nsph),wlm_fmm(nbasis,nsph)
       real*8 :: basloc_fmm(nbasis,ngrid),vrmsold
 
-      logical,parameter :: use_fmm = .false.
+!!!      logical,parameter :: use_fmm = .true.
 !
 !-------------------------------------------------------------------------------
 !
@@ -252,7 +252,7 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !       
 !         phi = A_oo g
           call mkrvec(     isph, zero, glm, philm(    :,isph), xlm, x, basloc, vplm, vcos, vsin )
-!!!          call mkrvec_fmm( isph, zero, glm, philm_fmm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
+!!!       call mkrvec_fmm( isph, zero, glm, philm_fmm(:,isph), xlm, x, basloc, vplm, vcos, vsin )
 !          
         enddo
 !
@@ -283,7 +283,7 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !    
 !fl NEW
       call pcm(.false., .false., .true., xx, philm, wlm_new)
-      call prtsph('solution to the pcm equations - new:', nsph, 0, wlm_new)
+!!!      call prtsph('solution to the pcm equations - new:', nsph, 0, wlm_new)
 !     initialize
 !fl
       allocate (prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph) , stat=istatus)
@@ -307,10 +307,12 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !     -------------------------------
 !
 !     main loop
-      write(iout,1000)
-      write(iout,1010)
- 1000 format('   first loop: computing V(eps)')
- 1010 format('   it        error        err-00')
+      if ( iprint.gt.1 ) then
+        write(iout,1000)
+        write(iout,1010)
+ 1000   format('   first loop: computing V(eps)')
+ 1010   format('   it        error        err-00')
+      endif
 !      
 !     Jacobi iteration
       do it = 1,nitmax
@@ -528,8 +530,10 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !===================================================================
 !
 !        
-        write(iout,1020) it, vrms, err(1)
- 1020   format(1x,i4,f14.8,121d12.4)
+        if (iprint.gt.1) then
+          write(iout,1020) it, vrms, err(1)
+ 1020     format(1x,i4,f14.8,121d12.4)
+        endif
 !
 !       convergence has been achieved
         if ( vrms.lt.tol )  goto 999
@@ -544,7 +548,7 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !
   999 continue
 !  
-      call prtsph('solution to the PCM equations - old:', nsph, 0, wlm)
+!!!      call prtsph('solution to the PCM equations - old:', nsph, 0, wlm)
 
 
 !     overwrite with new
@@ -600,8 +604,10 @@ subroutine iefpcm(expot, phi, psi, sigma_g, phi_eps , esolv)
 !      
       endif        
 !
+      if (iprint.gt.1) then
       write(iout,2000)
  2000 format('   first loop has converged.',/,'   second loop: solving ddCOSMO equations for V(eps)')
+      endif
 !
 !
 !===================================================================================
@@ -958,6 +964,8 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !             ------------------------------------------
               if ( tij.lt.one ) then
 !
+!!!                np_switch = np_switch + 1
+!
 !               contract over l', m'; accumulate
 !
 !               extension of potential
@@ -1141,6 +1149,7 @@ subroutine mkrvec_fmm( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin 
       enddo
 !
 !     call to FMM
+      fmm_vec = 0.d0
       call fmm( lmax, ns, phi, xs, ys, zs, nt, xt(1:nt), yt(1:nt), zt(1:nt), fmm_vec(1:nt) )
 !
       vgrid(:) = zero
@@ -1297,7 +1306,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !                 index associated to Y_0^l
                   ind = l*l + l + 1
 !                  
-!                 loop over oder of spherical harmonics
+!                 loop over order of spherical harmonics
                   do m = -l,l
 !                   
 !                   compute f1
@@ -1309,6 +1318,8 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !             point vij is INSIDE i-sphere [ extension of potential ]
 !             -------------------------------------------------------
               else 
+!
+!!!                np_switch_adj = np_switch_adj + 1
 !
 !               extension of potential
                 select case(ext1)
@@ -1328,7 +1339,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !                 index associated to Y_0^l
                   ind = l*l + l + 1
 !                  
-!                 loop over oder of spherical harmonics
+!                 loop over order of spherical harmonics
                   do m = -l,l
 !                   
 !                   compute f1
@@ -1414,7 +1425,7 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
 !
 !     if required, add action of identity term
-!     ===========================
+!                  ===========================
 !
       if (do_diag) then 
         dvlm(:) = fep*vlm(:,isph) - pt5/facl(:)*dvlm(:)

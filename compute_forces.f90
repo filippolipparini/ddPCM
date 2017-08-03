@@ -27,26 +27,26 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
       use ddcosmo , only : zero, ngrid, nsph, nbasis, zero, lmax, intrhs,     &
                            basis, fdoka, fdokb, iprint, ncav, ui, ccav, csph, &
-                           w, fdoga, eps, sprod, prtsph
+                           w, fdoga, eps, sprod, prtsph, wghpot
 !      
       implicit none
-      real*8, dimension( ngrid,nsph), intent(in)  :: Phi
+      real*8, dimension(ncav),        intent(in)  :: Phi
       real*8, dimension(       nsph), intent(in)  :: charge
       real*8, dimension(nbasis,nsph), intent(in)  :: Psi
       real*8, dimension(nbasis,nsph), intent(in)  :: sigma
       real*8, dimension(nbasis,nsph), intent(in)  :: Phi_eps
       real*8, dimension(nsph,3),      intent(out) :: f
 !
-      real*8, dimension(ngrid,nsph) :: xi
+      real*8, dimension(ngrid,nsph) :: xi,g
       real*8, dimension(nbasis,nsph) :: w_lm, s, y, z
       real*8, dimension(ngrid) :: x
       real*8, dimension(nbasis) :: xlm, basloc, vplm
       real*8, dimension(3,nbasis) :: dbsloc
       real*8, dimension(lmax+1) :: vcos, vsin
       real*8 :: rvoid,e0,xx(1)
-      real*8 :: ef(3,ncav),zeta(ncav)
+      real*8 :: ef(3,ncav),zeta(ncav),phiexp(ngrid,nsph)
 !
-      integer :: isph, jsph, icomp, n, i, c1, c2, cr
+      integer :: isph, jsph, icomp, n, i, c1, c2, cr, ii
       logical, parameter :: star=.true.
       real*8, parameter :: tokcal=627.509469d0
 !
@@ -64,28 +64,50 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     --------------------------------------------------
 !   
 !     solve L^T y = Psi     
-!fl new
-      call cosmo(.true., .false., xx, xx, psi, y, rvoid)
-!     call itsolv2( star, .true., Psi, Psi, y, rvoid )
+      call cosmo( .true., .false., xx, xx, psi, y, rvoid )
 !
 !     solve A_eps^T s = y
-!fl new
-      call pcm(.true., .false., .true., xx, y, s)
-      call prtsph('adjoint pcm solution - new:', nsph, 0, s)
-      call ADJpcm( y, s )
-      call prtsph('adjoint pcm solution - old:', nsph, 0, s)
-!
+      call pcm( .true., .false., .true., xx, y, s )
+!!!      call prtsph('adjoint pcm solution - new:', nsph, 0, s)
+!!!      call ADJpcm( y, s )
+!!!      call prtsph('adjoint pcm solution - old:', nsph, 0, s)
 !
 !
 !     STEP 2 : compute f = - < s , A' ( Phi - Phi_eps ) >
 !     ---------------------------------------------------
 !
+!     weight potential
+      call wghpot( Phi, g )
+!
 !     compute SH expansion of Phi on i-sphere
       do isph = 1,nsph
 !      
-        call intrhs( isph, Phi(:,isph), w_lm(:,isph) )
+        call intrhs( isph, g(:,isph), w_lm(:,isph) )
 !        
       enddo
+
+!!!      g = zero ; ii = 0
+!!!!      
+!!!      do isph = 1,nsph
+!!!        do n = 1,ngrid
+!!!!        
+!!!          if ( ui(n,isph).gt.zero ) then
+!!!!
+!!!            ii = ii + 1
+!!!!
+!!!            g(n,isph) = phi(ii)
+!!!!            
+!!!          endif
+!!!!          
+!!!        enddo
+!!!      enddo
+!!!      do isph = 1,nsph
+!!!!      
+!!!        call intrhs( isph, g(:,isph), w_lm(:,isph) )
+!!!!        
+!!!      enddo
+
+
 !
 !     compute w = Phi - Phi_eps
       w_lm(:,:) = w_lm(:,:) - Phi_eps(:,:)
@@ -93,7 +115,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     contract
       do isph = 1,nsph 
 !      
-        call service_routine1( s, w_lm , isph, f(isph,1:3) )
+        call service_routine1_new( s, w_lm , isph, f(isph,1:3) )
 !
       enddo
 !
@@ -101,19 +123,30 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       f = -f
 !
 !
-      write(*,*)'----------------------------------------------'
-      write(*,*)'ddPCM forces (atomic units): [1]'
-      write(*,*)''
-      write(*,1004)
+!     STEP 4 : compute f = f + < y , L' sigma >
+!     -----------------------------------------
+!
+!     expand y
+      xi(:,:) = zero
+!      
       do isph = 1,nsph
-!
-        write(*,1005) isph, f(isph,:)
-! 
+        do n = 1,ngrid
+!        
+!         compute xi
+          xi(n,isph) = dot_product( y(:,isph), basis(:,n) )
+!          
+        enddo
       enddo
-      write(*,*)'----------------------------------------------'
-      write(*,*)''
-!!!      read(*,*)
 !
+!     contract
+      do isph = 1, nsph
+!
+!       accumulate f += K_a contribution to < y , L' sigma >
+        call fdoka( isph, sigma, xi(:,isph), basloc, dbsloc, vplm, vcos, vsin, f(isph,:) ) 
+!       accumulate f += K_b contribution to < y , L' sigma >
+        call fdokb( isph, sigma, xi,         basloc, dbsloc, vplm, vcos, vsin, f(isph,:) ) 
+!
+      enddo
 !
 !
 !     STEP 3 : compute f = f - < A_oo^T s , Phi' >
@@ -130,7 +163,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !        
       enddo
 !      
-!     initialize
+!     expand z
       xi(:,:) = zero
 !      
       do isph = 1,nsph
@@ -141,29 +174,37 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !          
         enddo
       enddo
+!      
+!     initialize
+      ii = 0 ; phiexp = zero
+!
+!     loop over atoms
+      do isph = 1, nsph
+!
+!       loop over integration points
+        do n = 1, ngrid
+!
+!         positive contribution from integration point
+          if ( ui(n,isph).gt.zero ) then
+!                  
+!           advance index
+            ii = ii + 1
+!
+!           expand potential Phi_n^j on a sphere-by-sphere basis [ needed for parallelism ]
+!           ========================
+            phiexp(n,isph) = phi(ii)
+!            
+          endif
+        enddo
+      enddo
 ! 
 !     loop over atoms
       do isph = 1,nsph
 !
 !       accumulate f -= sum_n U_n^i' Phi_n^i xi(i,n) 
-        call fdoga( isph, xi, Phi, f(isph,:) ) 
+        call fdoga( isph, xi, phiexp, f(isph,:) ) 
 !        
       enddo
-!
-!
-      write(*,*)'----------------------------------------------'
-      write(*,*)'ddPCM forces (atomic units): [2]'
-      write(*,*)''
-      write(*,1004)
-      do isph = 1,nsph
-!
-        write(*,1005) isph, f(isph,:)
-! 
-      enddo
-      write(*,*)'----------------------------------------------'
-      write(*,*)''
-!!!      read(*,*)
-!
 !
 !     initialize index
       i=0
@@ -215,21 +256,6 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
         enddo
       enddo
 !
-!
-      write(*,*)'----------------------------------------------'
-      write(*,*)'ddPCM forces (atomic units): [3]'
-      write(*,*)''
-      write(*,1004)
-      do isph = 1,nsph
-!
-        write(*,1005) isph, f(isph,:)
-! 
-      enddo
-      write(*,*)'----------------------------------------------'
-      write(*,*)''
-!!!      read(*,*)
-!
-!
 !     electric field produced by the cavity, at the nuclei [ TARGETS ]
       call efld( ncav, zeta, ccav, nsph, csph, ef )
 !
@@ -243,44 +269,6 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
 ! ==========================  E N D    M O D I F Y  ==========================
 !
-!
-      write(*,*)'----------------------------------------------'
-      write(*,*)'ddPCM forces (atomic units): [4]'
-      write(*,*)''
-      write(*,1004)
-      do isph = 1,nsph
-!
-        write(*,1005) isph, f(isph,:)
-! 
-      enddo
-      write(*,*)'----------------------------------------------'
-      write(*,*)''
-!!!      read(*,*)
-!
-!
-!
-!     STEP 4 : compute f = f + < y , L' sigma >
-!     -----------------------------------------
-!
-!     initialize
-      xi(:,:) = zero
-!      
-      do isph = 1,nsph
-        do n = 1,ngrid
-!        
-!         compute xi
-          xi(n,isph) = dot_product( y(:,isph), basis(:,n) )
-!          
-        enddo
-      enddo
-!
-!     contract
-      do isph = 1, nsph
-!
-        call fdoka( isph, sigma, xi(:,isph), basloc, dbsloc, vplm, vcos, vsin, f(isph,:) ) 
-        call fdokb( isph, sigma, xi,         basloc, dbsloc, vplm, vcos, vsin, f(isph,:) ) 
-!
-      enddo
 !
 !     scale the forces the cosmo factor
       f = 0.5d0*(eps-1.d0)/eps * f
@@ -319,7 +307,6 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
  1006   format(' energy = ',e12.5)     
         write(*,*)'----------------------------------------------'
         write(*,*)''
-!!!        read(*,*)
 !        
       endif
 !
@@ -373,7 +360,7 @@ endsubroutine compute_forces
 subroutine service_routine1( s, x, isph, f )
 !
       use ddcosmo , only : ui, nsph, nbasis, zero, ngrid, w, one, basis, csph, &
-                           rsph, grid, zi, lmax, dbasis
+                           rsph, grid, zi, lmax, dbasis, du
 !
       implicit none 
       real*8, dimension(nbasis,nsph), intent(in)    :: s
@@ -457,7 +444,32 @@ subroutine service_routine1( s, x, isph, f )
               f4(1:3) = f4(1:3) + f2(1:3) * f3
 !                      
             endif  
-          endif  
+!
+!
+!           missing term
+!           ============
+!
+!           non-zero contribution from derivative d_i ( U_j^n )
+            if ( sum(abs( du(:,isph,n,jsph) )).gt.zero ) then
+!
+!             d_i U_j^n * Y_l^m(s_n) * s_j          
+              f2(1:3) = du(1:3,isph,n,jsph) * dot_product( basis(:,n), s(:,jsph) )
+!
+!             compute f2(n) [ store in f3 for convenience ]
+!             ---------------------------------------------
+              call compute_f2_n( basis(:,n), x(:,isph), f3 )
+!
+!             accumulate for f4
+!             ----------------
+              f4(1:3) = f4(1:3) - f2(1:3)*f3
+!!!              write(*,*)'cont = ',f2*f3
+!!!              read(*,*)
+!
+            endif
+!
+!
+          endif 
+!
         enddo  
 !
 !       accumulate for f
@@ -542,7 +554,11 @@ subroutine service_routine1( s, x, isph, f )
 !
 !       compute f2(n) [ store in f3 for convenience ]
 !       ---------------------------------------------
-        call compute_f2_n( basloc, x(:,isph), f3 )
+!!!        call compute_f2_n( basloc, x(:,isph), f3 )
+!!!        write(*,*)'old f3 = ',f3
+        call compute_f2_n( basis(:,n), x(:,isph), f3 )
+!!!        write(*,*)'new f3 = ',f3
+!!!        read(*,*)
 !
 !       accumulate for f
 !       ----------------
@@ -839,670 +855,362 @@ endsubroutine compute_f2_n
 !
 !
 !
-!----------------------------------------------------------------------------------
-subroutine compute_dphi( dphi )
+!!!!----------------------------------------------------------------------------------
+!!!subroutine compute_dphi( dphi )
+!!!!
+!!!      use ddcosmo , only : ngrid, nsph
+!!!!
+!!!      real*8, dimension(ngrid,nsph,nsph,3), intent(out) :: dphi
+!!!      integer, save :: iflag = 0
+!!!!
+!!!!----------------------------------------------------------------------------------
+!!!!
+!!!      if ( iflag.eq.0 ) then
+!!!        write(*,*)'compute_dphi : DUMMY routine !'      
+!!!        write(*,*)''
+!!!        iflag=1
+!!!      endif
+!!!
+!!!!     nothing for now ...   
+!!!      dphi(:,:,:,:) = 0.d0
+!!!!
+!!!!
+!!!endsubroutine compute_dphi
+!!!!----------------------------------------------------------------------------------
 !
-      use ddcosmo , only : ngrid, nsph
 !
-      real*8, dimension(ngrid,nsph,nsph,3), intent(out) :: dphi
-      integer, save :: iflag = 0
 !
-!----------------------------------------------------------------------------------
+!------------------------------------------------------------------------------      
+subroutine service_routine1_new( s, x, isph, f )
 !
-      if ( iflag.eq.0 ) then
-        write(*,*)'compute_dphi : DUMMY routine !'      
-        write(*,*)''
-        iflag=1
-      endif
+      use ddcosmo , only : ui, nsph, nbasis, zero, ngrid, w, one, basis, csph, &
+                           rsph, grid, zi, lmax, dbasis, du, pi, two, intrhs
+!
+      implicit none 
+      real*8, dimension(nbasis,nsph), intent(in)    :: s
+      real*8, dimension(nbasis,nsph), intent(in)    :: x
+      integer,                        intent(in)    :: isph
+      real*8, dimension(3),           intent(inout) :: f
+!
+      real*8,  dimension(nbasis) :: basloc, vplm
+      real*8,  dimension(3,nbasis) :: dbsloc
+      real*8,  dimension(lmax+1) :: vcos, vsin
+      real*8, dimension(3) :: f4,vij,s_ijn,dt_ijn,f2
+      real*8, dimension(3,3) :: ds_ijn
+      real*8 :: vvij,t_ijn,f3!!,err
+      integer :: n,icomp,jcomp,jsph,ksph,ivoid,ind,l,m
+      real*8 :: fgrid(3,ngrid), flm(3,nbasis),fac,ss
+!      
+!------------------------------------------------------------------------------      
+!
+!     initialize
+      f(:) = zero
+!
+!
+!     diagonal term
+!     =============
+!
+!     1st loop over spheres
+      do jsph = 1,nsph
+!
+!       loop over integration points
+        do n = 1,ngrid
+!
+!         initialize
+          ss = zero
+!
+!         contract over l'
+          do l = 0,lmax
+!
+!           build factor : 2pi / (2l+1)
+            fac = two*pi/(two*dble(l)+one)
+!
+!           compute 1st index
+            ind = l*l + l + 1
+!
+!           contract over m'
+            do m = -l,l
+!
+              ss = ss + fac * basis(ind+m,n) * x(ind+m,jsph)          
+!
+            enddo
+          enddo
+!
+!         multiply by d_i U_j^n
+          fgrid(:,n) = du(:,isph,n,jsph)*ss
+!
+        enddo
+!
+!       loop over components
+        do icomp = 1,3
+!
+!         integrate against SH
+          call intrhs( ivoid, fgrid(icomp,:), flm(icomp,:) )
+!
+!         contract over l,m
+          f(icomp) = f(icomp) + dot_product( flm(icomp,:), s(:,jsph) )
 
-!     nothing for now ...   
-      dphi(:,:,:,:) = 0.d0
+        enddo
+      enddo
 !
 !
-endsubroutine compute_dphi
-!----------------------------------------------------------------------------------
+!     non-diagonal terms
+!     ==================
 !
+!     loop over integration points
+      do n = 1,ngrid
 !
-!
-!
-!----------------------------------------------------------------------------------
-subroutine ADJcheck
-!       
-      use ddcosmo , only : nbasis,nsph,ngrid,lmax,zero,one,two,csph,rsph,memfree, &
-                           ddinit,ui,zi,iquiet,eps
-!
-      implicit none
-      real*8 :: f(nbasis,nsph),Af( nbasis)
-      real*8 :: e(nbasis,nsph),ATe(nbasis)
-      real*8 :: s(nbasis,nsph)
-      real*8 :: A(nbasis*nsph,nbasis*nsph),AT(nbasis*nsph,nbasis*nsph)
-      real*8 :: dA1(nbasis*nsph,nbasis*nsph),dA2(nbasis*nsph,nbasis*nsph)
-      real*8 :: dA3(nbasis*nsph,nbasis*nsph)
-      real*8 :: dA(nbasis*nsph,nbasis*nsph,nsph,3)
-      real*8 :: A_plus(nbasis*nsph,nbasis*nsph,nsph,3)
-      real*8 :: xlm(nbasis),xx(ngrid),vplm(nbasis),vcos(lmax+1),vsin(lmax+1), &
-                basloc(nbasis)
-      integer :: isph,jsph,i,j,ibeg,iend,nsph_save,icomp,ksph,iter,n
-      real*8 :: s1,s2,eeps,err,rnorm
-      integer, parameter :: niter = 6
-      real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), s3(3)
-      real*8 :: x(nsph), y(nsph), z(nsph), iwork(nsph*3,2), rwork(niter,nsph*3)
-      real*8 :: rrate(niter,nsph*3)
-!
-!--------------------------------------------------------------------------------
-!
-!     activate quiet flag
-      iquiet = .true.
-!
-!     check A = ( A^T )^T
-!     -------------------
-!
-!!!     set epsilon
-!!!      eps=two
-!
-!     construct A, A^T
-      do isph = 1,nsph
-!
+!       initialize
+        f4 = zero  
+!      
+!       1st loop over spheres
         do jsph = 1,nsph
-          do j = 1,nbasis
 !
-!           standard basis vector e_j
-            e(:,   :) = zero
-            e(j,jsph) = one
+!         contract over l,m
+          f3 = dot_product( basis(:,n), s(:,jsph) )
+!              
+!         2nd loop over spheres
+          do ksph = 1,nsph
 !
-!           compute A  _i e_j
-            ibeg = (isph-1)*nbasis+1
-            iend = (isph-1)*nbasis+nbasis
-            call mkrvec( isph, eps, e, A( ibeg:iend,(jsph-1)*nbasis+j), xlm, xx, basloc, vplm, vcos, vsin )
 !
-!           compute A^T_i e_j
-            call ADJvec( isph, eps, e, AT(ibeg:iend,(jsph-1)*nbasis+j), xlm, xx, basloc, vplm, vcos, vsin )
-!        
-          enddo
-        enddo
-      enddo
+!           skip diagonal term
+            if ( ksph.eq.jsph )  cycle
 !
-!     initialize
-      s1 = zero ; s2 = zero
-!      
-!     compute Frobenious norm of A and A^T
-      do isph = 1,nsph
-        do i = 1,nbasis
-          do jsph = 1,nsph
-            do j = 1,nbasis
 !
-!             accumulate a_ij^2, (a^T)_ij^2
-              s1 = s1 + A ( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )**2
-              s2 = s2 + AT( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )**2
-!
-            enddo
-          enddo
-        enddo
-      enddo
-!
-!     || A^T ||_F     || A ||_F
-      s1 = sqrt(s1) ; s2 = sqrt(s2)
-!      
-!     print
-      write(*,1002) abs(s1-s2) / abs(s1)
- 1002 format(' | ||A^T||_F - ||A||_F | / ||A||_F = ', e12.5)
-      write(*,*) ''
-!
-!!!      write(*,*) 'A = '
-!!!      do isph = 1,nsph
-!!!        do i = 1,nbasis
-!!!          write(*,"(4x,300(e12.5,2x))") ( A((isph-1)*nbasis+i,j), j=1,nbasis*nsph )
-!!!        enddo
-!!!      enddo
-!!!      write(*,*)''
+!           compute s_ijn, t_ijn
+            vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,ksph)
+            vvij     = sqrt( dot_product( vij(:), vij(:) ) )
+            t_ijn    = rsph(ksph)/vvij 
+            s_ijn(:) =     vij(:)/vvij
+
+!!!            dt_ijn = zero ; ds_ijn = zero
+!!!
+!!!!           compute derivatives \grad_i t_ijn
+!!!            if ( isph.eq.ksph ) then
+!!!              dt_ijn(1:3) = rsph(ksph) * vij(1:3) / vvij**3
+!!!!              
+!!!!             compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
+!!!              do icomp = 1,3
+!!!                do jcomp = 1,3
 !!!!
-!!!      write(*,*) '(A^T)^T = '
-!!!      do isph = 1,nsph
-!!!        do i = 1,nbasis
-!!!          write(*,"(4x,300(e12.5,2x))") ( AT(j,(isph-1)*nbasis+i), j=1,nbasis*nsph )
-!!!        enddo
-!!!      enddo
-!!!      write(*,*)''
-!
-!
-!!!!     check < A^T e , f > = < e , A f >
-!!!!     ---------------------------------
+!!!                  ds_ijn(icomp,jcomp) = vij(icomp)*vij(jcomp) / (vvij**3)
 !!!!
-!!!!     initialize random number generator
-!!!      call random_seed
-!!!!      
-!!!!     build e, f
-!!!      s1=zero ; s2=zero
-!!!      do isph = 1,nsph
-!!!        do j = 1,nbasis
-!!!!        
-!!!          call random_number( e(j,isph) )
-!!!          call random_number( f(j,isph) )
-!!!!          
-!!!          s1 = s1 + e(j,isph)**2
-!!!          s2 = s2 + f(j,isph)**2
-!!!!          
-!!!        enddo
-!!!      enddo
-!!!      e(:,:)=e(:,:)/sqrt(s1)
-!!!      f(:,:)=f(:,:)/sqrt(s2)
+!!!                  if ( icomp.eq.jcomp ) then
 !!!!
-!!!!     initialize
-!!!      Af( :)=zero
-!!!      ATe(:)=zero
-!!!      s1=zero
-!!!      s2=zero
-!!!!      
-!!!      do isph = 1,nsph
+!!!                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) - one / vvij
 !!!!
-!!!!       compute A_i f 
-!!!        call mkrvec( isph, eps, f, Af( :), xlm, xx, basloc, vplm, vcos, vsin )
+!!!                  endif
+!!!!                  
+!!!                enddo
+!!!              enddo
+!!!             endif
+!!!
+!!!            if ( isph.eq.jsph ) then
+!!!              dt_ijn(1:3) = -rsph(jsph) * vij(1:3) / vvij**3
+!!!!              
+!!!!             compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
+!!!              do icomp = 1,3
+!!!                do jcomp = 1,3
 !!!!
-!!!!       compute A^T_i e
-!!!        call ADJvec( isph, eps, e, ATe(:), xlm, xx, basloc, vplm, vcos, vsin )
+!!!                  ds_ijn(icomp,jcomp) = -vij(icomp)*vij(jcomp) / (vvij**3)
 !!!!
-!!!!       accumulate < e, A f >
-!!!        s1 = s1 + dot_product( e(:,isph), Af( :) )
-!!!!        
-!!!!       accumulate < A^T e, f >
-!!!        s2 = s2 + dot_product( f(:,isph), ATe(:) )
-!!!!        
-!!!      enddo
-!!!!      
-!!!      write(*,1000) abs(s1-s2) / abs(s1)
-!!! 1000 format(' | <e,Af> - <A^T f,e> | / |<e,Af>| = ', e12.5)
-!!!      write(*,*) ''
+!!!                  if ( icomp.eq.jcomp ) then
+!!!!
+!!!                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) +  one / vvij
+!!!!
+!!!                  endif
+!!!!                  
+!!!                enddo
+!!!              enddo
+!!!             endif
 !
 !
-!     check solution of adjoint problem : < e , f > = < A^T s , f > = < s , A f >
-!     ---------------------------------------------------------------------------
 !
-!     initialize random number generator
-      call random_seed
-!      
-!     build e, f 
-      s1=zero ; s2=zero
-      do isph = 1,nsph
-        do j = 1,nbasis
-!        
-          call random_number( e(j,isph) )
-          call random_number( f(j,isph) )
-!          
-          s1 = s1 + e(j,isph)**2
-          s2 = s2 + f(j,isph)**2
-!          
-        enddo
-      enddo
+!           derivatives of s, t
+            if ( isph.eq.jsph ) then
 !
-!     normalize
-      e(:,:)=e(:,:)/sqrt(s1)
-      f(:,:)=f(:,:)/sqrt(s2)
+!             compute derivatives \grad_i t_ijn
+              dt_ijn(1:3) = -rsph(ksph) * vij(1:3) / vvij**3
 !
-!     solve A_eps^T s = e
-      call ADJpcm( e, s )
-!      
-!     initialize
-      Af(:) = zero ; s1 = zero ; s2 = zero
-!      
-      do isph = 1,nsph
+!             compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+              do icomp = 1,3
+                do jcomp = 1,3
 !
-!       compute A_i f 
-        call mkrvec( isph, eps, f, Af(:), xlm, xx, basloc, vplm, vcos, vsin )
+                  ds_ijn(icomp,jcomp) = -vij(icomp)*vij(jcomp) / vvij**3
 !
-!       accumulate < s , A f >
-        s1 = s1 + dot_product( s(:,isph), Af(:) )
-!        
-!       accumulate < e , f >
-        s2 = s2 + dot_product( e(:,isph), f(:,isph) )
-!        
-      enddo
+                  if ( icomp.eq.jcomp ) then
 !
-!     print
-      write(*,1001) abs(s2-s1) / abs(s1)
- 1001 format(' | <e,f> - <s,Af> | / |<s,Af>| = ', e12.5)
-      write(*,*) ''
+                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) + one / vvij
 !
-!     initialize
-      rwork = zero ; rrate = zero
-!
-!     check derivatives
-!     -----------------
-!
-!     1. compute analytical derivatives
-      do ksph = 1,nsph 
-        do isph = 1,nsph
-          do i = 1,nbasis
-            do jsph = 1,nsph
-              do j = 1,nbasis
-!
-!               standard basis vectors e_i, f_j
-                e(:,:   )=zero
-                f(:,:   )=zero
-                e(i,isph)=one
-                f(j,jsph)=one
-!
-!               compute < e, dA/dr_k f > 
-                s3=zero
-                call service_routine1( e(:,:), f(:,:), ksph, s3 )
-!
-!               store
-                do icomp = 1,3
-!
-                  dA( (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp ) = s3(icomp)
-!            
+                  endif
+!                  
                 enddo
               enddo
-            enddo
-          enddo
-        enddo
-      enddo
+!              
+            elseif ( isph.eq.ksph ) then
 !
-!     save initial DS
-      nsph_save = nsph
-      x_save = csph(1,:)
-      y_save = csph(2,:)
-      z_save = csph(3,:)
-      r_save = rsph(  :)
+!             compute derivatives \grad_i t_ijn
+              dt_ijn(1:3) = rsph(ksph) * vij(1:3) / vvij**3
+!              
+!             compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
+              do icomp = 1,3
+                do jcomp = 1,3
 !
-!     set initial increment
-      eeps=0.1d0
+                  ds_ijn(icomp,jcomp) = vij(icomp)*vij(jcomp) / vvij**3
 !
-!     loop over increments
-      do iter = 1,niter
-!        
-!       compute A^+
-        do ksph = 1,nsph
+                  if ( icomp.eq.jcomp ) then
 !
-          do icomp = 1,3
+                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) - one / vvij
 !
-!           deallocate DS      
-            call memfree
-!
-!           perturb     
-            x = x_save
-            y = y_save
-            z = z_save
-            select case(icomp)
-            case(1) ; x(ksph) = x_save(ksph) + eeps
-            case(2) ; y(ksph) = y_save(ksph) + eeps
-            case(3) ; z(ksph) = z_save(ksph) + eeps
-            endselect
-!
-!           allocate new DS      
-            call ddinit( nsph_save, x, y, z, r_save )
-!
-!           initialize
-            err=zero
-            rnorm=zero
-            A_plus(:,:,ksph,icomp)=zero
-!
-!           build A^+
-            do isph = 1,nsph
-              do jsph = 1,nsph
-                do j = 1,nbasis
-!
-                  e(:,:   )=zero
-                  e(j,jsph)=one
-!
-!                 compute A^+_i e_j
-                  ibeg = (isph-1)*nbasis+1
-                  iend = (isph-1)*nbasis+nbasis
-                  call mkrvec( isph, eps, e, A_plus( ibeg:iend,(jsph-1)*nbasis+j,ksph,icomp ), xlm, xx, basloc, vplm, vcos, vsin )
-!
-!!!                  if ( ( isph.eq.2 ) .and. ( jsph.eq.1 ) ) then
-
-!                 accumulate error
-                  do i = 1,nbasis
-                    err = err + ( ( A_plus((isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) -           &
-                                    A(     (isph-1)*nbasis+i,(jsph-1)*nbasis+j           ) ) / eeps -  &
-                                    dA(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) )**2
-                    rnorm = rnorm + (  dA(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) )**2
-!
-                  enddo
-                
-!!!          endif
-
+                  endif
+!                  
                 enddo
               enddo
-            enddo
-!            
-!!!!           numerical derivatives
-!!!            write(*,1007) ksph,icomp
-!!! 1007       format(' A(r+r_',i2,',',i1,') =')
-!!!! 
-!!!            do isph = 1,nsph
-!!!              do i = 1,nbasis
-!!!                write(*,"(4x,300(e12.5,2x))") ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) , j=1,nbasis*nsph )
-!!!              enddo
-!!!            enddo
-!!!            write(*,*)''
-!!!!            
-!!!            write(*,1008) ksph,icomp
-!!! 1008       format('( A(r+r_',i2,',',i1,') - A(r) ) / eps =')
-!!!! 
-!!!            do isph = 1,nsph
-!!!              do i = 1,nbasis
-!!!                write(*,"(4x,300(e12.5,2x))") ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) - &
-!!!                                                     A((isph-1)*nbasis+i,j))/eeps , j=1,nbasis*nsph )
-!!!              enddo
-!!!            enddo
-!!!            write(*,*)''
 !
-!           store relative error
-            rwork(iter,(ksph-1)*3+icomp) = sqrt( err / rnorm )
-!
-!           store rate of convergence
-            if ( iter.gt.1 ) then 
-              rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
-                                                   rwork(iter  ,(ksph-1)*3+icomp)   ) / log(0.5d0)  
+            else
+!                    
+!             compute derivatives \grad_i t_ijn
+              dt_ijn(1:3) = zero
+!              
+!             compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+              ds_ijn(1:3,1:3) = zero
+!              
             endif
+!             
+!           compute Y_l'^m'(s_ijn) , d_i Y_l'^m' ( ... )
+            call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
 !
+!           compute f2(j,n)
+!           ---------------
+            call compute_grad( isph, jsph, n, t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,ksph), f2(1:3) )
+!                    
+!           accumulate for f4(n)
+!           --------------------
+            f4(1:3) = f4(1:3) - f3 * f2(1:3)
+
           enddo
+!
         enddo
 !
-!       update increment
-        eeps = eeps/2.d0
-!        
+!       accumulate over n
+        f(1:3) = f(1:3) + w(n) * f4(1:3)
+!
       enddo
-
-      eeps = eeps*2.d0
+!                      
 !
-!     printing relative error
-      write(*,*)'Relative error : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(*,"(' dA / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(*,*) ''
-
-!     printing rate of convergence
-      write(*,*)'Rate of convergence : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(*,"(' dA / dr_'i2','i1' : ',300(f12.3,2x))") j,icomp, ( rrate(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(*,*) ''
-
-!
-!!!!     printing
-!!!      do ksph = 1,nsph
-!!!        do icomp = 1,3
-!!!!        
-!!!!         analytical derivatives
-!!!          write(*,1005) ksph,icomp
-!!! 1005     format(' dA / dr_',i2,',',i1,' =')
-!!!!
-!!!          do isph = 1,nsph
-!!!            do i = 1,nbasis
-!!!              write(*,"(4x,300(e12.5,2x))") ( dA((isph-1)*nbasis+i,j,ksph,icomp), j=1,nbasis*nsph )
-!!!            enddo
-!!!          enddo
-!!!!          
-!!!!         numerical derivatives
-!!!          write(*,1006) ksph,icomp
-!!! 1006     format(' ( A(r+r_',i2,',',i1,') - A(r) ) / eps =')
-!!!! 
-!!!          do isph = 1,nsph
-!!!            do i = 1,nbasis
-!!!              write(*,"(4x,300(e12.5,2x))") &
-!!!              ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp)- &
-!!!                       A((isph-1)*nbasis+i,j)             ) / eeps , j=1,nbasis*nsph )
-!!!            enddo
-!!!          enddo
-!!!          write(*,*)''
-!!!! 
-!!!        enddo
-!!!      enddo
-!
-!     restore DS
-      call memfree
-      call ddinit( nsph_save, x_save, y_save, z_save, r_save )
-!
-!     deactivate quiet flag      
-      iquiet = .false.
+endsubroutine service_routine1_new
+!----------------------------------------------------------------------------------
 !
 !
-endsubroutine ADJcheck
-
-!---------------------------------------------------------------------------------------
-subroutine check_forcesPCM( Psi0, sigma0, charge, f )
 !
-      use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
-                           eps, ncav, ccav, ngrid, zero, sprod, wghpot, one, &
-                           lmax
-!                           
+!
+!----------------------------------------------------------------------------------
+subroutine compute_grad( isph, jsph, n, t, dt, ds, basloc, dbsloc, x, f2 )
+!
+      use ddcosmo , only : lmax, nbasis, zero, one, two, four, pi, ui, du, zi
+!
       implicit none
-      real*8, dimension(nbasis,nsph), intent(in) :: Psi0
-      real*8, dimension(nbasis,nsph), intent(in) :: sigma0
-      real*8, dimension(       nsph), intent(in) :: charge
-      real*8, dimension(     nsph,3), intent(in) :: f
+      integer,                     intent(in)  :: isph
+      integer,                     intent(in)  :: jsph
+      integer,                     intent(in)  :: n
+      real*8,                      intent(in)  :: t
+      real*8, dimension(3  ),      intent(in)  :: dt
+      real*8, dimension(3,3),      intent(in)  :: ds
+      real*8, dimension(  nbasis), intent(in)  :: basloc
+      real*8, dimension(3,nbasis), intent(in)  :: dbsloc
+      real*8, dimension(  nbasis), intent(in)  :: x
+      real*8, dimension(3),        intent(out) :: f2
 !
-      integer,parameter :: niter = 4
-!
-      real*8 :: phi(ncav), psi(nbasis,nsph), g(ngrid,nsph), sigma(nbasis,nsph)
-      real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
-      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3), rrate(niter,nsph*3), &
-                hwork(niter,nsph*3),ework(niter,nsph*3),fwork(niter,nsph*3)
-      real*8 :: E0, E_plus, err, eeps, h
-      integer :: iter, icomp, ksph, nsph_save, j, ncav_save, nbasis_save
-!
-      character(len=10) :: x1,x2
-      character(len=30) :: fname
-      integer :: fp
-!
-!---------------------------------------------------------------------------------------
-!
-!     activate quiet flag
-      iquiet = .true.
-!
-!     compute E0
-      E0 = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma0, Psi0 )
-!
-!     save initial DS
-      nsph_save = nsph
-      ncav_save = ncav
-      nbasis_save = nbasis
-      x_save = csph(1,:)
-      y_save = csph(2,:)
-      z_save = csph(3,:)
-      r_save = rsph(  :)
-!
-!     set initial increment
-      eeps=0.01d0
+      real*8, dimension(3,nbasis) :: s1,s2,f1
+      real*8, dimension(3) :: s3
+      real*8 :: tt,fl,fac
+      integer :: icomp,jcomp,l,m,ind
 !      
-!     initialize
-      rwork = zero ; rrate = zero ; ework = zero ; fwork = zero
+!----------------------------------------------------------------------------------
+! Recall :
 !
-!     loop over increments
-      do iter = 1,niter
-!        
-!       loop over d / dr_k
-        do ksph = 1,nsph_save
+!   f1(1:3,lm) = \grad [ U * t^l+1 * Y(s) ]
 !
-!         loop over components of d / dr_k
-          do icomp = 1,3
+!              = (\grad U) t^l+1 * Y(s) + U * t^l [ (l+1) (\grad t) Y(s) + t ( \grad s )^T \grad Y(s) ]
 !
-!           deallocate DS      
-            call memfree
+!              = t^l [ (l+1) (\grad t) U * Y + t [ (\grad U) Y + U ( \grad s )^T \grad Y ] ]
 !
-!           perturb     
-            x = x_save
-            y = y_save
-            z = z_save
-            select case(icomp)
-            case(1) ; x(ksph) = x_save(ksph)*(1.d0+eeps) ; h = eeps*x_save(ksph)
-            case(2) ; y(ksph) = y_save(ksph)*(1.d0+eeps) ; h = eeps*y_save(ksph)
-            case(3) ; z(ksph) = z_save(ksph)*(1.d0+eeps) ; h = eeps*z_save(ksph)
-            endselect
+!              = tt  [ (l+1) s1(1:3,lm)      + t   s2(1:3,lm) ]
 !
-!           allocate new DS      
-            call ddinit( nsph_save, x, y, z, r_save )
-!            
-!           potential Phi and Psi vector
-            call mkrhs( nsph_save, charge, x, y, z, ncav_save, ccav, phi, nbasis_save, psi )
+! and :
 !
-!           solve PCM equations       
-            g(:,:)=zero ; sigma(:,:)=zero
-            call wghpot( phi, g )
-            call iefpcm( phi, g, psi, sigma, phi_eps, E_plus )
+!                  4 pi l
+!   f2(1:3) = sum  ------  sum x(lm) * f1(1:3,lm)
+!              l   2l + 1   m
 !
-!           compute energy
-!!!            E_plus = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma, psi )
+!                  4 pi l
+!           = sum  ------  s3(1:3,l)  
+!              l   2l + 1 
 !
-!           account for a potentially null shift
-            if ( abs(h) .gt. 1.E-12 ) then
+!           = sum fac(l) * s3(1:3,l) 
+!              l
 !
-!             account for a potentially null component of the force
-              if ( abs( f(ksph,icomp) ).gt.1.E-12 ) then
-!                        
-!               compute relative error
-!!!                err = abs( (E_plus - E0) / eeps + f(ksph,icomp) ) / abs( f(ksph,icomp) )
-                err = abs( (E_plus - E0) / h + f(ksph,icomp) ) / abs( f(ksph,icomp) )
+!----------------------------------------------------------------------------------
 !
-!               store
-                rwork(iter,(ksph-1)*3+icomp) = err
-                hwork(iter,(ksph-1)*3+icomp) = h
-                ework(iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
-                fwork(iter,(ksph-1)*3+icomp) = f(ksph,icomp)
-
-                
-!!!                if ( abs( ( E_plus - E0 ) / h ) .gt. 1.E+03) then
-!!!                  write(*,*) 'E_plus = ',E_plus
-!!!                  write(*,*) 'E0     = ',E0
-!!!                  stop
-!!!                endif
-
-!               compute rate
-                if ( iter.gt.1 ) then 
-                  rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
-                                                       rwork(iter  ,(ksph-1)*3+icomp)   ) / &
-                                                  log( hwork(iter  ,(ksph-1)*3+icomp) / &
-                                                       hwork(iter-1,(ksph-1)*3+icomp)   )
-                endif
-              endif
-            endif
+!     initialize f2
+      f2(1:3) = zero
 !
-          enddo
-        enddo
-!
-        eeps = eeps / 2.d0
-!
-      enddo
+!     compute s1
+      do icomp = 1,3
 !      
-!     print numerical derivative of energy
-      write(*,*)'Numerical derivative of energy : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(*,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( ework(iter,(j-1)*3+icomp) , iter=1,niter )
+        s1(icomp,1:nbasis) = dt(icomp) * basloc(1:nbasis) * ui(n,jsph)
 !        
-        enddo
       enddo
-      write(*,*) ''
+!
+!     compute s2
+      s2(1:3,1:nbasis) = zero
 !      
-!     print analytical force
-      write(*,*)'Analytical force : '
-      do j = 1,nsph
-        do icomp = 1,3
+      do icomp = 1,3
 !
-          write(*,"(' force  _'i2','i1' : ',300(e12.5,2x))") j,icomp, ( fwork(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
+!       accumulate
+        do jcomp = 1,3
+!
+          s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(jcomp,icomp)
+!
         enddo
-      enddo
-      write(*,*) ''
 !
-!     print relative error
-      write(*,*)'Relative error : '
-      do j = 1,nsph
-        do icomp = 1,3
+        s2(icomp,1:nbasis) = ui(n,jsph)*s2(icomp,1:nbasis) + du(icomp,isph,n,jsph)*basloc(1:nbasis)
 !
-          write(*,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(*,*) ''
-!      
-!     print rate of convergence
-      write(*,*)'Rate of convergence : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(*,"(' dE / dr_'i2','i1' : ',300(f12.3,2x))") j,icomp, ( rrate(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(*,*) ''
-!
-!     print to file
-!     -------------
-!
-      write(x1,'(I2.2)') lmax
-      write(x2,'(I4.4)') ngrid
-      fname = 'lmax' // trim(x1) // '_ngrid' // trim(x2)
-      fp    = 17
-!
-      open( unit=fp, file=fname, form='formatted', access='sequential', status='unknown')
-!      
-      write(fp,*)'lmax,ngrid = ',lmax,ngrid
-      write(fp,*) ''
-!
-!     print numerical derivative of energy
-      write(fp,*)'Numerical derivative of energy : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(fp,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( ework(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(fp,*) ''
-!      
-!     print analytical force
-      write(fp,*)'Analytical force : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(fp,"(' force  _'i2','i1' : ',300(e12.5,2x))") j,icomp, ( fwork(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(fp,*) ''
-!
-!     print relative error
-      write(fp,*)'Relative error : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(fp,"(' dE / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(fp,*) ''
-!      
-!     print rate of convergence
-      write(fp,*)'Rate of convergence : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(fp,"(' dE / dr_'i2','i1' : ',300(f12.3,2x))") j,icomp, ( rrate(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
       enddo
 !
-      close(fp)
-!      
-!     restore DS
-      call memfree
-      call ddinit( nsph_save, x_save, y_save, z_save, r_save )
+!     initialize factor t^l
+      tt = one
 !
-!     deactivate quiet flag      
-      iquiet = .false.
+!     contract over l
+      do l = 0,lmax
+!
+!       build factor : 4pi*l / (2l+1)
+        fl = dble(l)
+        fac = four*pi*fl / (two*fl+one)
+!
+!       build f1
+        f1(1:3,1:nbasis) = tt * ( (fl+one)*s1(1:3,1:nbasis) + t*s2(1:3,1:nbasis) )
+!
+!       compute 1st index
+        ind = l*l + l + 1
+!
+!       initialize s3(l)
+        s3(1:3) = zero
+!
+!       contract over m
+        do m = -l,l
+!
+          s3(1:3) = s3(1:3) + f1(1:3,ind+m) * x(ind+m)          
+!
+        enddo
+!
+!       accumulate for f2
+        f2(1:3) = f2(1:3) + fac*s3(1:3)
+!
+!       update factor t^l
+        tt = tt*t
+!
+      enddo
 !
 !
-endsubroutine check_forcesPCM
+endsubroutine compute_grad

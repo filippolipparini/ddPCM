@@ -77,41 +77,72 @@ implicit none
 ! Written by Filippo Lipparini, October 2015.
 !
 !-------------------------------------------------------------------------------
-! 1. define some parameters :
 !
-integer, parameter :: ndiis=25, iout=6, nngmax=100
-real*8,  parameter :: zero=0.d0, pt5=0.5d0, one=1.d0, two=2.d0, four=4.d0
+!     - arguments contained in bash script
 !
-! 2. define some quantities :
+      character(len=64), dimension(2) :: args
 !
-!    nsph   - number of spheres/atoms
-!    ngrid  - desired number of Lebedev integration points 
-!    ncav   -
-!    lmax   - max angular momentum of the spherical harmonics basis
-!    nbasis -
-!    iconv  - threshold for iterative solver ( 10^-iconv )
-!    igrad  - 1) compute forces ; 0) do not compute forces
-!    nproc  - number of openMP threads ; 0) no parallelization
-!    eps    - dielectric constant of solvent
-!    eta    - regularization parameter
+!     - numerical constants
 !
-integer :: nsph, ngrid, ncav, lmax, nbasis, iconv, igrad, isolver, &
-           iprint, nproc, memuse, memmax, iunit, iscrf, ext0, ext1
-real*8  :: eps, eta, se, pi, sq2
-logical :: grad, do_diag
-logical :: iquiet = .false.
+      integer, parameter :: ndiis=25, iout=6, nngmax=100
+      real*8,  parameter :: zero=0.d0, pt5=0.5d0, one=1.d0, two=2.d0, four=4.d0
+      real*8,  parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
-integer, allocatable :: inl(:), nl(:)
-real*8,  allocatable :: rsph(:), csph(:,:), ccav(:,:)
-real*8,  allocatable :: w(:), grid(:,:), basis(:,:)
-real*8,  allocatable :: fact(:), facl(:), facs(:)
-real*8,  allocatable :: fi(:,:), ui(:,:), zi(:,:,:), du(:,:,:,:)
-real*8,  allocatable :: prec(:,:,:), precm1(:,:,:)
-
-integer :: np_switch
-integer :: np_switch_adj
+!     - numerical constants explicitly computed
+!
+      real*8  :: pi, sq2
+!
+!     - quantities contained in control file
+!
+!     iprint     - printing flag
+!     nproc      - number of openMP threads ; 0) no parallelization
+!     lmax       - max angular momentum of spherical harmonics basis
+!     ngrid      - desired number of Lebedev integration points
+!     iconv      - threshold for iterative solver ( 10^-iconv )
+!     igrad      - 1) compute forces ; 0) do not compute forces
+!     iscrf      - 0) use cosmo ; 1) use pcm
+!     eps        - dielectric constant of the solvent
+!     iunit      - 0) convert to bohr ; 1) do not convert to bohr
+!     eta, se    - regularization parameters
+!     ext0, ext1 - extension of potential for COSMO and PCM
+!     isolver    - 0) jacobi/diis ; 1) gmres
+!
+      integer :: iprint, nproc, lmax, ngrid, iconv, igrad, iscrf, iunit, ext0, ext1, isolver
+      real*8  :: eps, eta, se           
+!
+!     - other quantities
+!
+!     nsph   - number of spheres/atoms
+!     ncav   - number of integration points on cavity's boundary
+!     nbasis - number of basis functions, i.e., spherical harmonics
+!
+      integer :: nsph, ncav, nbasis
+!
+!     - memory usage
+!
+      integer :: memuse, memmax
+!
+!     - workspaces
+!
+      integer, allocatable :: inl(:), nl(:)
+      real*8,  allocatable :: rsph(:), csph(:,:), ccav(:,:)
+      real*8,  allocatable :: w(:), grid(:,:), basis(:,:)
+      real*8,  allocatable :: fact(:), facl(:), facs(:)
+      real*8,  allocatable :: fi(:,:), ui(:,:), zi(:,:,:), du(:,:,:,:)
+      real*8,  allocatable :: prec(:,:,:), precm1(:,:,:)
+      real*8,  allocatable :: read_x(:),read_y(:),read_z(:),read_r(:),read_q(:)
+!
+!     - miscellanea
+!
+      logical :: grad, do_diag
+      logical :: iquiet = .false.
+      logical :: use_fmm = .false.
 !
 contains
+!
+! subroutine read_control_file
+!
+! subroutine read_molecule_file
 !
 ! subroutine  ddinit
 !
@@ -164,6 +195,96 @@ contains
 ! subroutine  fdoga
 !
 !
+!
+!--------------------------------------------------------------------------------------------------
+subroutine read_control_file()
+!
+      implicit none
+!      
+!--------------------------------------------------------------------------------------------------
+!
+!     open control file
+      open( unit=10, file=args(1) )
+
+!     read control parameters
+      read(10,*) iprint      ! printing flag
+      read(10,*) nproc       ! number of openmp threads
+      read(10,*) lmax        ! max angular momentum of spherical harmonics basis
+      read(10,*) ngrid       ! number of lebedev points
+      read(10,*) iconv       ! 10^(-iconv) is the convergence threshold for the iterative solver
+      read(10,*) igrad       ! whether to compute (1) or not (0) forces
+      read(10,*) iscrf       ! whether to use cosmo (0) or pcm (1)
+      read(10,*) eps         ! dielectric constant of the solvent
+      read(10,*) iunit       ! whether to convert to bohr (0) or not (1)
+      read(10,*) eta, se     ! regularization parameters
+      read(10,*) ext0, ext1  ! extension of potential for COSMO and PCM
+      read(10,*) isolver     ! whether to use the jacobi/diis (0) or gmres (1) solver
+!
+!     close control file
+      close(10)
+!
+!
+endsubroutine read_control_file
+!--------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!--------------------------------------------------------------------------------------------------
+subroutine read_molecule_file()
+!
+      implicit none
+!
+      real*8 :: tobohr
+      integer :: i,istatus
+!      
+!--------------------------------------------------------------------------------------------------
+!
+!     open molucule file
+      open( unit=10, file=args(2) )
+!
+!     read number of atoms
+      read(10,*) nsph
+!
+!     allocate arrays for centers, radii, charges
+      allocate( read_x(nsph), read_y(nsph), read_z(nsph), read_r(nsph), read_q(nsph) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*)'read_molecule_file : failed allocation !'
+        stop
+      endif
+!
+!     update memory usage
+      memuse = memuse + 5*nsph
+      memmax = max(memmax,memuse)
+!
+!     read charges, centers, radii
+      do i = 1, nsph
+        read(10,*) read_q(i), read_x(i), read_y(i), read_z(i), read_r(i)
+      enddo
+!      
+!     if required, convert to Angstrom 
+      if ( iunit.eq.0 ) then
+!              
+        tobohr = 1.0d0/toang
+!      
+        read_x = read_x*tobohr
+        read_y = read_y*tobohr
+        read_z = read_z*tobohr
+        read_r = read_r*tobohr
+!        
+      endif
+!
+!     close molecule file
+      close(10)
+!
+!
+endsubroutine read_molecule_file
+!--------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!--------------------------------------------------------------------------------------------------
 subroutine reset_ngrid0
 ! 
       implicit none
@@ -461,8 +582,7 @@ subroutine ddinit( n, x, y, z, rvdw )
 !           distance square b/w atoms' centers
             d2 = (csph(1,isph) - csph(1,jsph))**2 + (csph(2,isph) - csph(2,jsph))**2 + (csph(3,isph) - csph(3,jsph))**2
 !            
-!           sum square of atoms' radii
-!!!            r2 = (rsph(isph) + rsph(jsph))**2
+!           sum square of atoms' radii, accounting for switch region
             r2 = ( rsph(isph)*(one + (se + 1.d0)*eta / 2.d0) + &
                    rsph(jsph)*(one + (se + 1.d0)*eta / 2.d0)   )**2
 !    
@@ -486,73 +606,93 @@ subroutine ddinit( n, x, y, z, rvdw )
 !    
 !    
 !-----------------------------------------------------------------------
-! Characteristic function of \Gamma_i \cap \Gamma :
+! Define :
 !
-!   u_i(s) = 1 - 1/|N_i(s)|    sum    \chi_j(s)
-!                           j \in ...
+!   N_i = list of neighbors of i-sphere [ excluding i-sphere ]
 !
-! where :
+!            | r_i + rho_i s_n - r_j |
+!   t_n^ij = -------------------------
+!                      rho_j
 !
-!   \chi_j(s) = \chi ( | s - r_j | / \rho_j )
+!   fi(n,i) =    sum    \chi( t_n^ij )
+!             j \in N_i 
+! 
+! Notice that the derivative of fi(n,i) wrt to r_k is (possibly) nonzero
+! when, either k = i, or k \in N_j .
 !
-! Set :
+! Define :
 !
-!   fi(  n,i) = sum_j  \chi_j( r_i + \rho_i s_n )
-!   zi(:,n,i) = sum_j d\chi_j( r_i + \rho_i s_n ) / dr_i
-!   ui(  n,i) = ...
+!             [  1 - fi(n,i)   ,   when fi(n,i) <= 1
+!   ui(n,i) = [
+!             [  0             ,   otherwise
 !
+! REMARK : zi(n,i) is a close relative to d ui(n,i) / dr_i , but not
+!          quite the same ...
 !-----------------------------------------------------------------------
 !    
-!     STEP 3 : build arrays ui, fi and zi
-!     -----------------------------------
+!     STEP 3 : build arrays fi, ui, zi
+!     --------------------------------
 !
 !     initialize
       fi(:,:) = zero ; ui(:,:) = zero ; if ( grad )  zi(:,:,:) = zero
 !      
       !$omp parallel do default(shared) private(isph,i,ii,jsph,v,vv,t,xt,swthr,fac)
 !    
-!     loop over atoms
+!     loop over spheres
       do isph = 1, nsph
 !      
 !       loop over integration points
         do i = 1, ngrid
 !    
-!         loop over neighbors
+!         loop over neighbors of i-sphere
           do ii = inl(isph), inl(isph+1) - 1
 !    
 !           neighbor's number
             jsph = nl(ii)
 !            
-!           compute t = | r_i + \rho_i s_n - r_j | / \rho_j
+!           compute t_n^ij
             v(:) = csph(:,isph) + rsph(isph)*grid(:,i) - csph(:,jsph)
             vv   = sqrt(dot_product(v,v))
             t    = vv/rsph(jsph)
 !    
-!           compute \chi( t )
+!           compute \chi( t_n^ij )
             xt = fsw( t, se, eta )
 !            
 !           upper bound of switch region
             swthr = one + (se + 1.d0)*eta / 2.d0
 !            
-!           if t belongs to switch region
+!           t_n^ij belongs to switch region
             if ( grad .and. ( t.lt.swthr .and. t.gt.swthr-eta ) ) then
 !                    
               fac = dfsw( t, se, eta ) / rsph(jsph)
 !    
-!             accumulate sum_j d\chi_j / dr_i
+!             accumulate for zi
+!             -----------------
               zi(:,i,isph) = zi(:,i,isph) + fac*v(:)/vv
 !              
-            end if
+            endif
 !    
-!           accumulate sum_j \chi_j
+!           accumulate for fi
+!           -----------------
             fi(i,isph) = fi(i,isph) + xt
 !            
-          end do
+          enddo
 !    
+!         compute ui
+!         ----------
           if ( fi(i,isph).le.one )  ui(i,isph) = one - fi(i,isph)
+!
+!
+!---------------------------------------------------------------------------
+! REMARK : the following correction would actually make zi(n,i) equal to
+!          d ui(n,i) / dr_i , I think ...
+!
+!         if ( fi(i,isph).gt.one )  zi(:,i,isph) = zero
+!---------------------------------------------------------------------------
 !    
-        end do
-      end do
+!    
+        enddo
+      enddo
 !      
       !$omp end parallel do
 !    
@@ -624,46 +764,47 @@ subroutine ddinit( n, x, y, z, rvdw )
       do_diag = .true.
 !
 !
-!     derivatives d_i U_j^n
+!     derivatives d_j U_i^n
 !     ---------------------
 !
 !     initialize
 !
-!          i n j
+!          j n i
       du(:,:,:,:) = zero
 !
 !     loop over integration points
       do ig = 1, ngrid
 !
-!       loop over i-derivatives
+!       loop over i-sphere
         do isph = 1,nsph
 !   
-!         loop over neighbors of i-sphere
+!         loop over neighbors of i-sphere, i.e., potentially nonzero derivatives
           do ji = inl(isph), inl(isph+1) - 1
 !          
-!           neighbor is j-sphere
+!           neighbor is j-sphere, i.e., compute j-derivative
             jsph  = nl(ji)
 !            
-            vji   = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
+            vji   = csph(:,isph) + rsph(isph)*grid(:,ig) - csph(:,jsph)
             vvji  = sqrt(dot_product(vji,vji))
-            tji   = vvji/rsph(isph)
+            tji   = vvji/rsph(jsph)
 !            
 !           switch region
             swthr = one + (se + 1.d0)*eta / 2.d0
 !            
-            if ( tji.lt.swthr .and. tji.gt.swthr-eta .and. ui(ig,jsph).gt.zero ) then
+            if ( tji.lt.swthr .and. tji.gt.swthr-eta .and. fi(ig,isph).le.one ) then
 !                    
               sji = vji/vvji
-!                old            
-!!!              fac = - dfsw(tji,se,eta)/rsph(isph)
-              fac = + dfsw(tji,se,eta)/rsph(isph)
+              fac = dfsw(tji,se,eta)/rsph(jsph)
 !
 !             accumulate
-              du(1:3,isph,ig,jsph) = du(1:3,isph,ig,jsph) + fac*sji
+              du(1:3,jsph,ig,isph) = du(1:3,jsph,ig,isph) + fac*sji
+
+              du(1:3,isph,ig,isph) = du(1:3,isph,ig,isph) - fac*sji
 
             endif
 !            
           enddo
+!
         enddo
       enddo
 
@@ -724,6 +865,17 @@ endsubroutine ddinit
   if(allocated(fi))    deallocate(fi, stat=istatus)
   istatus0 = istatus0 + istatus
   if(allocated(zi))    deallocate(zi, stat=istatus)
+  istatus0 = istatus0 + istatus
+!
+  if(allocated(read_x))    deallocate(read_x, stat=istatus)
+  istatus0 = istatus0 + istatus
+  if(allocated(read_y))    deallocate(read_y, stat=istatus)
+  istatus0 = istatus0 + istatus
+  if(allocated(read_z))    deallocate(read_z, stat=istatus)
+  istatus0 = istatus0 + istatus
+  if(allocated(read_r))    deallocate(read_r, stat=istatus)
+  istatus0 = istatus0 + istatus
+  if(allocated(read_q))    deallocate(read_q, stat=istatus)
   istatus0 = istatus0 + istatus
   !
   if ( istatus0 .ne. 0 ) then
@@ -2170,7 +2322,6 @@ real*8 function dtslm( t, nu, basloc )
         do m = -l, l
 !
 !         accumulate
-<<<<<<< HEAD
           ss = ss + fac*nu(ind+m)*basloc(ind+m)
 !          
         end do

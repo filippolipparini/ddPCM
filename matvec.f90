@@ -85,9 +85,14 @@
 !   plx     : COSMO matrix and COSMO inverse diagonal as a preconditioner
 !   plstarx : COSMO adjoint matrix and COSMO inverse diagonal as a preconditioner
 !
+!   rx      : PCM matrix
+!   rstarx  : PCM adjoint matrix
+!   prx     : PCM matrix and PCM inverse diagonal as a preconditioner
+!   prstarx : PCM adjoint matrix and PCM inverse diagonal as a preconditioner
 !
+!   + service routines
 !
-
+!-------------------------------------------------------------------------------
 subroutine lx(n, x, y)
 use ddcosmo
 implicit none 
@@ -125,7 +130,9 @@ deallocate (pot, basloc, vplm, vcos, vsin)
 !
 return
 end
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine lstarx(n, x, y)
 use ddcosmo
 implicit none 
@@ -169,7 +176,9 @@ deallocate (xi, basloc, vplm, vcos, vsin)
 !
 return
 end
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine ldm1x(n, x, y)
 use ddcosmo
 implicit none
@@ -219,7 +228,9 @@ hnorm = vrms
 return
 !
 end
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine plx(n, x, y)
 use ddcosmo
 implicit none 
@@ -237,7 +248,9 @@ call ldm1x(n,y,y)
 !
 return
 end
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine plstarx(n, x, y)
 use ddcosmo
 implicit none 
@@ -255,7 +268,9 @@ call ldm1x(n,y,y)
 !
 return
 end
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine precx(n, x, y)
 use ddcosmo
 implicit none
@@ -275,7 +290,9 @@ end do
 !
 return
 end
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine rx(n,x,y)
 use ddcosmo
 implicit none
@@ -303,7 +320,9 @@ deallocate (ulm, u, basloc, vplm, vcos, vsin)
 !
 return
 end  
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine prx(n,x,y)
 use ddcosmo
 implicit none
@@ -332,7 +351,9 @@ deallocate (z)
 !
 return
 end  
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine rstarx(n,x,y)
 use ddcosmo
 implicit none
@@ -360,7 +381,9 @@ deallocate (ulm, u, basloc, vplm, vcos, vsin)
 !
 return
 end
+!-------------------------------------------------------------------------------
 !
+!-------------------------------------------------------------------------------
 subroutine prstarx(n,x,y)
 use ddcosmo
 implicit none
@@ -389,21 +412,3 @@ deallocate (z)
 !
 return
 end  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
