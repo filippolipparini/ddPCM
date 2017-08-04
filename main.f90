@@ -95,7 +95,7 @@ program main
 !
       use ddcosmo , only : memuse, memmax, args, nsph, read_x, read_y, read_z, &
                            read_r, read_q, read_control_file, read_molecule_file, &
-                           reset_ngrid00, ddinit, ncav, nbasis, ccav, iscrf, &
+                           reset_ngrid, ddinit, ncav, nbasis, ccav, iscrf, &
                            igrad, tokcal, memfree
 !      
       implicit none
@@ -144,7 +144,7 @@ program main
       call read_control_file() 
 !
 !     adjust number of grid points so that 2*lmax is integrated exactly
-      call reset_ngrid00( igrid )
+      call reset_ngrid( igrid )
 !
 !     read molecule file
       call read_molecule_file()

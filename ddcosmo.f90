@@ -132,6 +132,22 @@ implicit none
       real*8,  allocatable :: prec(:,:,:), precm1(:,:,:)
       real*8,  allocatable :: read_x(:),read_y(:),read_z(:),read_r(:),read_q(:)
 !
+!     - Lebedev integration rules
+!    
+!     ngrid_vec(i) - number of integration points in i-th grid
+!     lmax_vec( i) - angular momentum integrated by i-th grid
+!     nLLG         - number of grids supported by the code      
+!
+      integer, parameter, dimension(32) :: ngrid_vec = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
+                                                          146, 170, 194, 230, 266, 302, 350, 434,  &
+                                                          590, 770, 974,1202,1454,1730,2030,2354,  &
+                                                         2702,3074,3470,3890,4334,4802,5294,5810  /)
+      integer, parameter, dimension(32) :: lmax_vec  = (/   3,   5,   7,   9,  11,  13,  15,  17,  &
+                                                           19,  21,  23,  25,  27,  29,  31,  35,  &
+                                                           41,  47,  53,  59,  65,  71,  77,  83,  &
+                                                           89,  95, 101, 107, 113, 119, 125, 131  /)
+      integer, parameter :: nLLG = 32
+!
 !     - miscellanea
 !
       logical :: grad, do_diag
@@ -260,68 +276,21 @@ endsubroutine read_molecule_file
 !
 !
 !
-!
-!--------------------------------------------------------------------------------------------------
-subroutine reset_ngrid0
-! 
-      implicit none
-      integer, parameter, dimension(32) :: ngrid_vec = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
-                                                          146, 170, 194, 230, 266, 302, 350, 434,  &
-                                                          590, 770, 974,1202,1454,1730,2030,2354,  &
-                                                         2702,3074,3470,3890,4334,4802,5294,5810  /)
-
-      integer, parameter, dimension(32) :: lmax_vec  = (/   3,   5,   7,   9,  11,  13,  15,  17,  &
-                                                           19,  21,  23,  25,  27,  29,  31,  35,  &
-                                                           41,  47,  53,  59,  65,  71,  77,  83,  &
-                                                           89,  95, 101, 107, 113, 119, 125, 131  /)
-      integer, parameter :: nLLG = 32
-      integer :: igrid, ig
-!
 !-----------------------------------------------------------------------------------
 !
-!     initialize to largest grid
-      igrid=nLLG
-
-!     loop over grids
-      do ig=1,nLLG
-!
-!       if number of points has exceeded threshold, then exit
-        if ( lmax_vec(ig) .ge. lmax ) then
-!                
-          igrid=ig
-          exit
-!          
-        endif
-!        
-      enddo
-!      
-!     adjust ngrid
-      ngrid=ngrid_vec(igrid)
-!
-!!!      write(*,*)'lmax,ngrid = ',lmax,ngrid
-!
-      return
-!
-endsubroutine reset_ngrid0
-!
-!
-!
-!-----------------------------------------------------------------------------------
-subroutine reset_ngrid00(igrid)
+subroutine reset_ngrid( igrid )
 ! 
       implicit none
       integer, intent(out) :: igrid
-      integer, parameter, dimension(19) :: ngrid_vec = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
-                                                          146, 170, 194, 230, 266, 302, 350, 434,  &
-                                                          590, 770, 974  /)
-
-      integer, parameter, dimension(19) :: lmax_vec  = (/   1,   2,   3,   4,   5,   6,   7,   8,  &
-                                                            9,  10,  11,  12,  13,  14,  15,  17,  &
-                                                           20,  23,  26  /) 
-      integer, parameter :: nLLG = 19
-      integer :: ig
+!
+      integer :: iflag, ig, idec
 !
 !-----------------------------------------------------------------------------------
+!
+!!!      do lmax=2,80
+!
+!     initialize control flag
+      iflag = 0
 !
 !     initialize to largest grid
       igrid=nLLG
@@ -329,63 +298,40 @@ subroutine reset_ngrid00(igrid)
 !     loop over grids
       do ig=1,nLLG
 !
-!       if number of points has exceeded threshold, then exit
-        if ( lmax_vec(ig) .ge. lmax ) then
+!       grid can integrate 2*lmax angular momentum 
+        if ( lmax_vec(ig).ge.2*lmax ) then
 !                
+!         save grid number
           igrid=ig
-          exit
+!
+!         update control flag, break out of loop
+          iflag = 1 ; exit
 !          
         endif
 !        
       enddo
 !      
 !     adjust ngrid
-      ngrid=ngrid_vec(igrid)
+      ngrid = ngrid_vec(igrid)
 !
-!!!      write(*,*)'lmax,ngrid = ',lmax,ngrid
-!
-      return
-!
-endsubroutine reset_ngrid00
-
-!
-!
-!-----------------------------------------------------------------------------------
-subroutine reset_ngrid
-! 
-      implicit none
-      integer, parameter, dimension(32) :: nG0 = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
-                                                    146, 170, 194, 230, 266, 302, 350, 434,  &
-                                                    590, 770, 974,1202,1454,1730,2030,2354,  &
-                                                   2702,3074,3470,3890,4334,4802,5294,5810/)
-      integer, parameter :: nLLG = 32
-      integer :: iGrid, iG
-!
-!-----------------------------------------------------------------------------------
-!
-!     initialize to largest grid
-      iGrid=nLLG
-
-!     loop over grids
-      do iG=1,nLLG
-!
-!       if number of points has exceeded threshold, then exit
-        if ( nG0(iG).ge.ngrid ) then
-!                
-          iGrid=iG
-          exit
-!          
-        endif
+!     check control flag
+      if ( iflag.eq.0 ) then 
+!              
+        write(*,1000) lmax      
+ 1000   format(' Integration grid for lmax = ',i3,' not available !')
+        write(*,*)'Largest grid selected. Continue ? 1 - Yes ; 0 - No'
+        read(*,*) idec
+        if ( idec.ne.1 )  stop
 !        
-      enddo
-!      
-!     adjust ngrid
-      ngrid=nG0(iGrid)
+      endif
 !
-      return
+!!!        write(*,*)'lmax,igrid,ngrid = ',lmax,igrid,ngrid
+!!!      enddo
+!!!      stop
+!
 !
 endsubroutine reset_ngrid
-!----------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------
 !
 !
 !
