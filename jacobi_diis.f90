@@ -378,4 +378,3 @@ end do
 vrms = sqrt(vrms/dble(n))
 return
 end subroutine rmsvec
-!

@@ -1886,3 +1886,143 @@ subroutine check_derivativesCOSMO( )
 !
 endsubroutine check_derivativesCOSMO
 
+  subroutine rmsvec(n,v,vrms,vmax)
+  !
+  ! compute root-mean-square and max norm
+  implicit none
+  integer,               intent(in)    :: n
+  real*8,  dimension(n), intent(in)    :: v
+  real*8,                intent(inout) :: vrms, vmax
+  !
+  integer i
+  vrms = zero
+  vmax = zero
+  do i = 1, n
+    vmax = max(vmax,abs(v(i)))
+    vrms = vrms + v(i)*v(i)
+  end do
+  vrms = sqrt(vrms/dble(n))
+  return
+  end subroutine rmsvec
+  !
+  subroutine gjinv(n,nrhs,a,b,ok)
+  implicit none
+  !
+  integer,                    intent(in)    :: n, nrhs
+  logical,                    intent(inout) :: ok
+  real*8,  dimension(n,n),    intent(inout) :: a
+  real*8,  dimension(n,nrhs), intent(inout) :: b
+  !
+  integer :: i, j, k, irow, icol, istatus
+  real*8  :: big, dum, pinv
+  !
+  integer, allocatable :: indxc(:), indxr(:), piv(:)
+  real*8,  allocatable :: scr(:)
+  !
+  allocate (indxc(n), indxr(n), piv(n) , stat=istatus)
+  if ( istatus.ne.0 ) then
+    write(*,*)'gjinv: allocation failed! [1]'
+    stop
+  endif
+  allocate (scr(n) , stat=istatus)
+  if ( istatus.ne.0 ) then
+    write(*,*)'gjinv: allocation failed! [2]'
+    stop
+  endif
+!
+! update memory usage
+  memuse = memuse + 4*n
+  memmax = max(memmax,memuse)
+!
+  ok  = .false.
+  piv = 0
+!
+  irow = 0
+  icol = 0
+  do i = 1, n
+    big = zero
+    do j = 1, n
+      if (piv(j).ne.1) then
+        do k = 1, n
+          if (piv(k).eq.0) then
+            if (abs(a(j,k)).gt.big) then
+              big  = abs(a(j,k))
+              irow = j
+              icol = k
+            end if
+          end if
+        end do
+      end if
+    end do
+  !
+    piv(icol) = piv(icol) + 1
+    if (piv(icol) .gt. 1) then
+      write(iout,1000)
+      return
+    end if
+    if (irow.ne.icol) then
+      scr         = a(irow,:)
+      a(irow,:)   = a(icol,:)
+      a(icol,:)   = scr  
+      scr(1:nrhs) = b(irow,:)
+      b(irow,:)   = b(icol,:)
+      b(icol,:)   = scr(1:nrhs)       
+    end if
+  !
+    indxr(i) = irow
+    indxc(i) = icol
+  !
+    if (a(icol,icol) .eq. zero) then
+      write(iout,1000)
+      return
+    end if
+  !
+    pinv = one/a(icol,icol)
+    a(icol,icol) = one
+    a(icol,:) = a(icol,:)*pinv
+    b(icol,:) = b(icol,:)*pinv
+  !
+    do j = 1, n
+      if (j.ne.icol) then
+        dum       = a(j,icol)
+        a(j,icol) = zero
+        a(j,:)    = a(j,:) - a(icol,:)*dum
+        b(j,:)    = b(j,:) - b(icol,:)*dum
+      end if
+    end do
+  end do
+  !
+  do j = n, 1, -1
+    if (indxr(j) .ne. indxc(j)) then
+      scr           = a(:,indxr(j))
+      a(:,indxr(j)) = a(:,indxc(j))
+      a(:,indxc(j)) = scr
+    end if
+  end do
+  !
+  ok = .true.
+  deallocate (indxr,indxc,piv,scr , stat=istatus)
+  if ( istatus.ne.0 ) then
+    write(*,*)'gjinv: deallocation failed! [1]'
+    stop
+  endif
+
+  memuse = memuse - 4*n
+  return
+  !
+  1000 format (' warning: singular matrix in gjinv!')
+  end subroutine gjinv
+ 
+
+  subroutine solve(isph,vlm,slm)
+  implicit none
+  integer, intent(in) :: isph
+  real*8, dimension(nbasis), intent(in)    :: vlm
+  real*8, dimension(nbasis), intent(inout) :: slm
+  !
+  slm = facl*vlm
+  !
+  if (iprint.ge.4) call prtsph('slm',1,isph,slm)
+  return
+  end subroutine solve
+ 

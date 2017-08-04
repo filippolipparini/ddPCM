@@ -52,7 +52,7 @@
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-subroutine cosmo(star, cart, phi, glm, psi, sigma, esolv)
+subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
       use ddcosmo
 !      
@@ -177,7 +177,7 @@ subroutine cosmo(star, cart, phi, glm, psi, sigma, esolv)
 !
 !         the gmres solver can not handle preconditioners, so we will solve 
 !        
-!           PLX = Pg,
+!           P L X = P g,
 !      
 !         where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
 !
@@ -228,7 +228,7 @@ subroutine cosmo(star, cart, phi, glm, psi, sigma, esolv)
 !
 !         the gmres solver can not handle preconditioners, so we will solve 
 !  
-!           PL*S = P\Psi,
+!           P L^T X = P g,
 !
 !         where P is a jacobi preconditioner. note thus the pstarlx matrix-vector multiplication routine.
 !
@@ -290,5 +290,4 @@ subroutine cosmo(star, cart, phi, glm, psi, sigma, esolv)
       endif
 !
 !
-      return
 endsubroutine cosmo

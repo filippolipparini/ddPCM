@@ -93,322 +93,527 @@
 !   + service routines
 !
 !-------------------------------------------------------------------------------
-subroutine lx(n, x, y)
-use ddcosmo
-implicit none 
 !
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, compute y = Lx, where L is the ddCOSMO matrix.
 ! if dodiag is set to .true., L includes the diagonal blocks, otherwise
 ! L only includes the off-diagonal ones.
-!
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
-!
-integer             :: isph, istatus
-real*8, allocatable :: pot(:), vplm(:), basloc(:), vcos(:), vsin(:)
-!
-! allocate some memory:
-!
-allocate (pot(ngrid), vplm(nbasis), basloc(nbasis), vcos(lmax+1), vsin(lmax+1), stat=istatus)
-if (istatus .ne. 0) then
-  write(*,*) ' lx: allocation failed.'
-end if
-!
-y = zero
-!
-!$omp parallel do default(shared) private(isph,pot,basloc,vplm,vcos,vsin) &
-!$omp schedule(dynamic)
-do isph = 1, nsph
-  call calcv2(.false., isph, pot, x, basloc, vplm, vcos, vsin)
-  call intrhs(isph, pot, y(:,isph))
-  y(:,isph) = - y(:,isph)
-  if (do_diag) y(:,isph) = y(:,isph) + x(:,isph)/facl
-end do
-!
-deallocate (pot, basloc, vplm, vcos, vsin)
-!
-return
-end
 !-------------------------------------------------------------------------------
 !
-!-------------------------------------------------------------------------------
-subroutine lstarx(n, x, y)
-use ddcosmo
-implicit none 
+subroutine lx( n, x, y )
 !
+      use ddcosmo , only : nbasis, nsph, ngrid, lmax, zero, calcv2, intrhs, &
+                           do_diag, facl
+!      
+      implicit none 
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
+      !
+      integer             :: isph, istatus
+      real*8, allocatable :: pot(:), vplm(:), basloc(:), vcos(:), vsin(:)
+!      
+!-------------------------------------------------------------------------------
+!
+!     allocate workspaces
+      allocate( pot(ngrid), vplm(nbasis), basloc(nbasis), vcos(lmax+1), &
+                vsin(lmax+1) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'lx: allocation failed !'
+        stop
+      endif
+!
+!     initialize
+      y = zero
+      !
+      !$omp parallel do default(shared) private(isph,pot,basloc,vplm,vcos,vsin) &
+      !$omp schedule(dynamic)
+      !
+!
+!     loop over spheres
+      do isph = 1,nsph
+!      
+        call calcv2( .false., isph, pot, x, basloc, vplm, vcos, vsin )
+        call intrhs( isph, pot, y(:,isph) )
+!
+!       P. Gatto : why the sign flip ???
+        y(:,isph) = - y(:,isph)
+!
+!       add action of diagonal block
+        if ( do_diag )  y(:,isph) = y(:,isph) + x(:,isph)/facl
+!        
+      enddo
+!
+!     deallocate workspaces
+      deallocate( pot, basloc, vplm, vcos, vsin , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'lx: allocation failed !'
+        stop
+      endif
+!
+!
+endsubroutine lx
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, compute y = L*x, where L* is the adjoint ddCOSMO matrix.
 ! if dodiag is set to .true., L includes the diagonal blocks, otherwise
 ! L only includes the off-diagonal ones.
+!-------------------------------------------------------------------------------
+subroutine lstarx( n, x, y )
 !
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
+      use ddcosmo , only : nbasis, nsph, ngrid, lmax, zero, basis, do_diag, &
+                           adjrhs1, facl
+!      
+      implicit none 
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
 !
-integer             :: isph, ig, istatus
-real*8, allocatable :: xi(:,:), vplm(:), basloc(:), vcos(:), vsin(:)
+      integer             :: isph, ig, istatus
+      real*8, allocatable :: xi(:,:), vplm(:), basloc(:), vcos(:), vsin(:)
 !
-! allocate some memory:
-!
-allocate (xi(ngrid,nsph), vplm(nbasis), basloc(nbasis), vcos(lmax+1), vsin(lmax+1), stat=istatus)
-if (istatus .ne. 0) then
-  write(*,*) ' lx: allocation failed.'
-end if
-!
-y = zero
-!
-!$omp parallel do default(shared) private(isph,ig)
-do isph = 1, nsph
-  do ig = 1, ngrid
-    xi(ig,isph) = dot_product(x(:,isph), basis(:,ig))
-  end do
-end do
-!
-!$omp parallel do default(shared) private(isph,basloc,vplm,vcos,vsin) &
-!$omp schedule(dynamic)
-do isph = 1, nsph
-  call adjrhs1(isph, xi, y(:,isph), basloc, vplm, vcos, vsin)
-  y(:,isph) = - y(:,isph)
-  if (do_diag) y(:,isph) = y(:,isph) + x(:,isph)/facl
-end do
-!
-deallocate (xi, basloc, vplm, vcos, vsin)
-!
-return
-end
 !-------------------------------------------------------------------------------
 !
+!     allocate workspaces
+      allocate( xi(ngrid,nsph), vplm(nbasis), basloc(nbasis), vcos(lmax+1), &
+                vsin(lmax+1) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'lstarx: allocation failed!'
+        stop
+      endif
+!
+!     initilize
+      y = zero
+      !
+      !$omp parallel do default(shared) private(isph,ig)
+      !
+!
+!     expand x over spherical harmonics
+!     ---------------------------------
+!
+!     loop over spheres      
+      do isph = 1,nsph
+!
+!       loop over gridpoints
+        do ig = 1,ngrid
+!        
+          xi(ig,isph) = dot_product( x(:,isph), basis(:,ig) )
+!          
+        enddo
+      enddo
+      !
+      !$omp parallel do default(shared) private(isph,basloc,vplm,vcos,vsin) &
+      !$omp schedule(dynamic)
+!
+!     compute action
+!     --------------
+!
+!     loop over spheres
+      do isph = 1,nsph
+!      
+        call adjrhs1( isph, xi, y(:,isph), basloc, vplm, vcos, vsin )
+!        
+!       P. Gatto : why the sign flip ???
+        y(:,isph) = - y(:,isph)
+!
+!       add action of diagonal block
+        if ( do_diag )  y(:,isph) = y(:,isph) + x(:,isph)/facl
+!        
+      enddo
+!
+!     deallocate workspaces
+      deallocate( xi, basloc, vplm, vcos, vsin , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'lstarx: allocation failed !'
+        stop
+      endif
+!
+!
+endsubroutine lstarx
 !-------------------------------------------------------------------------------
-subroutine ldm1x(n, x, y)
-use ddcosmo
-implicit none
 !
-! given a vector x, apply the inverse diagonal of the L matrix:
 !
-integer,                         intent(in)    :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
 !
-integer                                        :: isph
 !
-do isph = 1, nsph
-  y(:,isph) = facl*x(:,isph)
-end do
 !
-return
-end
+!-------------------------------------------------------------------------------
+! given a vector x, apply the inverse diagonal (block) of the L matrix:
+!-------------------------------------------------------------------------------
 !
-real*8 function hnorm(n,x)
-use ddcosmo
-implicit none
+subroutine ldm1x( n, x, y )
 !
+      use ddcosmo , only : nbasis, nsph, facl
+!      
+      implicit none
+!
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+      integer                                        :: isph
+!
+!-------------------------------------------------------------------------------
+!
+!     loop over spheres
+      do isph = 1,nsph
+!
+!       apply inverse
+        y(:,isph) = facl*x(:,isph)
+!        
+      enddo
+!
+!
+endsubroutine ldm1x
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! compute the h^-1/2 norm of the increment on each sphere, then take the
 ! rms value.
-!
-integer,                         intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in) :: x
-!
-integer                                     :: isph, istatus
-real*8                                      :: vrms, vmax
-real*8, allocatable                         :: u(:)
-!
-allocate (u(nsph),stat=istatus)
-if (istatus .ne. 0) then
-  write(*,*) ' hnorm: allocation failed.'
-  stop
-end if
-!
-do isph = 1, nsph
-  call hsnorm(x(:,isph),u(isph))
-end do
-!
-call rmsvec(nsph,u,vrms,vmax)
-!
-hnorm = vrms
-return
-!
-end
 !-------------------------------------------------------------------------------
 !
-!-------------------------------------------------------------------------------
-subroutine plx(n, x, y)
-use ddcosmo
-implicit none 
+real*8 function hnorm( n, x )
 !
+      use ddcosmo , only : nbasis, nsph, hsnorm
+!
+      implicit none
+      integer,                         intent(in) :: n
+      real*8,  dimension(nbasis,nsph), intent(in) :: x
+!
+      integer                                     :: isph, istatus
+      real*8                                      :: vrms, vmax
+      real*8, allocatable                         :: u(:)
+!
+!-------------------------------------------------------------------------------
+!
+!     allocate workspace
+      allocate( u(nsph) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'hnorm: allocation failed !'
+        stop
+      endif
+!
+!     loop over spheres
+      do isph = 1,nsph
+!
+!       compute norm contribution
+        call hsnorm( x(:,isph), u(isph) )
+      enddo
+!
+!     compute rms of norms
+      call rmsvec( nsph, u, vrms, vmax )
+!
+!     return value
+      hnorm = vrms
+!
+!     deallocate workspace
+      deallocate( u , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'hnorm: deallocation failed !'
+        stop
+      endif
+!
+!
+endfunction hnorm
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, compute y = Lx, where L is the ddCOSMO matrix, then
 ! apply the inverse diagonal as a preconditioner.
-!
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
-!
-do_diag = .true.
-call lx(n,x,y)
-call ldm1x(n,y,y)
-!
-return
-end
 !-------------------------------------------------------------------------------
 !
-!-------------------------------------------------------------------------------
-subroutine plstarx(n, x, y)
-use ddcosmo
-implicit none 
+subroutine plx( n, x, y )
 !
+      use ddcosmo , only : nbasis, nsph, do_diag
+!
+      implicit none 
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+!-------------------------------------------------------------------------------
+!
+!     activate action of diagonal blocks
+      do_diag = .true.
+!      
+!     action of COSMO
+      call lx( n, x, y )
+!
+!     action of inverse diagonal
+      call ldm1x( n, y, y )
+!
+!
+endsubroutine plx
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, compute y = L*x, where L* is the adjoint ddCOSMO matrix,
 ! then apply the inverse diagonal as a preconditioner.
-!
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
-!
-do_diag = .true.
-call lstarx(n,x,y)
-call ldm1x(n,y,y)
-!
-return
-end
 !-------------------------------------------------------------------------------
 !
-!-------------------------------------------------------------------------------
-subroutine precx(n, x, y)
-use ddcosmo
-implicit none
+subroutine plstarx( n, x, y )
 !
+      use ddcosmo , only : nbasis, nsph, do_diag
+!
+      implicit none 
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+!-------------------------------------------------------------------------------
+!
+!     activate action of diagonal blocks
+      do_diag = .true.
+!
+!     action of adjoint COSMO
+      call lstarx( n, x, y )
+!
+!     action of inverse diagonal
+      call ldm1x( n, y, y )
+!
+!  
+endsubroutine plstarx
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, solve Px = y, where P is a given preconditioner.
 ! note that we assume that P^{-1} is available in precm1 here...
-!
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
-!
-integer :: isph
-!
-do isph = 1, nsph
-  call DGEMV( 'N', nbasis, nbasis, one, precm1(:,:,isph), nbasis, x(:,isph), 1, zero, y(:,isph), 1 )
-end do
-!
-return
-end
 !-------------------------------------------------------------------------------
 !
-!-------------------------------------------------------------------------------
-subroutine rx(n,x,y)
-use ddcosmo
-implicit none
+subroutine precx( n, x, y )
 !
+      use ddcosmo , only : nbasis, nsph, zero, precm1, one
+!      
+      implicit none
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+      integer :: isph
+!
+!-------------------------------------------------------------------------------
+!
+!     loop over spheres
+      do isph = 1,nsph
+!
+!       mutiply by preconditioner
+        call DGEMV( 'N', nbasis, nbasis, one, precm1(:,:,isph), nbasis, &
+                     x(:,isph), 1, zero, y(:,isph), 1 )
+!                     
+      enddo
+!
+!
+endsubroutine precx
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, compute y = R_\eps x
-!
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
-!
-integer                           :: isph, istatus
-real*8, allocatable, dimension(:) :: ulm, u, basloc, vplm, vcos, vsin
-!
-allocate (ulm(nbasis), u(ngrid), basloc(nbasis), vplm(nbasis), vcos(lmax+1), vsin(lmax+1), &
-          stat=istatus)
-if (istatus .ne. 0) then
-  write(*,*) ' rx: allocation failed'
-end if
-!
-do isph = 1, nsph
-  call mkrvec(isph, eps, x, y(:,isph), ulm, u, basloc, vplm, vcos, vsin )
-end do
-!
-deallocate (ulm, u, basloc, vplm, vcos, vsin)
-!
-return
-end  
 !-------------------------------------------------------------------------------
 !
-!-------------------------------------------------------------------------------
-subroutine prx(n,x,y)
-use ddcosmo
-implicit none
+subroutine rx( n, x, y )
 !
+      use ddcosmo , only : nbasis, nsph, ngrid, lmax, eps
+!
+      implicit none
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+      integer                           :: isph, istatus
+      real*8, allocatable, dimension(:) :: ulm, u, basloc, vplm, vcos, vsin
+!
+!-------------------------------------------------------------------------------
+!
+!     allocate workspaces
+      allocate( ulm(nbasis), u(ngrid), basloc(nbasis), vplm(nbasis), &
+                vcos(lmax+1), vsin(lmax+1) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'rx: allocation failed!'
+        stop
+      endif
+!
+!     loop over spheres
+      do isph = 1, nsph
+!
+!       action of PCM
+        call mkrvec( isph, eps, x, y(:,isph), ulm, u, basloc, vplm, vcos, vsin )
+      enddo
+!
+!     deallocate workspaces
+      deallocate( ulm, u, basloc, vplm, vcos, vsin , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'rx: deallocation failed!'
+        stop
+      endif
+!
+!
+endsubroutine rx
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, compute z = R_\eps x. 
 ! then, solve y = Py.
-!
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
-!
-integer                              :: istatus
-real*8,  allocatable, dimension(:,:) :: z(:,:)
-!
-allocate (z(nbasis,nsph), stat=istatus)
-if (istatus .ne. 0) then
-  write(*,*) ' prx: allocation failed'
-end if
-!
-do_diag = .true.
-!
-call rx(n,x,z)
-call precx(n,z,y)
-!
-deallocate (z)
-!
-return
-end  
 !-------------------------------------------------------------------------------
 !
-!-------------------------------------------------------------------------------
-subroutine rstarx(n,x,y)
-use ddcosmo
-implicit none
+subroutine prx( n, x, y )
 !
+      use ddcosmo , only : nbasis, nsph, do_diag
+!
+      implicit none
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+      integer                              :: istatus
+      real*8,  allocatable, dimension(:,:) :: z(:,:)
+!      
+!-------------------------------------------------------------------------------
+!
+!     allocate workspace
+      allocate( z(nbasis,nsph) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'prx: allocation failed!'
+        stop
+      endif
+!
+!     active action of diagonal block
+      do_diag = .true.
+!
+!     action of PCM
+      call rx( n, x, z )
+!
+!     apply preconditioner
+      call precx( n, z, y )
+!
+!     deallocate workspace
+      deallocate( z , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'prx: deallocation failed!'
+        stop
+      endif
+!
+!
+endsubroutine prx
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, compute y = R_\eps^* x
-!
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
-!
-integer                           :: isph, istatus
-real*8, allocatable, dimension(:) :: ulm, u, basloc, vplm, vcos, vsin
-!
-allocate (ulm(nbasis), u(ngrid), basloc(nbasis), vplm(nbasis), vcos(lmax+1), vsin(lmax+1), &
-          stat=istatus)
-if (istatus .ne. 0) then
-  write(*,*) ' rx: allocation failed'
-end if
-!
-do isph = 1, nsph
-  call adjvec(isph, eps, x, y(:,isph), ulm, u, basloc, vplm, vcos, vsin )
-end do
-!
-deallocate (ulm, u, basloc, vplm, vcos, vsin)
-!
-return
-end
 !-------------------------------------------------------------------------------
 !
-!-------------------------------------------------------------------------------
-subroutine prstarx(n,x,y)
-use ddcosmo
-implicit none
+subroutine rstarx( n, x, y )
 !
+      use ddcosmo , only : nbasis, nsph, ngrid, lmax, eps
+!      
+      implicit none
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
+!
+      integer                           :: isph, istatus
+      real*8, allocatable, dimension(:) :: ulm, u, basloc, vplm, vcos, vsin
+!
+!-------------------------------------------------------------------------------
+!
+!     allocate workspaces
+      allocate( ulm(nbasis), u(ngrid), basloc(nbasis), vplm(nbasis), &
+                vcos(lmax+1), vsin(lmax+1) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'rstarx: allocation failed!'
+        stop
+      endif
+!
+!     loop over spheres
+      do isph = 1,nsph
+!
+!       action of adjoint PCM
+        call adjvec( isph, eps, x, y(:,isph), ulm, u, basloc, vplm, vcos, vsin )
+!        
+      enddo
+!
+!     deallocate workspaces
+      deallocate( ulm, u, basloc, vplm, vcos, vsin , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'rstarx: deallocation failed!'
+        stop
+      endif
+!
+!
+endsubroutine rstarx
+!-------------------------------------------------------------------------------
+!
+!
+!
+!
+!-------------------------------------------------------------------------------
 ! given a vector x, compute z = R_\eps x. 
 ! then, solve y = Py.
+!-------------------------------------------------------------------------------
 !
-integer, intent(in) :: n
-real*8,  dimension(nbasis,nsph), intent(in)    :: x
-real*8,  dimension(nbasis,nsph), intent(inout) :: y
+subroutine prstarx(n,x,y)
 !
-integer                              :: istatus
-real*8,  allocatable, dimension(:,:) :: z(:,:)
+      use ddcosmo , only : nbasis, nsph, do_diag
+!      
+      implicit none
+      integer,                         intent(in)    :: n
+      real*8,  dimension(nbasis,nsph), intent(in)    :: x
+      real*8,  dimension(nbasis,nsph), intent(inout) :: y
 !
-allocate (z(nbasis,nsph), stat=istatus)
-if (istatus .ne. 0) then
-  write(*,*) ' prx: allocation failed'
-end if
+      integer                              :: istatus
+      real*8,  allocatable, dimension(:,:) :: z(:,:)
 !
-do_diag = .true.
+!-------------------------------------------------------------------------------
 !
-call rstarx(n,x,z)
-call precx(n,z,y)
+!     allocate workspace
+      allocate( z(nbasis,nsph) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'prstarx: allocation failed!'
+      endif
 !
-deallocate (z)
+!     activate action of diagonal block
+      do_diag = .true.
 !
-return
-end  
+!     action of adjoint PCM
+      call rstarx( n, x, z )
+!
+!     apply preconditioner
+      call precx( n, z, y )
+!
+!     deallocate workspace
+      deallocate( z , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*) 'prstarx: deallocation failed!'
+      endif
+!
+!
+endsubroutine prstarx
