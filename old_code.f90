@@ -962,3 +962,669 @@ subroutine old_itsolv2( star, iefpcm, phi, psi, sigma, ene )
 !
 end subroutine old_itsolv2
 !
+!------------------------------------------------------------------------------      
+! Compute contraction :
+!
+!   f =+ < s , dA/dr_i x > = 
+!
+!     =+ sum s_j ( sum (d_i A)_jk x_k )
+!         j         k
+!
+! Recall that (d_i A)_jj = 0 for i \ne j . Then :
+!
+!     =+ sum s_j (   sum  (d_i A)_jk x_k + (d_i A)_jj x_j )
+!         j        k \ne j
+!
+!     =+ sum s_j    sum  (d_i A)_jk x_k + sum s_j (d_i A)_jj x_j
+!         j       k \ne j                  j
+!
+!     =+ sum s_j    sum  (d_i A)_jk x_k + s_i (d_i A)_ii x_i
+!         j       k \ne j 
+!
+!     =+   sum   s_j   sum   (d_i A)_jk x_k + s_i   sum   (d_i A)_ik x_k +  s_i (d_i A)_ii x_i
+!        j \ne i     k \ne j                      k \ne i
+!
+! Finally, since (d_i A)_jk = 0 for k \ne i and j \ne i , then :
+!
+!     =+   sum   s_j (d_i A)_ji x_i + s_i   sum   (d_i A)_ik x_k +  s_i (d_i A)_ii x_i
+!        j \ne i                          k \ne i
+!
+!             +---+                       +--------------------+        +---+
+!             |///|                       |///////////|  |/////|        |///|
+!             |///|                       +--------------------+        +---+
+!             |///|
+!             |///|
+!             |///|
+!             |///|
+!             |---|
+!             |   |
+!             |---|
+!             |///|
+!             +---+
+!------------------------------------------------------------------------------      
+subroutine service_routine1( s, x, isph, f )
+!
+      use ddcosmo , only : ui, nsph, nbasis, zero, ngrid, w, one, basis, csph, &
+                           rsph, grid, zi, lmax, dbasis, du
+!
+      implicit none 
+      real*8, dimension(nbasis,nsph), intent(in)    :: s
+      real*8, dimension(nbasis,nsph), intent(in)    :: x
+      integer,                        intent(in)    :: isph
+      real*8, dimension(3),           intent(inout) :: f
+!
+      real*8,  dimension(nbasis) :: basloc, vplm
+      real*8,  dimension(3,nbasis) :: dbsloc
+      real*8,  dimension(lmax+1) :: vcos, vsin
+      real*8, dimension(3) :: f4,vij,s_ijn,dt_ijn,f2
+      real*8, dimension(3,3) :: ds_ijn
+      real*8 :: vvij,t_ijn,f3!!,err
+      integer :: n,icomp,jcomp,jsph,ksph
+!      
+!------------------------------------------------------------------------------      
+!
+!     case j \ne i : I_1
+!     ==================
+!
+!     loop over integration points
+      do n = 1,ngrid
+!
+!       initialize f4(n)
+        f4(1:3) = zero
+!
+!       1st loop over spheres
+        do jsph = 1,nsph
+!
+          if ( jsph.ne.isph ) then
+!
+!           non-zero contribution
+            if ( ui(n,jsph).gt.zero ) then
+!
+!             compute f3(j,n)
+!             ---------------
+              f3 = ui(n,jsph) * dot_product( basis(:,n), s(:,jsph) )
+!
+!             compute s_ijn, t_ijn
+              vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,isph)
+              vvij     = sqrt( dot_product( vij(:), vij(:) ) )
+              t_ijn    = rsph(isph)/vvij 
+              s_ijn(:) =     vij(:)/vvij
+!
+!             compute derivatives \grad_i t_ijn
+              dt_ijn(1:3) = rsph(isph) * vij(1:3) / vvij**3
+!
+!             compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+              do icomp = 1,3
+                do jcomp = 1,3
+!
+                  ds_ijn(icomp,jcomp) = vij(icomp)*vij(jcomp) / vvij**3
+!
+                  if ( icomp.eq.jcomp ) then
+!
+                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) - one / vvij
+!
+                  endif
+!                  
+                enddo
+              enddo
+
+!!!              err=zero
+!!!              do icomp=1,3
+!!!              do jcomp=1,3
+!!!                err = err + (ds_ijn(icomp,jcomp)-ds_ijn(jcomp,icomp))**2
+!!!              enddo
+!!!              enddo
+!!!              write(*,*)'err = ',sqrt(err)
+
+!             
+!             compute Y_ll^mm(s_ijn)
+              call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
+!
+!             compute f2(j,n)
+!             ---------------
+              call compute_f2_jn( t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,isph), f2(1:3) )
+!                      
+!             accumulate for f4(n)
+!             --------------------
+              f4(1:3) = f4(1:3) + f2(1:3) * f3
+!                      
+            endif  
+!
+!
+!           missing term
+!           ============
+!
+!           non-zero contribution from derivative d_i ( U_j^n )
+            if ( sum(abs( du(:,isph,n,jsph) )).gt.zero ) then
+!
+!             d_i U_j^n * Y_l^m(s_n) * s_j          
+              f2(1:3) = du(1:3,isph,n,jsph) * dot_product( basis(:,n), s(:,jsph) )
+!
+!             compute f2(n) [ store in f3 for convenience ]
+!             ---------------------------------------------
+              call compute_f2_n( basis(:,n), x(:,isph), f3 )
+!
+!             accumulate for f4
+!             ----------------
+              f4(1:3) = f4(1:3) - f2(1:3)*f3
+!!!              write(*,*)'cont = ',f2*f3
+!!!              read(*,*)
+!
+            endif
+!
+!
+          endif 
+!
+        enddo  
+!
+!       accumulate for f
+!       ----------------
+        f(1:3) = f(1:3) - w(n) * f4(1:3)
+!
+      enddo  
+!
+!
+!     case j \eq i : I_2,1
+!     ====================
+!
+!     loop over integration points
+      do n = 1,ngrid
+!
+!       initialize f4(n)
+        f4(1:3) = zero
+!
+!       1st loop over spheres
+        do ksph = 1,nsph
+!
+          if ( ksph.ne.isph ) then
+!
+!           compute f3(k,n)
+!           ---------------
+            f3 = dot_product( basis(:,n), s(:,isph) )
+!
+!           compute s_kjn, t_kjn
+            vij    = csph(:,isph) + rsph(isph)*grid(:,n) - csph(:,ksph)
+            vvij   = sqrt(dot_product(vij,vij))
+            t_ijn  = rsph(ksph)/vvij 
+            s_ijn  =        vij/vvij
+!
+!           compute derivatives \grad_j t_kjn
+            dt_ijn(1:3) = - rsph(ksph) * vij(1:3) / vvij**3
+!
+!           compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
+            do icomp = 1,3
+              do jcomp = 1,3
+!
+                ds_ijn(icomp,jcomp) = - vij(icomp)*vij(jcomp) / vvij**3
+!
+                if ( icomp.eq.jcomp ) then
+!
+                  ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) + one / vvij
+!
+                endif
+!                
+              enddo
+            enddo
+!           
+!           compute Y_ll^mm(s_kjn)
+            call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
+!
+!           compute f2(j,n)
+!           ---------------
+            call compute_f2_kn( isph, n, t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,ksph), f2(1:3) )
+!                    
+!           accumulate for f4(n)
+!           --------------------
+            f4(1:3) = f4(1:3) + f2(1:3) * f3
+!                      
+          endif  
+        enddo  
+!
+!       accumulate for f
+!       ----------------
+        f(1:3) = f(1:3) - w(n) * f4(1:3)
+!
+      enddo  
+!
+!
+!     case j \eq i : I_2,2
+!     ====================
+!
+!     loop over integration points
+      do n = 1,ngrid
+!
+!       compute f3(n) [ store in f2 for convenience ]
+!       ---------------------------------------------
+        f2(1:3) = zi(1:3,n,isph) * dot_product( basis(:,n), s(:,isph) )
+!
+!       compute f2(n) [ store in f3 for convenience ]
+!       ---------------------------------------------
+!!!        call compute_f2_n( basloc, x(:,isph), f3 )
+!!!        write(*,*)'old f3 = ',f3
+        call compute_f2_n( basis(:,n), x(:,isph), f3 )
+!!!        write(*,*)'new f3 = ',f3
+!!!        read(*,*)
+!
+!       accumulate for f
+!       ----------------
+        f(1:3) = f(1:3) + w(n) * f2(1:3) * f3
+!
+      enddo  
+!
+!
+endsubroutine service_routine1
+!----------------------------------------------------------------------------------
+!
+!
+!
+!
+!----------------------------------------------------------------------------------
+subroutine compute_f2_jn( t, dt, ds, basloc, dbsloc, x, f2 )
+!
+      use ddcosmo , only : lmax, nbasis, zero, one, two, four, pi
+!
+      implicit none
+      real*8,                      intent(in)  :: t
+      real*8, dimension(3  ),      intent(in)  :: dt
+      real*8, dimension(3,3),      intent(in)  :: ds
+      real*8, dimension(  nbasis), intent(in)  :: basloc
+      real*8, dimension(3,nbasis), intent(in)  :: dbsloc
+      real*8, dimension(  nbasis), intent(in)  :: x
+      real*8, dimension(3),        intent(out) :: f2
+!
+      real*8, dimension(3,nbasis) :: s1,s2,f1
+      real*8, dimension(3) :: s3
+      real*8 :: tt,fl,fac
+      integer :: icomp,jcomp,l,m,ind
+!      
+!----------------------------------------------------------------------------------
+! Recall :
+!
+!   f1(1:3,lm) = \grad [ t^l+1 * Y(s) ]
+!
+!              = t^l  [ (l+1) \grad t Y(s) + t ( \grad s )^T \grad Y(s) ]
+!
+!              = tt   [ (l+1) s1(1:3,lm)   + s2(1:3,lm)                 ]
+!
+! and :
+!
+!                  4 pi l
+!   f2(1:3) = sum  ------  sum x(lm) * f1(1:3,lm)
+!              l   2l + 1   m
+!
+!                  4 pi l
+!           = sum  ------  s3(1:3,l)  
+!              l   2l + 1 
+!
+!           = sum fac(l) * s3(1:3,l) 
+!              l
+!
+!----------------------------------------------------------------------------------
+!
+!     initialize f2
+      f2(1:3) = zero
+!
+!     compute s1
+      do icomp = 1,3
+!      
+        s1(icomp,1:nbasis) = dt(icomp)*basloc(1:nbasis)
+!        
+      enddo
+!
+!     compute s2
+      do icomp = 1,3
+!
+        s2(icomp,1:nbasis) = zero
+!
+!       accumulate
+        do jcomp = 1,3
+!
+          s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(jcomp,icomp)
+!
+        enddo
+!
+        s2(icomp,1:nbasis) = t * s2(icomp,1:nbasis) 
+!
+      enddo
+!
+!     initialize factor t^l
+      tt = one
+!
+!     contract over l
+      do l = 0,lmax
+!
+!       build factor : 4pi*l / (2l+1)
+        fl = dble(l)
+        fac = four*pi*fl / (two*fl+one)
+!
+!       build f1
+        f1(1:3,1:nbasis) = tt * ( (fl+one)*s1(1:3,1:nbasis) + s2(1:3,1:nbasis) )
+!
+!       compute 1st index
+        ind = l*l + l + 1
+!
+!       initialize s3(l)
+        s3(1:3) = zero
+!
+!       contract over m
+        do m = -l,l
+!
+          s3(1:3) = s3(1:3) + f1(1:3,ind+m) * x(ind+m)          
+!
+        enddo
+!
+!       accumulate for f2
+        f2(1:3) = f2(1:3) + fac*s3(1:3)
+!
+!       update factor t^l
+        tt = tt*t
+!
+      enddo
+!
+!
+endsubroutine compute_f2_jn
+!----------------------------------------------------------------------------------
+!
+!
+!
+!----------------------------------------------------------------------------------
+subroutine compute_f2_kn( jsph, n, t, dt, ds, basloc, dbsloc, x, f2 )
+!
+      use ddcosmo , only : lmax, nbasis, zero, one, two, four, pi, ui, zi
+!
+      implicit none
+      integer,                     intent(in)  :: jsph
+      integer,                     intent(in)  :: n
+      real*8,                      intent(in)  :: t
+      real*8, dimension(3  ),      intent(in)  :: dt
+      real*8, dimension(3,3),      intent(in)  :: ds
+      real*8, dimension(  nbasis), intent(in)  :: basloc
+      real*8, dimension(3,nbasis), intent(in)  :: dbsloc
+      real*8, dimension(  nbasis), intent(in)  :: x
+      real*8, dimension(3),        intent(out) :: f2
+!
+      real*8, dimension(3,nbasis) :: s1,s2,f1
+      real*8, dimension(3) :: s3
+      real*8 :: tt,fl,fac
+      integer :: icomp,jcomp,l,m,ind
+!      
+!----------------------------------------------------------------------------------
+! Recall :
+!
+!   f1(1:3,lm) = \grad [ U * t^l+1 * Y(s) ]
+!
+!              = (\grad U) t^l+1 * Y(s) + U * t^l [ (l+1) (\grad t) Y(s) + t ( \grad s )^T \grad Y(s) ]
+!
+!              = t^l [ (l+1) (\grad t) U * Y + t [ (\grad U) Y + U ( \grad s )^T \grad Y ] ]
+!
+!              = tt  [ (l+1) s1(1:3,lm)      + t   s2(1:3,lm) ]
+!
+! and :
+!
+!                  4 pi l
+!   f2(1:3) = sum  ------  sum x(lm) * f1(1:3,lm)
+!              l   2l + 1   m
+!
+!                  4 pi l
+!           = sum  ------  s3(1:3,l)  
+!              l   2l + 1 
+!
+!           = sum fac(l) * s3(1:3,l) 
+!              l
+!
+!----------------------------------------------------------------------------------
+!
+!     initialize f2
+      f2(1:3) = zero
+!
+!     compute s1
+      do icomp = 1,3
+!      
+        s1(icomp,1:nbasis) = dt(icomp) * basloc(1:nbasis) * ui(n,jsph)
+!        
+      enddo
+!
+!     compute s2
+      s2(1:3,1:nbasis) = zero
+!      
+      do icomp = 1,3
+!
+!       accumulate
+        do jcomp = 1,3
+!
+          s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(jcomp,icomp)
+!
+        enddo
+!
+        s2(icomp,1:nbasis) = ui(n,jsph)*s2(icomp,1:nbasis) + zi(icomp,n,jsph)*basloc(1:nbasis)
+!
+      enddo
+!
+!     initialize factor t^l
+      tt = one
+!
+!     contract over l
+      do l = 0,lmax
+!
+!       build factor : 4pi*l / (2l+1)
+        fl = dble(l)
+        fac = four*pi*fl / (two*fl+one)
+!
+!       build f1
+        f1(1:3,1:nbasis) = tt * ( (fl+one)*s1(1:3,1:nbasis) + t*s2(1:3,1:nbasis) )
+!
+!       compute 1st index
+        ind = l*l + l + 1
+!
+!       initialize s3(l)
+        s3(1:3) = zero
+!
+!       contract over m
+        do m = -l,l
+!
+          s3(1:3) = s3(1:3) + f1(1:3,ind+m) * x(ind+m)          
+!
+        enddo
+!
+!       accumulate for f2
+        f2(1:3) = f2(1:3) + fac*s3(1:3)
+!
+!       update factor t^l
+        tt = tt*t
+!
+      enddo
+!
+!
+endsubroutine compute_f2_kn
+!----------------------------------------------------------------------------------
+!
+!
+!----------------------------------------------------------------------------------
+subroutine compute_f2_n( basloc, x, f2 )
+!
+      use ddcosmo , only : lmax, nbasis, zero, one, two, pi
+!
+      implicit none
+      real*8, dimension(nbasis), intent(in)  :: basloc
+      real*8, dimension(nbasis), intent(in)  :: x
+      real*8,                    intent(out) :: f2
+!
+      real*8 :: fl,s,fac
+      integer :: l,m,ind
+!      
+!----------------------------------------------------------------------------------
+! Recall :
+!
+!             2 pi 
+!   f2 = sum  ----  sum Y(lm) * x(lm)
+!         l   2l+1   m
+!
+!             2 pi
+!      = sum  ----  s(l)
+!         l   2l+1 
+!
+!----------------------------------------------------------------------------------
+!
+!     initialize f2
+      f2 = zero
+!
+!     contract over l
+      do l = 0,lmax
+!
+!       build factor : 2pi / (2l+1)
+        fl = dble(l)
+        fac = two*pi/(two*fl+one)
+!
+!       compute 1st index
+        ind = l*l + l + 1
+!
+!       initialize s
+        s = zero
+!        
+!       contract over m
+        do m = -l,l
+!
+          s = s + basloc(ind+m) * x(ind+m)          
+!
+        enddo
+!
+!       accumulate for f2
+        f2 = f2 + fac*s
+!
+      enddo
+!
+!
+endsubroutine compute_f2_n
+!----------------------------------------------------------------------------------
+!
+!
+!
+!-------------------------------------------------------------------------------
+real*8 function extmlp(t,sigma,basloc)
+implicit none
+real*8, intent(in) :: t
+real*8, dimension(nbasis), intent(in) :: sigma, basloc
+!
+integer :: l, ind
+real*8  :: tt, ss, fac
+!
+tt = one/t
+ss = zero
+do l = 0, lmax
+  ind = l*l + l + 1
+  fac = tt/facl(ind)
+  ss = ss + fac*dot_product(basloc(ind-l:ind+l),sigma(ind-l:ind+l))
+  tt = tt/t
+end do
+extmlp = ss
+return
+endfunction extmlp
+!---------------------------------------------------------------------
+!
+!
+!
+!!!!------------------------------------------------------------------------------------------------
+!!!real*8 function fsw( t, s, eta )
+!!!!
+!!!! Remark : a step-function symmetrically squeeshing around x = 1
+!!!!
+!!!! The "s" variable is totally redundant. In fact :
+!!!!
+!!!!   x = t - eta*s  ==> y = x - 0.5*eta = t - (0.5 + s)*eta
+!!!!
+!!!! Thus :
+!!!!
+!!!!   x >= f_hi  ==>  t >= 1 + (0.5 + s)*eta
+!!!!   . . .           t <= 1 - (0.5 + s)*eta
+!!!!
+!!!
+!!!!      
+!!!!  s = \hat{s} eta ; eta \in [0,1]
+!!!!     
+!!!
+!!!!------------------------------------------------------------------------------------------------
+!!!!
+!!!      implicit none
+!!!      real*8, intent(in) :: t, s, eta
+!!!!      
+!!!      real*8 :: a, b, x, y, f_hi, f_low
+!!!      real*8, parameter :: zero=0.0d0, pt5=0.5d0, one=1.0d0, two=2.0d0, f6=6.0d0, f10=10.d0, &
+!!!                           f12=12.d0, f15=15.d0
+!!!!                           
+!!!!------------------------------------------------------------------------------------------------
+!!!!
+!!!      x = t - eta*s 
+!!!!
+!!!!     auxiliary variable for function \chi [ not really needed !!! ]
+!!!      y = x - pt5*eta
+!!!!
+!!!!     lower and upper bounds of transition area of function \chi
+!!!      f_low = one - pt5*eta
+!!!      f_hi  = one + pt5*eta
+!!!!      
+!!!!     construct smooth step function \chi(x)
+!!!      if     ( x.ge.f_hi  ) then
+!!!!              
+!!!        fsw = zero
+!!!!        
+!!!      elseif ( x.le.f_low ) then
+!!!!      
+!!!        fsw = one
+!!!!        
+!!!      else
+!!!!              
+!!!        fsw = ( (y-one)*(y-one) * (y-one+two*eta)*(y-one+two*eta) ) / (eta**4)
+!!!!              
+!!!      endif
+!!!!      
+!!!      return
+!!!!
+!!!!
+!!!endfunction fsw
+!!!!------------------------------------------------------------------------------------------------
+!
+!
+!!!!------------------------------------------------------------------------------------------------
+!!!!     switching function derivative for ddCOSMO regularization.
+!!!!
+!!!real*8 function dfsw( t, s, eta )
+!!!!
+!!!      implicit none
+!!!      real*8, intent(in) :: t, eta, s
+!!!!
+!!!      real*8  flow, fhi, x, y
+!!!      real*8, parameter :: f30=30.0d0
+!!!!      
+!!!!------------------------------------------------------------------------------------------------
+!!!!
+!!!      x = t - eta*s 
+!!!      y = x - pt5*eta
+!!!!
+!!!!!!      flow = one - eta
+!!!      flow = one - pt5*eta
+!!!      fhi  = one + pt5*eta
+!!!!      
+!!!!!!      if     ( t.ge.one ) then
+!!!      if     ( x.ge.fhi ) then
+!!!!              
+!!!        dfsw = zero
+!!!!        
+!!!      elseif ( x.le.flow ) then
+!!!!        
+!!!!!!        dfsw = one
+!!!        dfsw = zero
+!!!!        
+!!!      else
+!!!!        
+!!!!!!        dfsw = f30*(one-t)*(t-one)*(t-one+eta)*(t-one+eta) / (eta**5)
+!!!        dfsw = 4.d0 * (y - 1.d0 - 0.5d0*eta) * &
+!!!                      (y - 1.d0 + 0.5d0*eta) * &
+!!!                      (y - 1.d0 + 1.5d0*eta) / eta**4
+!!!!        
+!!!      endif
+!!!!        
+!!!      return
+!!!!        
+!!!!        
+!!!endfunction dfsw
+ 

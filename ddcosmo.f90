@@ -140,59 +140,36 @@ implicit none
 !
 contains
 !
-! subroutine read_control_file
-!
-! subroutine read_molecule_file
-!
-! subroutine  ddinit
-!
-! subroutine  memfree
-!
-! function    sprod : scalar prod.
-!
-! function    fsw : smoothing funct.
-!
-! function    dfsw : derivative of smoothing funct.
-!
-! subroutine  ptcart : print routine
-!
-! subroutine  prtsph : print routine
-!
-! subroutine  intrhs : integration of rhs
-!
-! subroutine  solve
-!
-! subroutine  diis
-!
-! subroutine  makeb
-!
-! subroutine  ylmbas
-!
-! subroutine  dbasis
-!
-! subroutine  polleg : associted Legendre polynomials
-!
-! subroutine  trgev
-!
-! function    intmlp
-!
-! subroutine  wghpot
-!
-! subroutine  hsnorm
-!
-! subroutine  adjrhs
-!
-! subroutine  rmsvec
-!
-! subroutine  gjinv
-!
-! subroutine  header
-!
-! subroutine  fdoka
-!
-! subroutine  fdokb
-!
-! subroutine  fdoga
+!     - read_control_file  : read control file
+!     - read_molecule_file : read molecule file
+!     - reset_ngrid        : choose suitable grid of integration points
+!     - set_pi             : compute numerical constants
+!     - ddinit             : initialize data structure
+!     - memfree            : free data structure
+!     - sprod              : scalar prod.
+!     - fsw                : smoothing function
+!     - dfsw               : derivative of smoothing function
+!     - ptcart             : print routine
+!     - prtsph             : print routine
+!     - intrhs             : integrate spherical harmonics expansions
+!     - solve              : multiply by inverse of diagonal COSMO block
+!     - diis               : DIIS solver
+!     - makeb              : service routine to DIIS solver
+!     - ylmbas             : compute spherical harmonics Y_l^m
+!     - dbasis             : compute derivatives of spherical harmonics
+!     - polleg             : compute Legendre polynomials
+!     - trgev              : service routine for computation of spherical harmonics
+!     - intmlp             :
+!     - wghpot             :
+!     - hsnorm             :
+!     - adjrhs             : action of COSMO adjoint
+!     - adjrhs1            : action of COSMO adjoint (service)
+!     - rmsvec             : compute rms and max norms
+!     - gjinv              : service routine to DIIS solver
+!     - header             : print header
+!     - fdoka              :
+!     - fdokb              :
+!     - fdoga              :
 !
 !
 !
@@ -446,74 +423,69 @@ subroutine ddinit( n, x, y, z, rvdw )
 !
 !-------------------------------------------------------------------------------
 !
-!     STEP 1 : do stuff ...
-!     ---------------------
-!
 !     openMP parallelization
       if ( nproc.eq.0 )  nproc = 1
 !    
 !    $ call omp_set_num_threads(nproc)
 !    
-!     set pi
+!     compute numerical constants
       call set_pi
 !    
 !     print header
-      if ( .not. iquiet ) then
-        call header
-      endif
+      if ( .not.iquiet ) call header
 !    
 !     compute forces flag
       grad = ( igrad.ne.0 )
 !      
-!     number of basis function per atom
+!     number of basis functions
       nbasis = (lmax+1)*(lmax+1)
 !    
 !     allocate quantities
-      allocate( rsph(nsph), &
-                csph(3,nsph), &
-                w(ngrid), &
-                grid(3,ngrid), &
-                basis(nbasis,ngrid), &
-                inl(nsph+1), &
-                nl(nsph*nngmax), &
-                fi(ngrid,nsph), &
-                ui(ngrid,nsph), &
-                du(3,nsph,ngrid,nsph), &
-                zi(3,ngrid,nsph), &
-                fact(max(2*lmax+1,2)), &
-                facl(nbasis), &
-                facs(nbasis) , stat=istatus )
-      if ( istatus .ne. 0 ) then
-        write(*,*)'ddinit : [1] allocation failed!'
+      allocate( rsph(nsph), csph(3,nsph), w(ngrid), grid(3,ngrid), basis(nbasis,ngrid), &
+                inl(nsph+1), nl(nsph*nngmax), fi(ngrid,nsph), ui(ngrid,nsph), &
+                du(3,nsph,ngrid,nsph), zi(3,ngrid,nsph), fact(max(2*lmax+1,2)), &
+                facl(nbasis), facs(nbasis) , stat=istatus )
+      if ( istatus.ne.0 ) then
+        write(*,*)'ddinit : [1] allocation failed !'
         stop
       endif
 !    
 !     update memory usage
       memuse = memuse + 4*nsph + 4*ngrid + nbasis*ngrid + nsph+1 + nsph*nngmax + &
                2*ngrid*nsph + 2*lmax+1 + 2*nbasis
-      if (grad) memuse = memuse + 3*ngrid*nsph
+      if ( grad )  memuse = memuse + 3*ngrid*nsph
       memmax = max(memmax,memuse)
 !    
 !     compute factorials
-      fact(1) = one ; fact(2) = one
-      do i = 3, 2*lmax + 1
+      fact(1) = one
+      fact(2) = one
+!      
+      do i = 3,2*lmax+1
+!
         fact(i) = dble(i-1)*fact(i-1)
-      end do
+!        
+      enddo
 !    
 !     compute factors for spherical harmonics
-      do l = 0, lmax
+      do l = 0,lmax
+!      
         ind = l*l + l + 1
+!        
         fl  = (two*dble(l) + one)/(four*pi)
         ffl = sqrt(fl)
         facl( ind-l:ind+l) = fl
         facs(ind) = ffl
-        do m = 1, l
+!        
+        do m = 1,l
+!        
           fnorm = sq2*ffl*sqrt(fact(l-m+1)/fact(l+m+1))
-          if (mod(m,2).eq.1) fnorm = -fnorm
+          if ( mod(m,2).eq.1 ) fnorm = -fnorm
+!          
           facs(ind+m) = fnorm
           facs(ind-m) = fnorm
-        end do
-      end do
+!          
+        enddo
+      enddo
 !    
 !     set the centers and radii of the spheres
       csph(1,:) = x
@@ -521,13 +493,13 @@ subroutine ddinit( n, x, y, z, rvdw )
       csph(3,:) = z
       rsph      = rvdw
 !    
-!     load a lebedev grid
+!     load integration points grid
       call llgrid( ngrid, w, grid )
 !    
-!     allocate workspace arrays
+!     allocate workspaces
       allocate( vplm(nbasis), vcos(lmax+1), vsin(lmax+1) , stat=istatus )
-      if ( istatus .ne. 0 ) then
-        write(*,*)'ddinit : [2] allocation failed!'
+      if ( istatus.ne.0 ) then
+        write(*,*)'ddinit : [2] allocation failed !'
         stop
       endif
 !    
@@ -538,18 +510,18 @@ subroutine ddinit( n, x, y, z, rvdw )
       !$omp parallel do default(shared) private(i,vplm,vcos,vsin)
 !      
 !     loop over integration points
-      do i = 1, ngrid
+      do i = 1,ngrid
 !
 !       compute spherical hamonics at grid point
         call ylmbas( grid(:,i), basis(:,i), vplm(:), vcos(:), vsin(:) )
 !        
-      end do
+      enddo
 !      
       !$omp end parallel do
 !      
-!     deallocate service arrays
+!     deallocate workspaces
       deallocate( vplm, vcos, vsin , stat=istatus )
-      if ( istatus .ne. 0 ) then
+      if ( istatus.ne.0 ) then
         write(*,*)'ddinit : [1] deallocation failed!'
         stop
       endif
@@ -558,48 +530,73 @@ subroutine ddinit( n, x, y, z, rvdw )
       memuse = memuse - nproc*(nbasis + 2*lmax + 2)
 !    
 !    
-!     STEP 2 : build neighbor list (CSR format)
-!     -----------------------------------------
+!     build neighbors list (CSR format)
+!     =================================
+!
+!      \\  jsph |
+!     isph  \\  |  1   2   3   4   5   6
+!     -----------------------------------
+!             1 |      x       x   x
+!             2 |  x       x       x   x
+!             3 |      x       x       x
+!             4 |  x       x       x   x
+!             5 |  x   x       x
+!             6 |      x   x   x        
+!
+!
+!      inl =  1,       4,          8,      11,         15,      18,21        pointer to 1st neighbor
+!
+!             |        |           |        |           |        |
+!             v        V           V        V           V        V
+!
+!             1| 2| 3| 4| 5| 6| 7| 8| 9|10|11|12|13|14|15|16|17|18|19|20
+!
+!      nl  =  2, 4, 5, 1, 3, 5, 6, 2, 4, 6, 1, 3, 5, 6, 1, 2, 4, 2, 3, 4     neighbors list
+!
 !    
-!     number of neighbors considered so far
-      ii  = 1
-
-!     pointer to neighbor  
+!     index of nl  
+      ii = 1
+!
+!     number of neighbors recored in nl so far
       lnl = 0
 !    
-!     1st loop over atoms
-      do isph = 1, nsph
+!     loop over i-spheres
+      do isph = 1,nsph
 !    
-!       position of 1st neighbor of isph-atom in "nl"
+!       pointer to 1st neighbor of i-sphere
         inl(isph) = lnl + 1
 !    
-!       2nd loop over atoms
+!       loop over j-spheres
         do jsph = 1, nsph
 !    
-!         different atoms
-          if (isph.ne.jsph) then
+!         exclude i-sphere from neighbors of i-sphere
+          if ( isph.ne.jsph ) then
 !    
-!           distance square b/w atoms' centers
-            d2 = (csph(1,isph) - csph(1,jsph))**2 + (csph(2,isph) - csph(2,jsph))**2 + (csph(3,isph) - csph(3,jsph))**2
+!           distance square b/w centers
+            d2 = (csph(1,isph) - csph(1,jsph))**2 + &
+                 (csph(2,isph) - csph(2,jsph))**2 + &
+                 (csph(3,isph) - csph(3,jsph))**2
 !            
-!           sum square of atoms' radii, accounting for switch region
-            r2 = ( rsph(isph)*(one + (se + 1.d0)*eta / 2.d0) + &
-                   rsph(jsph)*(one + (se + 1.d0)*eta / 2.d0)   )**2
+!           sum square of radii, accounting for switch region
+            r2 = ( rsph(isph)*( 1.d0+(se+1.d0)*eta/2.d0 ) + &
+                   rsph(jsph)*( 1.d0+(se+1.d0)*eta/2.d0 )   )**2
 !    
-!           atoms intersect
+!           spheres intersect
             if ( d2.le.r2 ) then
 !    
 !             record neighbor
               nl(ii) = jsph
 !    
-!             increment counters
+!             advance index of nl vector
               ii  = ii + 1
+!
+!             increment number of neighbors recorded so far
               lnl = lnl + 1
 !              
-            end if
-          end if
-        end do
-      end do
+            endif
+          endif
+        enddo
+      enddo
 !      
 !     last entry for consistency with CSR format
       inl(nsph+1) = lnl+1
@@ -630,22 +627,22 @@ subroutine ddinit( n, x, y, z, rvdw )
 !          quite the same ...
 !-----------------------------------------------------------------------
 !    
-!     STEP 3 : build arrays fi, ui, zi
-!     --------------------------------
+!     build arrays fi, ui, zi
+!     =======================
 !
 !     initialize
-      fi(:,:) = zero ; ui(:,:) = zero ; if ( grad )  zi(:,:,:) = zero
+      fi(:,:)=zero ; ui(:,:)=zero ; if ( grad )  zi(:,:,:)=zero
 !      
       !$omp parallel do default(shared) private(isph,i,ii,jsph,v,vv,t,xt,swthr,fac)
 !    
 !     loop over spheres
-      do isph = 1, nsph
+      do isph = 1,nsph
 !      
 !       loop over integration points
-        do i = 1, ngrid
+        do i = 1,ngrid
 !    
 !         loop over neighbors of i-sphere
-          do ii = inl(isph), inl(isph+1) - 1
+          do ii = inl(isph),inl(isph+1)-1
 !    
 !           neighbor's number
             jsph = nl(ii)
@@ -697,20 +694,17 @@ subroutine ddinit( n, x, y, z, rvdw )
       !$omp end parallel do
 !    
 !    
-!     STEP 4 : build cavity array
-!     ---------------------------
-!
-!     STEP 4.1 : number of integration points on the cavity's boundary
-!     ----------------------------------------------------------------
+!     build cavity array
+!     ==================
 !    
-!     initialize
-      ncav = 0
+!     initialize number of cavity points
+      ncav=0
 !      
-!     loop over atoms  
-      do isph = 1, nsph
+!     loop over spheres
+      do isph = 1,nsph
 !    
 !       loop over integration points
-        do i = 1, ngrid
+        do i = 1,ngrid
 !        
 !         positive contribution from integration point
           if ( ui(i,isph).gt.zero ) then
@@ -718,9 +712,9 @@ subroutine ddinit( n, x, y, z, rvdw )
 !           accumulate
             ncav = ncav + 1
 !                  
-          end if
-        end do
-      end do
+          endif
+        enddo
+      enddo
 !    
 !     allocate cavity array
       allocate( ccav(3,ncav) , stat=istatus )
@@ -728,39 +722,36 @@ subroutine ddinit( n, x, y, z, rvdw )
         write(*,*)'ddinit : [3] allocation failed!'
         stop
       endif
-!
 !    
 !     update memory usage
       memuse = memuse + 3*ncav
       memmax = max(memmax,memuse)
-!    
-!     STEP 4.2 : fill cavity array with integration points
-!     ----------------------------------------------------
 !
 !     initialize cavity array index
       ii = 0
 !
 !     loop over spheres
-      do isph = 1, nsph
+      do isph = 1,nsph
 !
 !       loop over integration points
-        do i = 1, ngrid
+        do i = 1,ngrid
 !
 !         positive contribution from integration point
           if ( ui(i,isph).gt.zero ) then
 !
-!           advance array index
+!           advance cavity array index
             ii = ii + 1
 !
-!           compute integration point
+!           store point
             ccav(:,ii) = csph(:,isph) + rsph(isph)*grid(:,i)
 !            
-          end if
-        end do
-      end do
+          endif
+        enddo
+      enddo
 !
-!     safely initialize do_diag:
 !
+!     safely initialize do_diag
+!     =========================
       do_diag = .true.
 !
 !
@@ -828,145 +819,74 @@ subroutine ddinit( n, x, y, z, rvdw )
 endsubroutine ddinit
 !---------------------------------------------------------------------------------
 !
-  !
-  subroutine memfree
-  implicit none
-  integer :: istatus, istatus0
-  !
-  ! deallocate the arrays:
-  !
-  istatus0 = 0 ; istatus = 0
-  if(allocated(rsph))  deallocate(rsph , stat=istatus)  
-  istatus0 = istatus0 + istatus
-  if(allocated(csph))  deallocate(csph , stat=istatus)  
-  istatus0 = istatus0 + istatus
-  if(allocated(ccav))  deallocate(ccav, stat=istatus)  
-  istatus0 = istatus0 + istatus
-  if(allocated(w))     deallocate(w, stat=istatus)     
-  istatus0 = istatus0 + istatus
-  if(allocated(grid))  deallocate(grid, stat=istatus)  
-  istatus0 = istatus0 + istatus
-  if(allocated(basis)) deallocate(basis, stat=istatus) 
-  istatus0 = istatus0 + istatus
-  if(allocated(inl))   deallocate(inl, stat=istatus)   
-  istatus0 = istatus0 + istatus
-  if(allocated(nl))    deallocate(nl, stat=istatus)    
-  istatus0 = istatus0 + istatus
-  if(allocated(fact))  deallocate(fact, stat=istatus)  
-  istatus0 = istatus0 + istatus
-  if(allocated(facl))  deallocate(facl, stat=istatus)  
-  istatus0 = istatus0 + istatus
-  if(allocated(facs))  deallocate(facs, stat=istatus)  
-  istatus0 = istatus0 + istatus
-  if(allocated(ui))    deallocate(ui, stat=istatus)
-  istatus0 = istatus0 + istatus
-  if(allocated(du))    deallocate(du, stat=istatus)
-  istatus0 = istatus0 + istatus
-  if(allocated(fi))    deallocate(fi, stat=istatus)
-  istatus0 = istatus0 + istatus
-  if(allocated(zi))    deallocate(zi, stat=istatus)
-  istatus0 = istatus0 + istatus
 !
-  if(allocated(read_x))    deallocate(read_x, stat=istatus)
-  istatus0 = istatus0 + istatus
-  if(allocated(read_y))    deallocate(read_y, stat=istatus)
-  istatus0 = istatus0 + istatus
-  if(allocated(read_z))    deallocate(read_z, stat=istatus)
-  istatus0 = istatus0 + istatus
-  if(allocated(read_r))    deallocate(read_r, stat=istatus)
-  istatus0 = istatus0 + istatus
-  if(allocated(read_q))    deallocate(read_q, stat=istatus)
-  istatus0 = istatus0 + istatus
-  !
-  if ( istatus0 .ne. 0 ) then
-    write(*,*)'memfree : dallocation failed!'
-    stop
-  endif
 !
-  memuse = memuse - 4*nsph - 4*ngrid - nbasis*ngrid - nsph-1 - nsph*nngmax - &
-           2*ngrid*nsph - 2*lmax-1 - 3*nbasis
-  if (grad) memuse = memuse - 3*ngrid*nsph
-  end subroutine memfree
-  !
-  real*8 function sprod(n,u,v)
-  implicit none
-  integer,               intent(in) :: n
-  real*8,  dimension(n), intent(in) :: u, v
-  !
-  integer :: i
-  real*8  :: ss
-  !
-  ss = zero
-  do i = 1, n
-    ss = ss + u(i)*v(i)
-  end do
-  sprod = ss
-  return
+!
+!
+!---------------------------------------------------------------------------------
+subroutine memfree
+!
+      implicit none
+      integer :: istatus, istatus0
+!
+!---------------------------------------------------------------------------------
+!
+!     initialize deallocation flags
+      istatus0 = 0 ; istatus = 0
+!      
+!     deallocate the arrays
+      if( allocated(rsph)   )  deallocate( rsph   , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(csph)   )  deallocate( csph   , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(ccav)   )  deallocate( ccav   , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(w)      )  deallocate( w      , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(grid)   )  deallocate( grid   , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(basis)  )  deallocate( basis  , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(inl)    )  deallocate( inl    , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(nl)     )  deallocate( nl     , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(fact)   )  deallocate( fact   , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(facl)   )  deallocate( facl   , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(facs)   )  deallocate( facs   , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(ui)     )  deallocate( ui     , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(du)     )  deallocate( du     , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(fi)     )  deallocate( fi     , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(zi)     )  deallocate( zi     , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(read_x) )  deallocate( read_x , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(read_y) )  deallocate( read_y , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(read_z) )  deallocate( read_z , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(read_r) )  deallocate( read_r , stat=istatus ) ; istatus0 = istatus0 + istatus
+      if( allocated(read_q) )  deallocate( read_q , stat=istatus ) ; istatus0 = istatus0 + istatus
+!
+      if ( istatus0.ne.0 ) then
+        write(*,*)'memfree : dallocation failed!'
+        stop
+      endif
+!
+!     update memory usage
+      memuse = memuse - 4*nsph - 4*ngrid - nbasis*ngrid - nsph-1 - nsph*nngmax - &
+               2*ngrid*nsph - 2*lmax-1 - 3*nbasis
+      if ( grad )  memuse = memuse - 3*ngrid*nsph
+!
+!
+endsubroutine memfree
+!---------------------------------------------------------------------------------
+      !
+      real*8 function sprod(n,u,v)
+      implicit none
+      integer,               intent(in) :: n
+      real*8,  dimension(n), intent(in) :: u, v
+      !
+      integer :: i
+      real*8  :: ss
+      !
+      ss = zero
+      do i = 1, n
+        ss = ss + u(i)*v(i)
+      end do
+      sprod = ss
+      return
   end function sprod
 !------------------------------------------------------------------------------------------------
 !
-!
-!
-!
-!!!!------------------------------------------------------------------------------------------------
-!!!real*8 function fsw( t, s, eta )
-!!!!
-!!!! Remark : a step-function symmetrically squeeshing around x = 1
-!!!!
-!!!! The "s" variable is totally redundant. In fact :
-!!!!
-!!!!   x = t - eta*s  ==> y = x - 0.5*eta = t - (0.5 + s)*eta
-!!!!
-!!!! Thus :
-!!!!
-!!!!   x >= f_hi  ==>  t >= 1 + (0.5 + s)*eta
-!!!!   . . .           t <= 1 - (0.5 + s)*eta
-!!!!
-!!!
-!!!!      
-!!!!  s = \hat{s} eta ; eta \in [0,1]
-!!!!     
-!!!
-!!!!------------------------------------------------------------------------------------------------
-!!!!
-!!!      implicit none
-!!!      real*8, intent(in) :: t, s, eta
-!!!!      
-!!!      real*8 :: a, b, x, y, f_hi, f_low
-!!!      real*8, parameter :: zero=0.0d0, pt5=0.5d0, one=1.0d0, two=2.0d0, f6=6.0d0, f10=10.d0, &
-!!!                           f12=12.d0, f15=15.d0
-!!!!                           
-!!!!------------------------------------------------------------------------------------------------
-!!!!
-!!!      x = t - eta*s 
-!!!!
-!!!!     auxiliary variable for function \chi [ not really needed !!! ]
-!!!      y = x - pt5*eta
-!!!!
-!!!!     lower and upper bounds of transition area of function \chi
-!!!      f_low = one - pt5*eta
-!!!      f_hi  = one + pt5*eta
-!!!!      
-!!!!     construct smooth step function \chi(x)
-!!!      if     ( x.ge.f_hi  ) then
-!!!!              
-!!!        fsw = zero
-!!!!        
-!!!      elseif ( x.le.f_low ) then
-!!!!      
-!!!        fsw = one
-!!!!        
-!!!      else
-!!!!              
-!!!        fsw = ( (y-one)*(y-one) * (y-one+two*eta)*(y-one+two*eta) ) / (eta**4)
-!!!!              
-!!!      endif
-!!!!      
-!!!      return
-!!!!
-!!!!
-!!!endfunction fsw
-!!!!------------------------------------------------------------------------------------------------
 !
 !
 !
@@ -1067,50 +987,7 @@ endfunction dfsw
 !
 !
 !
-!!!!------------------------------------------------------------------------------------------------
-!!!!     switching function derivative for ddCOSMO regularization.
-!!!!
-!!!real*8 function dfsw( t, s, eta )
-!!!!
-!!!      implicit none
-!!!      real*8, intent(in) :: t, eta, s
-!!!!
-!!!      real*8  flow, fhi, x, y
-!!!      real*8, parameter :: f30=30.0d0
-!!!!      
-!!!!------------------------------------------------------------------------------------------------
-!!!!
-!!!      x = t - eta*s 
-!!!      y = x - pt5*eta
-!!!!
-!!!!!!      flow = one - eta
-!!!      flow = one - pt5*eta
-!!!      fhi  = one + pt5*eta
-!!!!      
-!!!!!!      if     ( t.ge.one ) then
-!!!      if     ( x.ge.fhi ) then
-!!!!              
-!!!        dfsw = zero
-!!!!        
-!!!      elseif ( x.le.flow ) then
-!!!!        
-!!!!!!        dfsw = one
-!!!        dfsw = zero
-!!!!        
-!!!      else
-!!!!        
-!!!!!!        dfsw = f30*(one-t)*(t-one)*(t-one+eta)*(t-one+eta) / (eta**5)
-!!!        dfsw = 4.d0 * (y - 1.d0 - 0.5d0*eta) * &
-!!!                      (y - 1.d0 + 0.5d0*eta) * &
-!!!                      (y - 1.d0 + 1.5d0*eta) / eta**4
-!!!!        
-!!!      endif
-!!!!        
-!!!      return
-!!!!        
-!!!!        
-!!!endfunction dfsw
-  !
+!
   subroutine ptcart(label,ncol,icol,x)
   implicit none
   !
@@ -2231,29 +2108,6 @@ end subroutine adjrhs
 !
 !-------------------------------------------------------------------------------
 !
-!
-!
-!-------------------------------------------------------------------------------
-real*8 function extmlp(t,sigma,basloc)
-implicit none
-real*8, intent(in) :: t
-real*8, dimension(nbasis), intent(in) :: sigma, basloc
-!
-integer :: l, ind
-real*8  :: tt, ss, fac
-!
-tt = one/t
-ss = zero
-do l = 0, lmax
-  ind = l*l + l + 1
-  fac = tt/facl(ind)
-  ss = ss + fac*dot_product(basloc(ind-l:ind+l),sigma(ind-l:ind+l))
-  tt = tt/t
-end do
-extmlp = ss
-return
-endfunction extmlp
-!---------------------------------------------------------------------
 !
 !
 !
