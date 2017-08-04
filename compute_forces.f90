@@ -35,7 +35,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       real*8, dimension(nbasis,nsph), intent(in)  :: Psi
       real*8, dimension(nbasis,nsph), intent(in)  :: sigma
       real*8, dimension(nbasis,nsph), intent(in)  :: Phi_eps
-      real*8, dimension(nsph,3),      intent(out) :: f
+      real*8, dimension(3,nsph),      intent(out) :: f
 !
       real*8, dimension(ngrid,nsph) :: xi,g
       real*8, dimension(nbasis,nsph) :: w_lm, s, y, z
@@ -115,7 +115,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     contract
       do isph = 1,nsph 
 !      
-        call service_routine1_new( s, w_lm , isph, f(isph,1:3) )
+        call service_routine1_new( s, w_lm , isph, f(1:3,isph) )
 !
       enddo
 !
@@ -142,9 +142,9 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       do isph = 1, nsph
 !
 !       accumulate f += K_a contribution to < y , L' sigma >
-        call fdoka( isph, sigma, xi(:,isph), basloc, dbsloc, vplm, vcos, vsin, f(isph,:) ) 
+        call fdoka( isph, sigma, xi(:,isph), basloc, dbsloc, vplm, vcos, vsin, f(:,isph) ) 
 !       accumulate f += K_b contribution to < y , L' sigma >
-        call fdokb( isph, sigma, xi,         basloc, dbsloc, vplm, vcos, vsin, f(isph,:) ) 
+        call fdokb( isph, sigma, xi,         basloc, dbsloc, vplm, vcos, vsin, f(:,isph) ) 
 !
       enddo
 !
@@ -202,7 +202,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       do isph = 1,nsph
 !
 !       accumulate f -= sum_n U_n^i' Phi_n^i xi(i,n) 
-        call fdoga( isph, xi, phiexp, f(isph,:) ) 
+        call fdoga( isph, xi, phiexp, f(:,isph) ) 
 !        
       enddo
 !
@@ -250,7 +250,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
             i=i+1
 !
 !           accumulate FIRST contribution to < z , Phi' >
-            f(isph,:) = f(isph,:) + zeta(i)*ef(:,i)
+            f(:,isph) = f(:,isph) + zeta(i)*ef(:,i)
 !            
           endif
         enddo
@@ -263,7 +263,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       do isph = 1, nsph
 !      
 !       accumulate SECOND contribution to < z , Phi' >
-        f(isph,:) = f(isph,:) + ef(:,isph)*charge(isph)
+        f(:,isph) = f(:,isph) + ef(:,isph)*charge(isph)
 !        
       enddo
 !
@@ -298,7 +298,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
  1004   format(' atom',13x,'x',13x,'y',13x,'z' )
         do isph = 1,nsph
 !
-          write(*,1005) isph, f(isph,:)
+          write(*,1005) isph, f(:,isph)
  1005     format( 1x,i4,3(2x,e12.5) )       
 ! 
         enddo

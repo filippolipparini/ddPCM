@@ -1628,3 +1628,261 @@ endfunction extmlp
 !!!!        
 !!!endfunction dfsw
  
+!
+!
+!
+!
+!---------------------------------------------------------------------------------------
+subroutine check_derivativesCOSMO( )
+!
+      use ddcosmo , only : nbasis, nsph, ngrid, lmax, zero, csph, rsph, memfree, &
+                           ddinit, iquiet, basis, one, calcv2, fdoka, fdokb,     &
+                           intrhs
+!
+      implicit none
+      real*8 :: f(nbasis,nsph)
+      real*8 :: e(nbasis,nsph)
+      real*8 :: L(nbasis*nsph,nbasis*nsph),xi(ngrid,nbasis)
+      real*8 :: dL(nbasis*nsph,nbasis*nsph,nsph,3)
+      real*8 :: L_plus(nbasis*nsph,nbasis*nsph,nsph,3)
+      real*8 :: xlm(nbasis),vplm(nbasis),vcos(lmax+1),vsin(lmax+1), &
+                basloc(nbasis), pot(ngrid), dbsloc(3,nbasis)
+      integer :: isph,jsph,i,j,ibeg,iend,nsph_save,icomp,ksph,iter
+      real*8 :: eeps,err,rnorm
+      integer, parameter :: niter = 6
+      real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), s3(3)
+      real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3)
+!
+!---------------------------------------------------------------------------------------
+!
+!     construct L
+!     -----------
+      do isph = 1,nsph
+!
+        do jsph = 1,nsph
+          do j = 1,nbasis
+!
+!           standard basis vector e_j
+            e(:,   :) = zero
+            e(j,jsph) = one
+!
+!           initialize
+            pot = zero ; basloc = zero ; vplm = zero ; vcos = zero ; vsin = zero
+!
+!           compute L_i e_j
+            call calcv2( .false., isph, pot, e, basloc, vplm, vcos, vsin )
+!            
+            ibeg = (isph-1)*nbasis+1
+            iend = (isph-1)*nbasis+nbasis
+            call intrhs( isph, pot, L( ibeg:iend , (jsph-1)*nbasis+j ) )
+!
+          enddo
+        enddo
+      enddo
+
+!     construct dL
+!     ------------
+      do ksph = 1,nsph 
+        do isph = 1,nsph
+          do i = 1,nbasis
+            do jsph = 1,nsph
+              do j = 1,nbasis
+!
+!               standard basis vectors e_i, f_j
+                e(:,:   )=zero
+                f(:,:   )=zero
+                e(i,isph)=one
+                f(j,jsph)=one
+!
+!               auxiliary vector xi
+                xi(:,:)=zero
+                xi(:,isph)=basis(i,:)
+!
+!               initialize          
+                s3 = zero ; dbsloc = zero
+!
+!               accumulate K_a contribution to < e , L' sigma >
+                call fdoka( ksph, f, xi(:,isph), basloc, dbsloc, vplm, vcos, vsin, s3 ) 
+!                
+!               accumulate K_b contribution to < e , L' sigma >
+                call fdokb( ksph, f, xi,         basloc, dbsloc, vplm, vcos, vsin, s3 ) 
+!
+!               store
+                do icomp = 1,3
+!
+                  dL( (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp ) = s3(icomp)
+!            
+                enddo
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+!
+!     save initial DS
+      nsph_save = nsph
+      x_save = csph(1,:)
+      y_save = csph(2,:)
+      z_save = csph(3,:)
+      r_save = rsph(  :)
+!
+!     set initial increment
+      eeps=0.1d0
+!
+!     initialize
+      rwork=zero
+!
+!     loop over increments
+      do iter = 1,niter
+!        
+!       compute L^+
+        do ksph = 1,nsph_save
+!
+          do icomp = 1,3
+!
+!           deallocate DS      
+            call memfree
+!
+!           perturb     
+            x = x_save
+            y = y_save
+            z = z_save
+            select case(icomp)
+            case(1) ; x(ksph) = x_save(ksph) + eeps
+            case(2) ; y(ksph) = y_save(ksph) + eeps
+            case(3) ; z(ksph) = z_save(ksph) + eeps
+            endselect
+!
+!           allocate new DS      
+            call ddinit( nsph_save, x, y, z, r_save )
+!
+!           initialize
+            err=zero ; rnorm=zero
+            L_plus(:,:,ksph,icomp)=zero
+!
+!           build L^+
+            do isph = 1,nsph_save
+!            
+              do jsph = 1,nsph_save
+                do j = 1,nbasis
+!
+!                 standard basis vector e_j
+                  e(:,:   )=zero
+                  e(j,jsph)=one
+!                  
+!                 initialize
+                  pot = zero ; basloc = zero ; vplm = zero ; vcos = zero ; vsin = zero
+!
+!                 compute L^+_i e_j
+                  call calcv2( .false., isph, pot, e, basloc, vplm, vcos, vsin )
+!
+                  ibeg = (isph-1)*nbasis+1
+                  iend = (isph-1)*nbasis+nbasis
+                  call intrhs( isph, pot, L_plus( ibeg:iend , (jsph-1)*nbasis+j , ksph , icomp ) )
+!
+!                 accumulate error
+                  do i = 1,nbasis
+!                  
+                    err   = err   + ( ( L_plus((isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) -           &
+                                        L(     (isph-1)*nbasis+i,(jsph-1)*nbasis+j           ) ) / eeps -  &
+                                        dL(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp)                 )**2
+!                                        
+                    rnorm = rnorm + (   dL(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp)                 )**2
+!
+                  enddo
+
+                enddo
+              enddo
+            enddo
+!            
+!!!!           numerical derivatives
+!!!            write(*,1007) ksph,icomp
+!!! 1007       format(' A(r+r_',i2,',',i1,') =')
+!!!! 
+!!!            do isph = 1,nsph
+!!!              do i = 1,nbasis
+!!!                write(*,"(4x,300(e12.5,2x))") ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) , j=1,nbasis*nsph )
+!!!              enddo
+!!!            enddo
+!!!            write(*,*)''
+!!!!            
+!!!            write(*,1008) ksph,icomp
+!!! 1008       format('( A(r+r_',i2,',',i1,') - A(r) ) / eps =')
+!!!! 
+!!!            do isph = 1,nsph
+!!!              do i = 1,nbasis
+!!!                write(*,"(4x,300(e12.5,2x))") ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) - &
+!!!                                                     A((isph-1)*nbasis+i,j))/eeps , j=1,nbasis*nsph )
+!!!              enddo
+!!!            enddo
+!!!            write(*,*)''
+!
+!           store error
+            err=sqrt(err) ; rnorm=sqrt(rnorm)
+!
+            if ( rnorm.gt.1.E-12 ) then
+!
+              rwork(iter,(ksph-1)*3+icomp) = sqrt( err / rnorm )
+!              
+            endif
+!
+          enddo
+        enddo
+!
+!       update increment
+        eeps = eeps/2.d0
+!        
+      enddo
+
+      eeps = eeps*2.d0
+!
+!     printing
+      do j = 1,nsph
+        do icomp = 1,3
+!
+          write(*,"(' dL / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
+!        
+        enddo
+      enddo
+      write(*,*) ''
+!
+!!!!     printing
+!!!      do ksph = 1,nsph
+!!!        do icomp = 1,3
+!!!!        
+!!!!         analytical derivatives
+!!!          write(*,1005) ksph,icomp
+!!! 1005     format(' dA / dr_',i2,',',i1,' =')
+!!!!
+!!!          do isph = 1,nsph
+!!!            do i = 1,nbasis
+!!!              write(*,"(4x,300(e12.5,2x))") ( dA((isph-1)*nbasis+i,j,ksph,icomp), j=1,nbasis*nsph )
+!!!            enddo
+!!!          enddo
+!!!!          
+!!!!         numerical derivatives
+!!!          write(*,1006) ksph,icomp
+!!! 1006     format(' ( A(r+r_',i2,',',i1,') - A(r) ) / eps =')
+!!!! 
+!!!          do isph = 1,nsph
+!!!            do i = 1,nbasis
+!!!              write(*,"(4x,300(e12.5,2x))") &
+!!!              ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp)- &
+!!!                       A((isph-1)*nbasis+i,j)             ) / eeps , j=1,nbasis*nsph )
+!!!            enddo
+!!!          enddo
+!!!          write(*,*)''
+!!!! 
+!!!        enddo
+!!!      enddo
+!
+!     restore DS
+      call memfree
+      call ddinit( nsph_save, x_save, y_save, z_save, r_save )
+!
+!     deactivate quiet flag      
+      iquiet = .false.
+!
+!
+endsubroutine check_derivativesCOSMO
+

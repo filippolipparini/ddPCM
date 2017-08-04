@@ -116,7 +116,7 @@ program main
 ! 
       real*8, allocatable :: phi_eps(:,:)
 !
-!     - forces ( cosmo : fx(3,nsph) , pcm : fx (nsph,3) ) [ THIS WILL NEED TO BE CLEANED UP ]
+!     - forces fx(3,nsph) 
 !
       real*8, allocatable :: fx(:,:)
 !
@@ -127,7 +127,7 @@ program main
 !
       logical :: interactive_mode = .true.
 !
-!-------------------------------------------------------------------------------
+! -------------------------------------------------------------------------------------
 !
 !     initialize
       memuse = 0 ; memmax = 0
@@ -264,7 +264,7 @@ program main
             call cosmo( .false., .true., phi, xx, psi, sigma, esolv )
             write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
-!           solve cosmo adjoint equation [ esolv is not touchedi! ]
+!           solve cosmo adjoint equation [ esolv is not touched! ]
             call cosmo( .true., .false., phi, xx, psi, s, esolv )
 !
 !           compute forces
@@ -273,7 +273,7 @@ program main
 !           check forces
             write(*,*)'check forces ? 1 - Yes'
             read(*,*) iidec
-            if (iidec.eq.1)  call check_forcesCOSMO( esolv, charge, fx )
+            if ( iidec.eq.1 )  call check_forcesCOSMO( esolv, charge, fx )
 !             
 !           deallocate workspaces
             deallocate( sigma, s, fx , stat=istatus )
@@ -287,7 +287,7 @@ program main
           case(3)
 !                  
 !           allocate workspaces
-            allocate( sigma(nbasis,nsph), phi_eps(nbasis,nsph), fx(nsph,3) , stat=istatus )
+            allocate( sigma(nbasis,nsph), phi_eps(nbasis,nsph), fx(3,nsph) , stat=istatus )
             if ( istatus.ne.0 ) then
               write(*,*)'main : PCM & FORCES allocation failed !'
               stop
@@ -304,7 +304,7 @@ program main
 !           check forces
             write(*,*)'check forces ? 1 - Yes'
             read(*,*) iidec
-            if (iidec.eq.1)  call check_forcesPCM( charge, fx, esolv )
+            if ( iidec.eq.1 )  call check_forcesPCM( charge, fx, esolv )
 !            
 !           deallocate workspaces
             deallocate( sigma, phi_eps, fx , stat=istatus )
@@ -384,7 +384,7 @@ program main
         else
 !
 !         allocate workspaces
-          allocate( phi_eps(nbasis,nsph), fx(nsph,3) , stat=istatus )
+          allocate( phi_eps(nbasis,nsph), fx(3,nsph) , stat=istatus )
           if ( istatus.ne.0 ) then
             write(*,*)'main : [5] failed allocation !'
             stop
