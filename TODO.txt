@@ -1,0 +1,45 @@
+TODO list :
+
+1. main : move charge, phi, psi, sigma, s, phi_eps, fx  to module "ddcosmo"
+   ----
+         
+          restructure as :  read_control_file()
+                            reset_ngrid( igrid )
+                            read_molecule_file()
+                            ----- modify centers and radii for dubugging HERE -----
+                            ddinit()
+
+2. ddcosmo : eliminate read_x,y,z,r,q ; use csph, rsph, charge instead
+   -------
+             add charge,phi,psi,sigma,s,phi_eps,fx ; add esolv ??? Discuss about it
+
+             use ngrid as over-integration flag ? Discuss about it
+
+             read_molecule_file() : add allocation of charge, csph, rsph ; read into charge, csph, rsph
+
+             ddinit() : add missing allocations ; remove read_x,y,z,r,q
+
+             memfree() : add missing deallocations ; remove read_x,y,z,r,q
+
+             fsw : remove s,eta from head
+
+             dfsw : remove s,eta from head
+
+             wghpot : why is there a minus sign ??? add comment about it
+
+             adjrhs : remove psi from head
+
+3. mkrhs : modify accordingly to restructuring of ddcosmo
+   -----
+
+4. debug : modify all allocations/allocations according to the modifications in ddcosmo
+   -----
+
+5. compute_forces/forces : remove everything from head, add a general redirecting routine, depending
+   ---------------------   on iscrf flag       
+
+6. matvec : lx,lstarx : why sign flip ??? add comment about it
+   ------
+                           
+7. iefpcm : move mrkvec,(mkrvec_fmm),adjvec,mkprec,adjprec somewhere else ( ddcosmo ? ) ; eventually remove
+   ------

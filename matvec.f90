@@ -96,6 +96,8 @@
 !
 !
 !
+!
+!
 !-------------------------------------------------------------------------------
 ! given a vector x, compute y = Lx, where L is the ddCOSMO matrix.
 ! if dodiag is set to .true., L includes the diagonal blocks, otherwise
@@ -166,6 +168,7 @@ endsubroutine lx
 ! if dodiag is set to .true., L includes the diagonal blocks, otherwise
 ! L only includes the off-diagonal ones.
 !-------------------------------------------------------------------------------
+!
 subroutine lstarx( n, x, y )
 !
       use ddcosmo , only : nbasis, nsph, ngrid, lmax, zero, basis, do_diag, &
@@ -276,6 +279,7 @@ endsubroutine ldm1x
 !
 !
 !
+!
 !-------------------------------------------------------------------------------
 ! compute the h^-1/2 norm of the increment on each sphere, then take the
 ! rms value.
@@ -325,8 +329,6 @@ real*8 function hnorm( n, x )
 !
 endfunction hnorm
 !-------------------------------------------------------------------------------
-!
-!
 !
 !
 !
@@ -397,6 +399,7 @@ endsubroutine plstarx
 !
 !
 !
+!
 !-------------------------------------------------------------------------------
 ! given a vector x, solve Px = y, where P is a given preconditioner.
 ! note that we assume that P^{-1} is available in precm1 here...
@@ -427,6 +430,7 @@ subroutine precx( n, x, y )
 !
 endsubroutine precx
 !-------------------------------------------------------------------------------
+!
 !
 !
 !
@@ -474,6 +478,7 @@ subroutine rx( n, x, y )
 !
 endsubroutine rx
 !-------------------------------------------------------------------------------
+!
 !
 !
 !
@@ -527,6 +532,7 @@ endsubroutine prx
 !
 !
 !
+!
 !-------------------------------------------------------------------------------
 ! given a vector x, compute y = R_\eps^* x
 !-------------------------------------------------------------------------------
@@ -575,12 +581,13 @@ endsubroutine rstarx
 !
 !
 !
+!
 !-------------------------------------------------------------------------------
 ! given a vector x, compute z = R_\eps x. 
 ! then, solve y = Py.
 !-------------------------------------------------------------------------------
 !
-subroutine prstarx(n,x,y)
+subroutine prstarx( n, x, y )
 !
       use ddcosmo , only : nbasis, nsph, do_diag
 !      
