@@ -1,5 +1,5 @@
-module ddcosmo
-implicit none
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! 
 ! 
 !      888      888  .d8888b.   .d88888b.   .d8888b.  888b     d888  .d88888b.  
 !      888      888 d88P  Y88b d88P" "Y88b d88P  Y88b 8888b   d8888 d88P" "Y88b 
@@ -78,6 +78,10 @@ implicit none
 !
 !-------------------------------------------------------------------------------
 !
+module ddcosmo
+!
+      implicit none
+!
 !     - arguments contained in bash script
 !
       character(len=64), dimension(2) :: args
@@ -154,34 +158,35 @@ implicit none
       logical :: iquiet = .false.
       logical :: use_fmm = .false.
 !
-contains
+!     - subroutines & functions
 !
-!     - read_control_file  : read control file
-!     - read_molecule_file : read molecule file
-!     - reset_ngrid        : choose suitable grid of integration points
-!     - set_pi             : compute numerical constants
-!     - ddinit             : initialize data structure
-!     - memfree            : free data structure
-!     - sprod              : scalar prod.
-!     - fsw                : smoothing function
-!     - dfsw               : derivative of smoothing function
-!     - ptcart             : print routine
-!     - prtsph             : print routine
-!     - intrhs             : integrate spherical harmonics expansions
-!     - ylmbas             : compute spherical harmonics Y_l^m
-!     - dbasis             : compute derivatives of spherical harmonics
-!     - polleg             : compute Legendre polynomials
-!     - trgev              : service routine for computation of spherical harmonics
-!     - intmlp             :
-!     - wghpot             :
-!     - hsnorm             :
-!     - adjrhs1            : auxiliary routine for COSMO adjoint action
-!     - header             : print header
-!     - fdoka              :
-!     - fdokb              :
-!     - fdoga              :
-!     - calcv2             : auxiliary routine for COSMO action
+!     read_control_file  - read control file
+!     read_molecule_file - read molecule file
+!     reset_ngrid        - choose suitable grid of integration points
+!     set_pi             - compute numerical constants
+!     ddinit             - initialize data structure
+!     memfree            - free data structure
+!     sprod              - scalar product
+!     fsw                - smoothing function
+!     dfsw               - derivative of smoothing function
+!     ptcart             - print routine
+!     prtsph             - print routine
+!     intrhs             - integrate spherical harmonics expansions
+!     ylmbas             - compute spherical harmonics Y_l^m
+!     dbasis             - compute derivatives of spherical harmonics
+!     polleg             - compute Legendre polynomials
+!     trgev              - service routine for computation of spherical harmonics
+!     intmlp             -
+!     wghpot             -
+!     hsnorm             -
+!     adjrhs1            - auxiliary routine for COSMO adjoint action
+!     header             - print header
+!     fdoka              -
+!     fdokb              -
+!     fdoga              -
+!     calcv2             - auxiliary routine for COSMO action
 !
+      contains
 !
 !
 !--------------------------------------------------------------------------------------------------

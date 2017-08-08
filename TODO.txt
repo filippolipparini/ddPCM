@@ -8,6 +8,10 @@ TODO list :
                             read_molecule_file()
                             ----- modify centers and radii for dubugging HERE -----
                             ddinit()
+                            .
+                            .
+                            .
+                            memfree()
 
 2. ddcosmo : eliminate read_x,y,z,r,q ; use csph, rsph, charge instead
    -------
@@ -26,8 +30,6 @@ TODO list :
              dfsw : remove s,eta from head
 
              wghpot : why is there a minus sign ??? add comment about it
-
-             adjrhs : remove psi from head ; check consistency of extension with direct problem
 
              adjrhs1 : check consistency of extension with direct problem
 
