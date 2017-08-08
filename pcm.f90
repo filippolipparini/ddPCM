@@ -52,7 +52,9 @@
 !
 subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !
-      use ddcosmo
+      use ddcosmo , only : ncav, nsph, nbasis, iconv, isolver, zero, prec,       &
+                           precm1, ngrid, lmax, wghpot, intrhs, ndiis, do_diag,  &
+                           iout, iprint 
 !
       implicit none
       logical,                         intent(in)    :: star, cart, doprec
@@ -75,8 +77,8 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !
 !     set a few parameters for the solver and matvec routine:
 !
-      tol     = 10.0d0**(-iconv)
-      n_iter  = 300
+      tol    = 10.0d0**(-iconv)
+      n_iter = 300
 !
 !     initialize the timer:
 !
@@ -105,7 +107,7 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
       if ( .not.star ) then
 !
 !       allocate workspace for rhs
-        allocate( rhs(nbasis,nsph) , stat=istatus)
+        allocate( rhs(nbasis,nsph) , stat=istatus )
         if ( istatus.ne.0 ) then
           write(*,*) ' pcm: [2] failed allocation'
         endif
@@ -114,7 +116,7 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
         rhs = zero
 !
 !       if required, set up the preconditioner:
-        if (doprec) then
+        if ( doprec ) then
 !
 !         allocate workspaces for preconditioner
           if ( allocated(prec) )    deallocate(prec)
@@ -127,8 +129,8 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
           endif
 !
 !         now, build the preconditioner
-          do isph = 1, nsph
-            call mkprec(isph, .true., prec(:,:,isph), precm1(:,:,isph))
+          do isph = 1,nsph
+            call mkprec( isph, .true., prec(:,:,isph), precm1(:,:,isph) )
           enddo
 !          
         endif 
@@ -145,17 +147,17 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !
 !         Start weighting the potential...
 ! 
-          call wghpot(phi, g)
+          call wghpot( phi, g )
 !
 !         ... and compute its multipolar expansion
 !
-          do isph = 1, nsph
+          do isph = 1,nsph
             call intrhs( isph, g(:,isph), x(:,isph) )
           enddo
 !
 !         now, apply R_\infty [ do_diag should be set to .true. !!! ] :
 !
-          do isph = 1, nsph
+          do isph = 1,nsph
             call mkrvec( isph, zero, x, rhs(:,isph), ulm, u, basloc, vplm, vcos, vsin )
           enddo
 !
@@ -164,7 +166,7 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !                  
 !           apply preconditioner to rhs
             x = rhs
-            call precx(nbasis*nsph, x, rhs)
+            call precx( nbasis*nsph, x, rhs )
 !            
           endif
 !
@@ -221,6 +223,8 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !         where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
 !
           call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, phi_eps, work, tol, 'abs', n_iter, r_norm, prx, info )
+!
+!         solver success flag
           ok = ( info.eq.0 )
 !
         endif
@@ -242,7 +246,7 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
         endif
 !
 !
-!     ADJOINT PCM EQUATION  R_\epsi^T \Phi_\eps = g
+!     ADJOINT PCM EQUATION  R_\epsi^* \Phi_\eps = g
 !     ---------------------------------------------
       else
 !
@@ -296,7 +300,7 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !       jacobi/diis
         if ( isolver.eq.0 ) then
 !
-!         exclude diagonal blocks from action of R_\eps^T
+!         exclude diagonal blocks from action of R_\eps^*
           do_diag = .false.
 !          
 !         action of  diag^-1 :  precx
@@ -317,7 +321,9 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !       where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
 !
           call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, phi_eps, work, tol, 'abs', n_iter, r_norm, prstarx, info )
-          ok = (info.eq.0)
+!
+!         solver success flag
+          ok = ( info.eq.0 )
 !
         endif
 !
@@ -362,7 +368,7 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
       call system_clock(count=c2)
 !
 !     printing
-      if (iprint.gt.0) then
+      if ( iprint.gt.0 ) then
 !
         write(iout,*)
         if (star) then
@@ -376,5 +382,4 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
       endif
 !
 !
-      return
 endsubroutine pcm

@@ -175,13 +175,12 @@ contains
 !     - intmlp             :
 !     - wghpot             :
 !     - hsnorm             :
-!     - adjrhs             : action of COSMO adjoint
-!     - adjrhs1            : action of COSMO adjoint (service)
+!     - adjrhs1            : auxiliary routine for COSMO adjoint action
 !     - header             : print header
 !     - fdoka              :
 !     - fdokb              :
 !     - fdoga              :
-!     - calcv2             :
+!     - calcv2             : auxiliary routine for COSMO action
 !
 !
 !
@@ -1318,13 +1317,14 @@ endsubroutine dbasis
 !---------------------------------------------------------------------
 ! Purpose : compute
 !
-!                          l'
-!     sum   4pi/(2l'+1) t_n   * Y_l'^m'(s_n) * sigma_l'^m'
-!    l',m'                                           
+!                       l
+!     sum   4pi/(2l+1) t  * Y_l^m( s ) * sigma_l^m
+!     l,m                                           
 !
+! which is need to compute action of COSMO matrix L.
 !---------------------------------------------------------------------
 !
-real*8 function intmlp(t,sigma,basloc)
+real*8 function intmlp( t, sigma, basloc )
 !  
       implicit none
       real*8, intent(in) :: t
@@ -1335,29 +1335,35 @@ real*8 function intmlp(t,sigma,basloc)
 !
 !---------------------------------------------------------------------
 !
-!     initialize
+!     initialize t^l
       tt = one
+!
+!     initialize
       ss = zero
 !
-!     loop over l',m'
-      do l = 0, lmax
+!     loop over l
+      do l = 0,lmax
+!      
         ind = l*l + l + 1
 !
-!       update factor 4pi/(2l'+1) (t_n)^l'
-        fac = tt/facl(ind)
+!       update factor 4pi / (2l+1) * t^l
+        fac = tt / facl(ind)
 !
-!       contract over l',m' and accumulate
-        ss = ss + fac*dot_product(basloc(ind-l:ind+l),sigma(ind-l:ind+l))
+!       contract over l,m and accumulate
+        ss = ss + fac * dot_product( basloc(ind-l:ind+l), &
+                                     sigma(ind-l:ind+l)   )
 !
-!       update (t_n)^l'
+!       update t^l
         tt = tt*t
-      end do
+!        
+      enddo
 !      
+!     redirect
       intmlp = ss
-      return
 !
 !
 endfunction intmlp
+!---------------------------------------------------------------------
 !
 !
 !
@@ -1412,18 +1418,29 @@ endsubroutine wghpot
 !
 !
 !-----------------------------------------------------------------------------------
-! Purpose : compute a line of the (sparse) adjoint ddcosmo matrix/vector product.
+! Purpose : compute
 !
-!    vlm = S' \sigma  = \Phi - sum S_ij' \sigma_j
-!                   i       i   j
-
-
-!                            l
-!    sum  sum  4pi/(2l+1) t_n  * Y_l^m(s_n) * psi_l^m w_n * sigma(y_n) * Y(y_n)
-!     n   l,m                                           
+!   v_l^m = v_l^m +
 !
+!               4 pi           l
+!     sum  sum  ---- ( t_n^ji )  Y_l^m( s_n^ji ) W_n^ji [ \xi_j ]_n
+!      j    n   2l+1
+!
+! which is related to the action of the adjont COSMO matrix L^* in the following
+! way. Set
+!
+!   [ \xi_j ]_n = sum  Y_l^m( s_n ) [ s_j ]_l^m
+!                 l,m
+!
+! then
+!
+!   v_l^m = -   sum    (L^*)_ij s_j
+!             j \ne i 
+!
+! The auxiliary quantity [ \xi_j ]_l^m needs to be computed explicitly.
 !-----------------------------------------------------------------------------------
-subroutine adjrhs1(isph,xi,vlm,basloc,vplm,vcos,vsin)
+!
+subroutine adjrhs1( isph, xi, vlm, basloc, vplm, vcos, vsin )
 !
       implicit none
       integer,                       intent(in)    :: isph
@@ -1434,131 +1451,81 @@ subroutine adjrhs1(isph,xi,vlm,basloc,vplm,vcos,vsin)
 !
       integer :: ij, jsph, ig, l, ind, m
       real*8  :: vji(3), vvji, tji, sji(3), xji, oji, fac, ffac, t
+!      
 !-----------------------------------------------------------------------------------
 !
-!     loop over neighboring spheres of i-sphere
-      do ij = inl(isph), inl(isph+1) - 1
+!     loop over neighbors of i-sphere
+      do ij = inl(isph),inl(isph+1)-1
 !
 !       j-sphere is neighbor
         jsph = nl(ij)
 !
-!       loop over integration points on j-sphere
-        do ig = 1, ngrid
+!       loop over integration points
+        do ig = 1,ngrid
 !        
-!         build t_ij
+!         compute t_n^ji = | r_j + \rho_j s_n - r_i | / \rho_i
           vji  = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
           vvji = sqrt(dot_product(vji,vji))
           tji  = vvji/rsph(isph)
 !
-!         point vji is inside i-sphere (+ transition layer)
-!         -------------------------------------------------
+!         point is INSIDE i-sphere (+ transition layer)
+!         ---------------------------------------------
           if ( tji.lt.( one + (se+one)/two*eta ) ) then
 !                  
-!           build omega_ij
+!           compute s_n^ji
             sji = vji/vvji
-            xji = fsw(tji,se,eta)
-            if (fi(ig,jsph).gt.one) then
+!
+!           compute \chi( t_n^ji )
+            xji = fsw( tji, se, eta )
+!
+!           compute W_n^ji
+            if ( fi(ig,jsph).gt.one ) then
+!                    
               oji = xji/fi(ig,jsph)
+!              
             else
+!                    
               oji = xji
-            end if
+!              
+            endif
 !            
-!           compute spherical harmonics at integration point
-            call ylmbas(sji,basloc,vplm,vcos,vsin)
+!           compute Y_l^m( s_n^ji )
+            call ylmbas( sji, basloc, vplm, vcos, vsin )
 !            
-!           build vlm
-            t   = one
-            fac = w(ig)*xi(ig,jsph)*oji
-            do l = 0, lmax
+!           initialize ( t_n^ji )^l
+            t = one
+!            
+!           compute w_n * xi(n,j) * W_n^ji
+            fac = w(ig) * xi(ig,jsph) * oji
+!            
+!           loop over l
+            do l = 0,lmax
+!            
               ind  = l*l + l + 1
+!
+!             compute 4pi / (2l+1) * ( t_n^ji )^l * w_n * xi(n,j) * W_n^ji
               ffac = fac*t/facl(ind)
-              do m = -l, l
+!
+!             loop over m
+              do m = -l,l
+!              
                 vlm(ind+m) = vlm(ind+m) + ffac*basloc(ind+m)
-              end do
+!                
+              enddo
+!
+!             update ( t_n^ji )^l
               t = t*tji
-            end do
+!              
+            enddo
 !            
-          end if
-        end do
-      end do
-!
-      return
+          endif
+        enddo
+      enddo
 !
 !
-end subroutine adjrhs1
-  !
-subroutine adjrhs(first,isph,psi,xi,vlm,basloc,vplm,vcos,vsin)
-!
-      implicit none
-      logical,                       intent(in)    :: first
-      integer,                       intent(in)    :: isph
-      real*8, dimension(nbasis),     intent(in)    :: psi
-      real*8, dimension(ngrid,nsph), intent(in)    :: xi
-      real*8, dimension(nbasis),     intent(inout) :: vlm
-      real*8, dimension(nbasis),     intent(inout) :: basloc, vplm
-      real*8, dimension(lmax+1),     intent(inout) :: vcos, vsin
-!
-      integer :: ij, jsph, ig, l, ind, m
-      real*8  :: vji(3), vvji, tji, sji(3), xji, oji, fac, ffac, t
+endsubroutine adjrhs1
 !-----------------------------------------------------------------------------------
-!
-!     initialize
-      vlm = psi
-!
-!     just return vlm = psi when n=1
-      if (first) return
-!
-!     loop over neighboring spheres of i-sphere
-      do ij = inl(isph), inl(isph+1) - 1
-!
-!       j-sphere is neighbor
-        jsph = nl(ij)
-!
-!       loop over integration points on j-sphere
-        do ig = 1, ngrid
-!        
-!         build t_ij
-          vji  = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
-          vvji = sqrt(dot_product(vji,vji))
-          tji  = vvji/rsph(isph)
-!
-!         point vji is inside i-sphere (+ transition layer)
-!         -------------------------------------------------
-          if ( tji.lt.( one + (se+one)/two*eta ) ) then
-!                  
-!           build omega_ij
-            sji = vji/vvji
-            xji = fsw(tji,se,eta)
-            if (fi(ig,jsph).gt.one) then
-              oji = xji/fi(ig,jsph)
-            else
-              oji = xji
-            end if
-!            
-!           compute spherical harmonics at integration point
-            call ylmbas(sji,basloc,vplm,vcos,vsin)
-!            
-!           build vlm
-            t   = one
-            fac = w(ig)*xi(ig,jsph)*oji
-            do l = 0, lmax
-              ind  = l*l + l + 1
-              ffac = fac*t/facl(ind)
-              do m = -l, l
-                vlm(ind+m) = vlm(ind+m) + ffac*basloc(ind+m)
-              end do
-              t = t*tji
-            end do
-!            
-          end if
-        end do
-      end do
-!
-      return
-!
-!
-end subroutine adjrhs
-!
+
 !
   subroutine header
   implicit none
@@ -1944,7 +1911,25 @@ endfunction dtslm2
 !
 !
 !
-!---------------------------------------------------------------------
+!
+!------------------------------------------------------------------------
+! Purpose : compute
+!
+!   \Phi( n ) =
+!     
+!                       4 pi           l
+!     sum  W_n^ij  sum  ---- ( t_n^ij )  Y_l^m( s_n^ij ) [ \sigma_j ]_l^m
+!      j           l,m  2l+1
+!
+! which is related to the action of the COSMO matrix L in the following
+! way :
+!
+!   -   sum    L_ij \sigma_j = sum  w_n Y_l^m( s_n ) \Phi( n ) 
+!     j \ne i                   n
+!
+! This second step is performed by routine "intrhs".
+!------------------------------------------------------------------------
+!
 subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !
       logical,                        intent(in)    :: first
@@ -1966,12 +1951,12 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
       pot(:) = zero
 !
 !     if 1st iteration of Jacobi method, then done!
-      if ( first ) return
+      if ( first )  return
 !
 !     loop over grid points
       do its = 1,ngrid
 !
-!       ???? grid point belongs to N(s) [check this]
+!       contribution from integration point present
         if ( ui(its,isph).lt.one ) then
 !
 !         loop over neighbors of i-sphere
@@ -1980,18 +1965,18 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !           neighbor is j-sphere
             jsph = nl(ij)
 !            
-!           compute t = | r_i + \rho_i s_n - r_j | / \rho_j
+!           compute t_n^ij = | r_i + \rho_i s_n - r_j | / \rho_j
             vij  = csph(:,isph) + rsph(isph)*grid(:,its) - csph(:,jsph)
             vvij = sqrt( dot_product( vij, vij ) )
             tij  = vvij / rsph(jsph) 
 !
-!           compute s = ( r_i + \rho_i s_n - r_j ) / | ... |
+!           compute s_n^ij = ( r_i + \rho_i s_n - r_j ) / | ... |
             sij = vij / vvij
 !            
-!           compute \chi( t )
+!           compute \chi( t_n^ij )
             xij = fsw( tij, se, eta )
 !
-!           ???? omega_n^jk = chi_n^jk / f_n^j = chi_n^jk / sum_k chi_n^jk [check this]
+!           compute W_n^ij
             if ( fi(its,isph).gt.one ) then
 !
               oij = xij / fi(its,isph)
@@ -2000,20 +1985,20 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !
               oij = xij
 !
-            end if
+            endif
 !
-!           point vij is inside j-sphere
-!           ----------------------------
+!           point is INSIDE j-sphere
+!           ------------------------
             if ( tij.lt.one ) then
 !
-!             compute spherical harmonics at s
+!             compute Y_l^m( s_n^ij )
               call ylmbas( sij, basloc, vplm, vcos, vsin )
 !                    
-!             compute l,m-th row of L_jk * X_k vector
+!             accumulate over j, l, m
               pot(its) = pot(its) + oij * intmlp( tij, sigma(:,jsph), basloc )
 !              
-!           point vij on boundary of j-sphere (+ transition layer) [EXTENSION]
-!           ------------------------------------------------------------------
+!           point is OUTSIDE j-sphere (+ transition layer) [EXTENSION]
+!           ----------------------------------------------------------
             elseif ( tij.lt.( one + (se+one)/two*eta ) ) then
 !                    
 !             extension of potential
@@ -2022,8 +2007,10 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !             t^l extension
               case(0)
 !
-!             compute spherical harmonics at s
+!             compute Y_l^m( s_n^ij )
               call ylmbas( sij, basloc, vplm, vcos, vsin )
+!              
+!             accumulate over j, l, m
               pot(its) = pot(its) + oij*intmlp(tij,sigma(:,jsph),basloc)
 !
 !             constant extension
@@ -2051,4 +2038,6 @@ subroutine calcv2( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
 !      
 !      
 endsubroutine calcv2
-end module ddcosmo
+!
+!
+endmodule ddcosmo

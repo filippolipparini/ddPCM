@@ -137,10 +137,11 @@ subroutine lx( n, x, y )
 !     loop over spheres
       do isph = 1,nsph
 !      
+!       compute NEGATIVE action of off-digonal blocks
         call calcv2( .false., isph, pot, x, basloc, vplm, vcos, vsin )
         call intrhs( isph, pot, y(:,isph) )
 !
-!       P. Gatto : why the sign flip ???
+!       action of off-diagonal blocks
         y(:,isph) = - y(:,isph)
 !
 !       add action of diagonal block
@@ -221,9 +222,10 @@ subroutine lstarx( n, x, y )
 !     loop over spheres
       do isph = 1,nsph
 !      
+!       compute NEGATIVE action of off-digonal blocks
         call adjrhs1( isph, xi, y(:,isph), basloc, vplm, vcos, vsin )
 !        
-!       P. Gatto : why the sign flip ???
+!       action of off-diagonal blocks
         y(:,isph) = - y(:,isph)
 !
 !       add action of diagonal block

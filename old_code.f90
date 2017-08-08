@@ -2026,3 +2026,79 @@ endsubroutine check_derivativesCOSMO
   return
   end subroutine solve
  
+!-----------------------------------------------------------------------------------
+subroutine adjrhs(first,isph,psi,xi,vlm,basloc,vplm,vcos,vsin)
+!
+      implicit none
+      logical,                       intent(in)    :: first
+      integer,                       intent(in)    :: isph
+      real*8, dimension(nbasis),     intent(in)    :: psi
+      real*8, dimension(ngrid,nsph), intent(in)    :: xi
+      real*8, dimension(nbasis),     intent(inout) :: vlm
+      real*8, dimension(nbasis),     intent(inout) :: basloc, vplm
+      real*8, dimension(lmax+1),     intent(inout) :: vcos, vsin
+!
+      integer :: ij, jsph, ig, l, ind, m
+      real*8  :: vji(3), vvji, tji, sji(3), xji, oji, fac, ffac, t
+!-----------------------------------------------------------------------------------
+!
+!     initialize
+      vlm = psi
+!
+!     just return vlm = psi when n=1
+      if (first) return
+!
+!     loop over neighboring spheres of i-sphere
+      do ij = inl(isph), inl(isph+1) - 1
+!
+!       j-sphere is neighbor
+        jsph = nl(ij)
+!
+!       loop over integration points on j-sphere
+        do ig = 1, ngrid
+!        
+!         build t_ij
+          vji  = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
+          vvji = sqrt(dot_product(vji,vji))
+          tji  = vvji/rsph(isph)
+!
+!         point vji is inside i-sphere (+ transition layer)
+!         -------------------------------------------------
+          if ( tji.lt.( one + (se+one)/two*eta ) ) then
+!                  
+!           build omega_ij
+            sji = vji/vvji
+            xji = fsw(tji,se,eta)
+            if (fi(ig,jsph).gt.one) then
+              oji = xji/fi(ig,jsph)
+            else
+              oji = xji
+            end if
+!            
+!           compute spherical harmonics at integration point
+            call ylmbas(sji,basloc,vplm,vcos,vsin)
+!            
+!           build vlm
+            t   = one
+            fac = w(ig)*xi(ig,jsph)*oji
+            do l = 0, lmax
+              ind  = l*l + l + 1
+              ffac = fac*t/facl(ind)
+              do m = -l, l
+                vlm(ind+m) = vlm(ind+m) + ffac*basloc(ind+m)
+              end do
+              t = t*tji
+            end do
+!            
+          end if
+        end do
+      end do
+!
+      return
+!
+!
+end subroutine adjrhs
+!
+
+
+

@@ -27,7 +27,9 @@ TODO list :
 
              wghpot : why is there a minus sign ??? add comment about it
 
-             adjrhs : remove psi from head
+             adjrhs : remove psi from head ; check consistency of extension with direct problem
+
+             adjrhs1 : check consistency of extension with direct problem
 
 3. mkrhs : modify accordingly to restructuring of ddcosmo
    -----

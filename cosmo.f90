@@ -54,7 +54,9 @@
 !
 subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
-      use ddcosmo
+      use ddcosmo , only : ncav, nbasis, nsph, iconv, isolver, do_diag, zero, ngrid, &
+                           wghpot, intrhs, facl, pt5, eps, sprod, iout, iprint,      &
+                           ndiis, one
 !      
       implicit none
       logical,                         intent(in)    :: star, cart
@@ -184,14 +186,14 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
           call ldm1x( nsph*nbasis, rhs, rhs )
           call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plx, info )
 !          
-!         gmres success flag
+!         solver success flag
           ok = ( info.eq.0 )
 !
         endif
 !
 !       compute solvation energy :
 !
-        esolv = pt5 * ((eps - one)/eps) * sprod(nsph*nbasis,sigma,psi)
+        esolv = pt5 * ((eps - one)/eps) * sprod( nsph*nbasis, sigma, psi )
 !
 !       deallocate workspace
         deallocate( rhs , stat=istatus )
@@ -199,7 +201,7 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
            write(*,*) 'cosmo: [2] failed deallocation'
         endif
 !
-!     ADJOINT COSMO EQUATION L^T X = g
+!     ADJOINT COSMO EQUATION L^* X = g
 !     --------------------------------
       else
 !
@@ -220,7 +222,7 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
         else if ( isolver.eq.1 ) then
 !                
 !         allocate workspace for rhs
-          allocate ( rhs(nbasis,nsph), stat=istatus )
+          allocate( rhs(nbasis,nsph), stat=istatus )
           if ( istatus.ne.0 ) then
             write(*,*) 'cosmo: [4] failed allocation'
             stop
@@ -228,18 +230,18 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
 !         the gmres solver can not handle preconditioners, so we will solve 
 !  
-!           P L^T X = P g,
+!           P L^* X = P g,
 !
 !         where P is a jacobi preconditioner. note thus the pstarlx matrix-vector multiplication routine.
 !
           call ldm1x( nsph*nbasis, psi, rhs )
           call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plstarx, info )
 !          
-!         gmres success flag
-          ok = (info .eq. 0)
+!         solver success flag
+          ok = ( info.eq.0 )
 !          
 !         deallocate workspace for rhs
-          deallocate (rhs , stat=istatus )
+          deallocate( rhs , stat=istatus )
           if ( istatus.ne.0 ) then
             write(*,*) 'cosmo: [3] failed deallocation'
           endif
