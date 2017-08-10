@@ -2101,4 +2101,239 @@ end subroutine adjrhs
 !
 
 
+!----------------------------------------------------------------------------------------
+! Purpose : action of ( A^eps^T )_i: , i.e., sum_j (A ^eps^T )_ij v_j .
+!
+! Let's drop ^eps for semplicity. Then :
+!
+!   dvlm_i =   sum   ( A^T )_ij vl'm'_j + ( A^T )_ii vl'm'_i =
+!            j \ne i
+!
+!              2 pi                                               l+1                               
+!          = - ----  sum  w_n    sum    U_j^n  Y_l^m(s_ijn)  2l  t      sum  Y_l'^m'(s_n)  vl'm'_j
+!              2l+1   n        j \ne i                                 l',m'                       
+!
+!                                              |-------- f1 --------|  |---------- ss -----------|
+!
+!              2 pi                                                           
+!            - ----  sum  w_n  (-U_i^n)  Y_l^m(s_n)   sum   Y_l'^m'(s_n)  vl'm'_i
+!              2l+1   n                              l',m'                       
+!
+!                                                    |----------- ss -----------|
+!
+!                  eps+1      
+!            + 2pi ----- vlm_i
+!                  eps-1      
+!
+! Remark : when eps_s=0, the eps=oo case is triggered.
+!----------------------------------------------------------------------------------------
+!
+subroutine ADJvec_old( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
+!
+      use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, ui, facl, &
+                            two, pi, one, zero, pt5, w, ylmbas, ext1, do_diag
+!      
+      implicit none
+      integer,                         intent(in   ) :: isph
+      real*8,                          intent(in   ) :: eps_s
+      real*8,  dimension(nbasis,nsph), intent(in   ) :: vlm
+      real*8,  dimension(nbasis),      intent(inout) :: dvlm
+      real*8,  dimension(ngrid),       intent(inout) :: x
+      real*8,  dimension(nbasis),      intent(inout) :: xlm, basloc, vplm
+      real*8,  dimension(lmax+1),      intent(inout) :: vcos, vsin
+!
+      integer :: n, jsph, l, m, ind
+      real*8 :: vij(3), s_ijn(3), fep
+      real*8 :: vvij, t_ijn, tt, ss
+      real*8 :: dijvlm(nbasis),f1(nbasis)
+
+      integer, save :: iflag = 0
+!
+!----------------------------------------------------------------------------------------
+!
+!     compute multiplicative coefficient
+      fep = two*pi*(eps_s+one)/(eps_s-one)
+      if ( eps_s.eq.zero )  fep = two*pi
+!
+!     initialize [ this is just a DUMMY variable ]
+      x(:) = zero
+!
+!     initialize
+      dvlm(:)=zero
+!
+!     loop over integration points
+      do n = 1,ngrid
+!
+!       initialize
+        dijvlm(:)=zero
+
+!       loop over spheres
+        do jsph = 1,nsph
+!          
+!         non-null contribution from integration point 
+          if ( ui(n,jsph).gt.zero ) then
+!
+!
+!           action of ( A^T )_ij
+!           ====================
+!
+            if ( jsph.ne.isph ) then
+!
+!             compute t_ijn, s_ijn
+              vij   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,isph)
+              vvij  = sqrt( dot_product( vij,vij ) )
+              t_ijn = rsph(isph)/vvij 
+              s_ijn =        vij/vvij
+!              
+!             contract over l', m'
+              ss = dot_product( basis(:,n), vlm(:,jsph) )
+!              
+!             compute Y_l^m( s_ijn )
+              call ylmbas( s_ijn, basloc, vplm, vcos, vsin )
+!              
+!             point vij is OUTSIDE i-sphere
+!             -----------------------------
+              if ( t_ijn.le.one ) then
+
+!               initialize t^(l+1) factor
+                tt = one
+!
+!               loop over degree of spherical harmonics 
+                do l = 0,lmax
+!                
+!                 update factor
+                  tt = tt*t_ijn
+!                  
+!                 index associated to Y_0^l
+                  ind = l*l + l + 1
+!                  
+!                 loop over order of spherical harmonics
+                  do m = -l,l
+!                   
+!                   compute f1
+                    f1(ind+m) = two*l * tt * basloc(ind+m)
+!                    
+                  enddo
+                enddo
+!
+!             point vij is INSIDE i-sphere [ extension of potential ]
+!             -------------------------------------------------------
+              else 
+!
+!               extension of potential
+                select case(ext1)
+!
+!               t^l extension
+                case(0)
+!                        
+!               initialize t^(l+1) factor
+                tt = one
+!
+!               loop over degree of spherical harmonics 
+                do l = 0,lmax
+!                
+!                 update factor
+                  tt = tt*t_ijn
+!                  
+!                 index associated to Y_0^l
+                  ind = l*l + l + 1
+!                  
+!                 loop over order of spherical harmonics
+                  do m = -l,l
+!                   
+!                   compute f1
+                    f1(ind+m) = two*l * tt * basloc(ind+m)
+!                    
+                  enddo
+                enddo
+!
+!               constant extension
+                case(1)
+!                        
+!               initialize t^(l+1) factor
+                tt = one
+!
+!               loop over degree of spherical harmonics 
+                do l = 0,lmax
+!                
+!                 update factor
+!!!               tt = tt*t_ijn
+!                  
+!                 index associated to Y_0^l
+                  ind = l*l + l + 1
+!                  
+!                 loop over oder of spherical harmonics
+                  do m = -l,l
+!                   
+!                   compute f1
+                    f1(ind+m) = two*l * tt * basloc(ind+m)
+!                    
+                  enddo
+                enddo
+!
+!               t^-l extension
+                case(2)
+!
+!               initialize t^-(l+1) factor
+                tt = one
+!
+!               loop over degree of spherical harmonics 
+                do l = 0,lmax
+!                
+!                 update factor
+                  tt = tt/t_ijn
+!                  
+!                 index associated to Y_0^l
+                  ind = l*l + l + 1
+!                  
+!                 loop over oder of spherical harmonics
+                  do m = -l,l
+!                   
+!                   compute f1
+                    f1(ind+m) = two*l * tt * basloc(ind+m)
+!                    
+                  enddo
+                enddo
+!
+                endselect
+              endif
+!
+!             accumulate over j
+              dijvlm(:) = dijvlm(:) + ui(n,jsph) * f1(:) * ss
+!                      
+!                      
+!           action of ( A^T )_ii [ excluding identity term ], if required
+!           ====================
+!                      
+            else if (do_diag) then
+!
+!             contract over l', m'
+              ss = dot_product( basis(:,n), vlm(:,isph) )
+!              
+!             compute (-U_i^n) Y_l^m(s_n) * ss              
+              dijvlm(:) = dijvlm(:) - ui(n,isph) * basis(:,n) * ss
+!              
+            endif
+          endif
+        enddo
+!        
+!       accumulate over n
+        dvlm(:) = dvlm(:) + w(n) * dijvlm(:)
+!
+      enddo
+!
+!
+!     if required, add action of identity term
+!                  ===========================
+!
+      if ( do_diag ) then 
+        dvlm(:) = fep*vlm(:,isph) - pt5/facl(:)*dvlm(:)
+      else
+        dvlm(:) = - pt5/facl(:)*dvlm(:)
+      endif
+!
+!
+endsubroutine ADJvec_old
+!-------------------------------------------------------------------------------
+!
 

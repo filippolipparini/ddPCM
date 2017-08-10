@@ -870,40 +870,36 @@ endsubroutine ADJpcm
 !
 !
 !----------------------------------------------------------------------------------------
-! Purpose : action of A_i:^eps , i.e., sum_j A_ij^eps v_j .
+! Purpose : compute 
 !
-! Let's drop ^eps for semplicity. Then :
+!   sum  A_ij v_j
+!    j
 !
-!   dvlm_i =   sum   A_ij vl'm'_j + A_ii vl'm'_i =
-!            j \ne i
+! where A is the PCM matrix, through the following steps . 
 !
-!                            4pi l'                              l'+1
-!          = -  sum     sum  ------ sum w_n  Y_l^m(s_n)  U_i^n  t      Y_l'^m'(s_ijn)  vl'm'_j
-!             j \ne i  l',m' 2l'+1   n
+! 1. Off-diagonal terms :
 !
-!                  eps+1                2pi
-!            + 2pi ----- vlm_i +  sum  -----  sum w_n  Y_l^m(s_n)  U_i^n  Y_l'^m'(s_n)  vl'm'_i
-!                  eps-1         l',m' 2l'+1   n      
+!                        4\pi l           l+1
+!   x(n) =   sum    sum  ------ ( t_n^ij )    Y_l^m( s_n^ij ) [ v_j ]_l^m
+!          j \ne i  l,m  2l + 1
 !
-!                                                         4pi l'   l'+1
-!          = - sum  w_n  Y_l^m(s_n)  U_i^n   sum     sum  ------  t      Y_l'^m'(s_ijn)  vl'm'_j
-!               n                          j \ne i  l',m' 2l'+1
-! 
-!                                    |------------------------- x1(n) -------------------------|
+! 2. Add in diagonal term :
 !
-!                                                     2pi
-!            - sum  w_n  Y_l^m(s_n)  U_i^n   sum   - -----  Y_l'^m'(s_n)  vl'm'_i
-!                n                          l',m'    2l'+1
+!                         2\pi
+!   x(n) = x(n) + sum  - ------ Y_l^m( s_n^ij ) [ v_i ]_l^m
+!                 l,m    2l + 1
 !
-!                                    |----------------- x2(n) ------------------|
+! 3. Integrate :
 !
-!                  eps+1         
-!            + 2pi ----- vlm_i 
-!                  eps-1        
+!   [ dv ]_l^m = sum  w_n U_n^i Y_l^m( s_n ) x(n)
+!                 n
 !
-!                                                            eps+1         
-!          = - sum  w_n  Y_l^m(s_n)  ( x1(n) + x2(n) ) + 2pi ----- vlm_i
-!               n                                            eps-1        
+! 4. Add in identity term :
+!
+!                     \eps+1
+!   [ dv ]_l^m = 2\pi ------ [ v_i ]_l^m - [ dv ]_l^m
+!                     \eps-1
+!
 !
 ! Remark : when eps_s=0, the eps=oo case is triggered.
 !----------------------------------------------------------------------------------------
@@ -929,7 +925,7 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
 !----------------------------------------------------------------------------------------
 !
-!     compute f( \eps )
+!     compute multiplicative coefficient
       fep = two*pi*(eps_s+one)/(eps_s-one)
       if ( eps_s.eq.zero )  fep = two*pi
 !
@@ -943,7 +939,7 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
         if ( ui(its,isph).gt.zero ) then
 !
 !         loop over spheres
-          do jsph = 1, nsph
+          do jsph = 1,nsph
 !
 !
 !           action of A_ij
@@ -951,22 +947,22 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
             if ( jsph.ne.isph ) then
 !
-!             compute tij, sij
+!             compute t_n^ij = | r_i + \rho_i s_n - r_j | / \rho_j
               vij  = csph(:,isph) + rsph(isph)*grid(:,its) - csph(:,jsph)
               vvij = sqrt(dot_product(vij,vij))
               tij  = vvij/rsph(jsph) 
+!
+!             compute s_n^ij = ( r_i + \rho_i s_n - r_j ) / | ... |
               sij  = vij/vvij
 !              
-!             compute Y_l'^m'( sij )
+!             compute Y_l^m( s_n^ij )
               call ylmbas( sij, basloc, vplm, vcos, vsin )
 !              
-!             point vij is INSIDE j-sphere [ extension ]
-!             ------------------------------------------
+!             point is INSIDE j-sphere [ EXTENSION ]
+!             --------------------------------------
               if ( tij.lt.one ) then
 !
-!!!                np_switch = np_switch + 1
-!
-!               contract over l', m'; accumulate
+!               STEP 1 : x(n) = x(n) + ...
 !
 !               extension of potential
                 select case(ext1)
@@ -985,46 +981,50 @@ subroutine mkrvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
                endselect
 !                      
-!             point vij is OUTSIDE j-sphere
-!             -----------------------------
+!             point is OUTSIDE j-sphere
+!             -------------------------
               else
 !                      
-!               contract over l', m'; accumulate
+!               STEP 1 : x(n) = x(n) + ... 
                 x(its) = x(its) + dtslm2( tij, vlm(:,jsph), basloc )
 !                      
-              end if
+              endif
 !                      
 !                      
-!           action of A_ii [ excluding identity term ], if required
+!           action of A_ii [ excluding identity term ]
 !           ==============
 !                      
-            else if (do_diag) then
+            elseif ( do_diag ) then
 !
+!             compute x_l^m = - 2pi / (2l+1) [ v_i ]_l^m
               xlm(:) = -pt5 * vlm(:,isph) / facl(:)
 !
-!             contract over l', m'; accumulate
+!             STEP 2 : x(n) = x(n) + sum_l,m  Y_l^m( s_n ) x_l^m
               x(its) = x(its) + dot_product( basis(:,its), xlm(:) )
 !              
-            end if
-          end do
-        end if
-      end do
+!              
+            endif
+          enddo
+        endif
+      enddo
 !
-!     compute x
+!     STEP 2
       x(:) = x(:) * ui(:,isph)
 !
-!     integrate against SH
+!     STEP 3 : integrate against SH
       call intrhs( isph, x, dvlm )
 !
 !
-!     if required, add action of identity term
-!     ===========================
-!
-      if (do_diag) then
+!     STEP 4 : add action of identity term
+      if ( do_diag ) then
+!              
         dvlm(:) = fep * vlm(:,isph) - dvlm(:)
+!        
       else
+!              
         dvlm(:) = -dvlm(:)
-      end if
+!        
+      endif
 !
 !
 endsubroutine mkrvec
@@ -1200,37 +1200,59 @@ endsubroutine mkrvec_fmm
 !
 !
 !
-!----------------------------------------------------------------------------------------
-! Purpose : action of ( A^eps^T )_i: , i.e., sum_j (A ^eps^T )_ij v_j .
 !
-! Let's drop ^eps for semplicity. Then :
 !
-!   dvlm_i =   sum   ( A^T )_ij vl'm'_j + ( A^T )_ii vl'm'_i =
-!            j \ne i
+!-------------------------------------------------------------------------------
+! Purpose : compute
 !
-!              2 pi                                               l+1                               
-!          = - ----  sum  w_n    sum    U_j^n  Y_l^m(s_ijn)  2l  t      sum  Y_l'^m'(s_n)  vl'm'_j
-!              2l+1   n        j \ne i                                 l',m'                       
+!   sum (A^T)_ij v_j
+!    j
 !
-!                                              |-------- f1 --------|  |---------- ss -----------|
+! where A is the PCM matrix, through the following steps .
 !
-!              2 pi                                                           
-!            - ----  sum  w_n  (-U_i^n)  Y_l^m(s_n)   sum   Y_l'^m'(s_n)  vl'm'_i
-!              2l+1   n                              l',m'                       
+! 1. Compute :
 !
-!                                                    |----------- ss -----------|
+!   ss = sum  Y_l^m( s_n ) [ v_j ]_l^m
+!        l,m                       
 !
-!                  eps+1      
-!            + 2pi ----- vlm_i
-!                  eps-1      
+! 2. Compute :
 !
-! Remark : when eps_s=0, the eps=oo case is triggered.
-!----------------------------------------------------------------------------------------
+!           4\pi l                         -(l+1)
+!   f_l^m = ------ Y_l^m( s_n^ji ) (t_n^ji)      
+!           2l + 1
+!
+! 3. Off-diagonal terms :
+!
+!  x_l^m = x_l^m - U_n^j * f_l^m * ss
+!
+! 4. Compute :
+!
+!   ss = sum  Y_l^m( s_n ) [ v_i ]_l^m
+!        l,m                       
+!
+! 5. Add in diagonal term :
+!
+!                    2\pi
+!   x_l^m = x_l^m - ------ U_n^i * Y_l^m( s_n ) * ss
+!                   2l + 1
+!
+! 6. Accumulate over integration points :
+!
+!  [ dv ]_l^m = [ dv ]_l^m + w_n * x_l^m
+!
+! 7. Add in identity term :
+!
+!                    \eps+1
+!  [ dv ]_l^m = 2\pi ------ [ v_i ]_l^m - [ dv ]_l^m
+!                    \eps-1
+!
+!-------------------------------------------------------------------------------
 !
 subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
 !
-      use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, ui, facl, &
-                            two, pi, one, zero, pt5, w, ylmbas, ext1, do_diag
+      use  ddcosmo , only : nbasis, nsph, ngrid, lmax, csph, rsph, grid, basis, &
+                            ui, facl, two, pi, one, zero, pt5, w, ylmbas, ext1, &
+                            do_diag, tylm
 !      
       implicit none
       integer,                         intent(in   ) :: isph
@@ -1241,30 +1263,26 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
       real*8,  dimension(nbasis),      intent(inout) :: xlm, basloc, vplm
       real*8,  dimension(lmax+1),      intent(inout) :: vcos, vsin
 !
-      integer :: n, jsph, l, m, ind
-      real*8 :: vij(3), s_ijn(3), fep
-      real*8 :: vvij, t_ijn, tt, ss
-      real*8 :: dijvlm(nbasis),f1(nbasis)
-
-      integer, save :: iflag = 0
+      real*8  :: vji(3), sji(3), fep, vvji, tji, tt, ss, flm(nbasis)
+      integer :: n, jsph
 !
-!----------------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
 !
-!     compute f( \eps )
+!     compute multiplicative coefficient
       fep = two*pi*(eps_s+one)/(eps_s-one)
       if ( eps_s.eq.zero )  fep = two*pi
 !
-!     initialize [ this is just a DUMMY variable ]
-      x(:) = zero
+!     initialize [ UNUSED !!! ] workspace 
+      x = zero
 !
 !     initialize
-      dvlm(:)=zero
+      dvlm = zero
 !
 !     loop over integration points
       do n = 1,ngrid
 !
 !       initialize
-        dijvlm(:)=zero
+        xlm = zero
 
 !       loop over spheres
         do jsph = 1,nsph
@@ -1273,169 +1291,97 @@ subroutine ADJvec( isph, eps_s, vlm, dvlm, xlm, x, basloc, vplm, vcos, vsin )
           if ( ui(n,jsph).gt.zero ) then
 !
 !
-!           action of ( A^T )_ij
-!           ====================
+!           action of (A^T)_ij
+!           ==================
 !
             if ( jsph.ne.isph ) then
 !
-!             compute t_ijn, s_ijn
-              vij   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,isph)
-              vvij  = sqrt( dot_product( vij,vij ) )
-              t_ijn = rsph(isph)/vvij 
-              s_ijn =        vij/vvij
+!             compute t_n^ji
+              vji  = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,isph)
+              vvji = sqrt( dot_product( vji,vji ) )
+              tji  =  vvji/rsph(isph)
 !              
-!             contract over l', m'
+!             compute s_n^ji
+              sji = vji/vvji
+!              
+!             contract over l, m
               ss = dot_product( basis(:,n), vlm(:,jsph) )
 !              
-!             compute Y_l^m( s_ijn )
-              call ylmbas( s_ijn, basloc, vplm, vcos, vsin )
+!             compute Y_l^m( s_n^ji )
+              call ylmbas( sji, basloc, vplm, vcos, vsin )
 !              
-!             point vij is OUTSIDE i-sphere
-!             -----------------------------
-              if ( t_ijn.le.one ) then
-
-!               initialize t^(l+1) factor
-                tt = one
-!
-!               loop over degree of spherical harmonics 
-                do l = 0,lmax
-!                
-!                 update factor
-                  tt = tt*t_ijn
-!                  
-!                 index associated to Y_0^l
-                  ind = l*l + l + 1
-!                  
-!                 loop over order of spherical harmonics
-                  do m = -l,l
-!                   
-!                   compute f1
-                    f1(ind+m) = two*l * tt * basloc(ind+m)
-!                    
-                  enddo
-                enddo
-!
-!             point vij is INSIDE i-sphere [ extension of potential ]
-!             -------------------------------------------------------
-              else 
-!
-!!!                np_switch_adj = np_switch_adj + 1
+!             point is INSIDE i-sphere [ EXTENSION ]
+!             --------------------------------------
+              if ( tji.lt.one ) then
 !
 !               extension of potential
                 select case(ext1)
 !
-!               t^l extension
+!               t^-l extension
                 case(0)
-!                        
-!               initialize t^(l+1) factor
-                tt = one
-!
-!               loop over degree of spherical harmonics 
-                do l = 0,lmax
+                call tylm( tji, basloc, flm )
 !                
-!                 update factor
-                  tt = tt*t_ijn
-!                  
-!                 index associated to Y_0^l
-                  ind = l*l + l + 1
-!                  
-!                 loop over order of spherical harmonics
-                  do m = -l,l
-!                   
-!                   compute f1
-                    f1(ind+m) = two*l * tt * basloc(ind+m)
-!                    
-                  enddo
-                enddo
-!
 !               constant extension
                 case(1)
-!                        
-!               initialize t^(l+1) factor
-                tt = one
+                call tylm( one, basloc, flm )
 !
-!               loop over degree of spherical harmonics 
-                do l = 0,lmax
-!                
-!                 update factor
-!!!               tt = tt*t_ijn
-!                  
-!                 index associated to Y_0^l
-                  ind = l*l + l + 1
-!                  
-!                 loop over oder of spherical harmonics
-                  do m = -l,l
-!                   
-!                   compute f1
-                    f1(ind+m) = two*l * tt * basloc(ind+m)
-!                    
-                  enddo
-                enddo
-!
-!               t^-l extension
+!               (1/t)^-l extension
                 case(2)
-!
-!               initialize t^-(l+1) factor
-                tt = one
-!
-!               loop over degree of spherical harmonics 
-                do l = 0,lmax
-!                
-!                 update factor
-                  tt = tt/t_ijn
-!                  
-!                 index associated to Y_0^l
-                  ind = l*l + l + 1
-!                  
-!                 loop over oder of spherical harmonics
-                  do m = -l,l
-!                   
-!                   compute f1
-                    f1(ind+m) = two*l * tt * basloc(ind+m)
-!                    
-                  enddo
-                enddo
+                call tylm( one/tji, basloc, flm )
 !
                 endselect
+!                
+!
+!             point is OUTSIDE i-sphere
+!             -------------------------
+              else 
+!
+                call tylm( tji, basloc, flm )
+!                
               endif
 !
 !             accumulate over j
-              dijvlm(:) = dijvlm(:) + ui(n,jsph) * f1(:) * ss
+              xlm(:) = xlm(:) + ui(n,jsph) * flm(:) * ss
 !                      
 !                      
-!           action of ( A^T )_ii [ excluding identity term ], if required
-!           ====================
+!           action of (A^T)_ii [ excluding identity term ]
+!           ==================
 !                      
-            else if (do_diag) then
+            elseif ( do_diag ) then
 !
-!             contract over l', m'
+!             contract over l, m
               ss = dot_product( basis(:,n), vlm(:,isph) )
 !              
-!             compute (-U_i^n) Y_l^m(s_n) * ss              
-              dijvlm(:) = dijvlm(:) - ui(n,isph) * basis(:,n) * ss
+!             accumulate x_l^m = x_l^m - U_i^n * Y_l^m(s_n) * ss * 2\pi / (2l + 1)
+              xlm(:) = xlm(:) - ui(n,isph) * basis(:,n) * ss * pt5/facl(:)
 !              
             endif
           endif
         enddo
 !        
 !       accumulate over n
-        dvlm(:) = dvlm(:) + w(n) * dijvlm(:)
+        dvlm(:) = dvlm(:) + w(n) * xlm(:)
 !
       enddo
 !
 !
-!     if required, add action of identity term
-!                  ===========================
+!     add action of identity term
+!     ===========================
 !
-      if (do_diag) then 
-        dvlm(:) = fep*vlm(:,isph) - pt5/facl(:)*dvlm(:)
+      if ( do_diag ) then 
+!              
+        dvlm(:) = fep*vlm(:,isph) - dvlm(:)
+!        
       else
-        dvlm(:) = - pt5/facl(:)*dvlm(:)
-      end if
+!              
+        dvlm(:) = - dvlm(:)
+!        
+      endif
 !
 !
 endsubroutine ADJvec
 !-------------------------------------------------------------------------------
+!
 !
 !
 !

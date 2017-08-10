@@ -1861,51 +1861,54 @@ endfunction dtslm
 !
 !
 !---------------------------------------------------------------------
-! Purpose : compute :
+! Purpose : compute
 !
-!        4 pi l
-!   sum  ------  1/t^(l+1)  nu_l^m  Y_l^m
+!        4\pi l
+!   sum  ------ 1/t^(l+1) \nu_l^m Y_l^m
 !   l,m  2l + 1
 !
-! Remark : index l starts from 0 !
+! which is needed to compute the action of PCM .
 !---------------------------------------------------------------------
+!
 real*8 function dtslm2( t, nu, basloc )
 !
       implicit none
-      real*8, intent(in) :: t
-      real*8, intent(in), dimension(nbasis) :: nu
-      real*8, intent(in), dimension(nbasis) :: basloc
+      real*8,                    intent(in) :: t                   
+      real*8, dimension(nbasis), intent(in) :: nu
+      real*8, dimension(nbasis), intent(in) :: basloc
 !
       integer :: l, ind, m
       real*8  :: fl, fac, ss, tt
 !      
 !---------------------------------------------------------------------
 !
-!     initialize
-      ss = zero ; tt = one/t
-
-!     loop over degree of spherical harmonics 
-      do l = 0, lmax
+!     initialize 1/t^(l+1)
+      tt = one/t
+!      
+!     initialize return value
+      ss = zero
 !
-!       index associated to Y_l^0
+!     loop over degree of spherical harmonics 
+      do l = 0,lmax
+!
         ind = l*l + l + 1
 !
 !       compute factor
         fl  = dble(l)
-      ! fac = four*pi*(fl+one)/(two*fl + one)*tt
         fac = four*pi*fl/(two*fl + one)*tt
 !
 !       loop over order of spherical harmonics        
-        do m = -l, l
+        do m = -l,l
 !
-!         accumulate
-          ss = ss + fac*nu(ind+m)*basloc(ind+m)
+!         accumulate over l, m
+          ss = ss + fac * nu(ind+m) * basloc(ind+m)
 !          
-        end do
+        enddo
 !
-!       compute 1/t^(l+1)
+!       update 1/t^(l+1)
         tt = tt/t
-      end do
+!        
+      enddo
 !
 !     return value
       dtslm2 = ss
@@ -1914,6 +1917,62 @@ real*8 function dtslm2( t, nu, basloc )
 endfunction dtslm2
 !---------------------------------------------------------------------
 !
+!
+!
+!
+!---------------------------------------------------------------------
+! Purpose : compute
+!
+!          4\pi l
+!   xlm =  ------ 1/t^(l+1) Y_l^m
+!          2l + 1
+!
+! which is needed to compute the action of adjoint PCM .
+!---------------------------------------------------------------------
+!
+subroutine tylm( t, basloc, xlm )
+!
+      implicit none
+      real*8,                    intent(in ) :: t                   
+      real*8, dimension(nbasis), intent(in ) :: basloc
+      real*8, dimension(nbasis), intent(out) :: xlm
+!
+      integer :: l, ind, m
+      real*8  :: fl, fac, ss, tt
+!      
+!---------------------------------------------------------------------
+!
+!     initialize 1/t^(l+1)
+      tt = one/t
+!      
+!     initialize
+      xlm = zero
+!
+!     loop over degree of spherical harmonics 
+      do l = 0,lmax
+!
+        ind = l*l + l + 1
+!
+!       compute factor
+        fl  = dble(l)
+        fac = four*pi*fl/(two*fl + one)*tt
+!
+!       loop over order of spherical harmonics        
+        do m = -l,l
+!
+!         accumulate over l, m
+          xlm(ind+m) = fac * basloc(ind+m)
+!          
+        enddo
+!
+!       update 1/t^(l+1)
+        tt = tt/t
+!        
+      enddo
+!
+!
+endsubroutine tylm
+!---------------------------------------------------------------------
 !
 !
 !

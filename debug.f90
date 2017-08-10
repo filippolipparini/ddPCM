@@ -38,6 +38,7 @@ subroutine debug_tests()
         write(*,*)'Count points in switch region ............................6'
         write(*,*)'Action of PCM with FMM ...................................7'
         write(*,*)'Compare PCM implementations ..............................8'
+        write(*,*)'Check adjoint PCM ........................................9'
         write(*,*)''
         write(*,*)'Exit .....................................................0'
         write(*,*)'==========================================================='
@@ -315,6 +316,10 @@ subroutine debug_tests()
 !       OLD AND NEW PCM
 !       ===============
         case(8) ; call check_old_new_pcm()
+!
+!       CHECK ADJOINT PCM MATRIX
+!       ========================
+        case(9) ; call ADJcheck()
 !          
         endselect
 !                
@@ -332,39 +337,34 @@ endsubroutine debug_tests
 !
 !
 !----------------------------------------------------------------------------------
-! Purpose : check that adjoint PCM matrix is formed correctly.
+! Purpose : check that adjoint PCM matrix is formed correctly , and solutin of
+!           adjoint problem is consistent with solution of direct problem.
 !----------------------------------------------------------------------------------
 !
-subroutine ADJcheck
+subroutine ADJcheck()
 !       
-      use ddcosmo , only : nbasis,nsph,ngrid,lmax,zero,one,two,csph,rsph,memfree, &
-                           ddinit,ui,zi,iquiet,eps
+      use ddcosmo , only : nbasis, nsph, ngrid, lmax, zero, iquiet, eps, iprint, &
+                           one, do_diag
 !
       implicit none
-      real*8 :: f(nbasis,nsph),Af( nbasis)
-      real*8 :: e(nbasis,nsph),ATe(nbasis)
-      real*8 :: s(nbasis,nsph)
-      real*8 :: A(nbasis*nsph,nbasis*nsph),AT(nbasis*nsph,nbasis*nsph)
-      real*8 :: dA1(nbasis*nsph,nbasis*nsph),dA2(nbasis*nsph,nbasis*nsph)
-      real*8 :: dA3(nbasis*nsph,nbasis*nsph)
-      real*8 :: dA(nbasis*nsph,nbasis*nsph,nsph,3)
-      real*8 :: A_plus(nbasis*nsph,nbasis*nsph,nsph,3)
-      real*8 :: xlm(nbasis),xx(ngrid),vplm(nbasis),vcos(lmax+1),vsin(lmax+1), &
-                basloc(nbasis)
-      integer :: isph,jsph,i,j,ibeg,iend,nsph_save,icomp,ksph,iter,n
-      real*8 :: s1,s2,eeps,err,rnorm
-      integer, parameter :: niter = 6
-      real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), s3(3)
-      real*8 :: x(nsph), y(nsph), z(nsph), iwork(nsph*3,2), rwork(niter,nsph*3)
-      real*8 :: rrate(niter,nsph*3)
+      real*8 :: f(nbasis,nsph), Af(nbasis), e(nbasis,nsph), s(nbasis,nsph)
+      real*8 :: A(nbasis*nsph,nbasis*nsph), AT(nbasis*nsph,nbasis*nsph)
+      real*8 :: xlm(nbasis), x(ngrid), vplm(nbasis), vcos(lmax+1), vsin(lmax+1), &
+                basloc(nbasis), rvoid(1), s1, s2
+      integer :: isph,jsph, i, j, ibeg, iend, iprint_save
+      logical :: iquiet_save, do_diag_save
 !
 !--------------------------------------------------------------------------------
 !
-!     activate quiet flag
-      iquiet = .true.
+!     store flags
+      iquiet_save = iquiet ; iprint_save = iprint ; do_diag_save = do_diag
 !
-!     check A = ( A^T )^T
-!     -------------------
+!     activate flags
+      iquiet = .true. ; iprint = 0 ; do_diag = .true.
+!
+!
+!     check A = (A^T)^T
+!     -----------------
 !
 !     construct A, A^T
       do isph = 1,nsph
@@ -379,10 +379,10 @@ subroutine ADJcheck
 !           compute A  _i e_j
             ibeg = (isph-1)*nbasis+1
             iend = (isph-1)*nbasis+nbasis
-            call mkrvec( isph, eps, e, A( ibeg:iend,(jsph-1)*nbasis+j), xlm, xx, basloc, vplm, vcos, vsin )
+            call mkrvec( isph, eps, e, A( ibeg:iend,(jsph-1)*nbasis+j), xlm, x, basloc, vplm, vcos, vsin )
 !
 !           compute A^T_i e_j
-            call ADJvec( isph, eps, e, AT(ibeg:iend,(jsph-1)*nbasis+j), xlm, xx, basloc, vplm, vcos, vsin )
+            call ADJvec( isph, eps, e, AT(ibeg:iend,(jsph-1)*nbasis+j), xlm, x, basloc, vplm, vcos, vsin )
 !        
           enddo
         enddo
@@ -397,107 +397,68 @@ subroutine ADJcheck
           do jsph = 1,nsph
             do j = 1,nbasis
 !
-!             accumulate a_ij^2, (a^T)_ij^2
-              s1 = s1 + A ( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )**2
-              s2 = s2 + AT( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )**2
+!             accumulate A_ij^2
+              s1 = s1 +   A ( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )**2
+
+!             accumulate ( A_ij - (A^T)_ij )^2
+              s2 = s2 + ( A ( (isph-1)*nbasis+i , (jsph-1)*nbasis+j ) -  &
+                          AT( (jsph-1)*nbasis+j , (isph-1)*nbasis+i ) )**2
 !
             enddo
           enddo
         enddo
       enddo
 !
-!     || A^T ||_F     || A ||_F
+!     the much neglected square roots 
       s1 = sqrt(s1) ; s2 = sqrt(s2)
 !      
 !     print
-      write(*,1002) abs(s1-s2) / abs(s1)
- 1002 format(' | ||A^T||_F - ||A||_F | / ||A||_F = ', e12.5)
+      write(*,1002) s2 / s1
+ 1002 format(' ||A - (A^T)^T||_F | / ||A||_F = ',e12.5)
       write(*,*) ''
 !
-!     clean up machine zeros
-      do isph = 1,nsph
-        do jsph = 1,nsph
-          do i = 1,nbasis
-            do j = 1,nbasis
 !
-              if ( abs(A(  (isph-1)*nbasis+i , (jsph-1)*nbasis+j )) .lt. 1.E-12 ) then
-                A(  (isph-1)*nbasis+i , (jsph-1)*nbasis+j ) = 0.d0
-              endif
+!     extra print out
+      if ( (s2/s1).ge.1.E-12 ) then
+!   
+!       clean up machine zeros
+        do isph = 1,nsph
+          do jsph = 1,nsph
+            do i = 1,nbasis
+              do j = 1,nbasis
+!
+                if ( abs(A(  (isph-1)*nbasis+i , (jsph-1)*nbasis+j )) .lt. 1.E-12 ) then
+                  A(  (isph-1)*nbasis+i , (jsph-1)*nbasis+j ) = zero
+                endif
 
-              if ( abs(AT( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )) .lt. 1.E-12 ) then
-                AT( (isph-1)*nbasis+i , (jsph-1)*nbasis+j ) = 0.d0
-              endif
-             
+                if ( abs(AT( (isph-1)*nbasis+i , (jsph-1)*nbasis+j )) .lt. 1.E-12 ) then
+                  AT( (isph-1)*nbasis+i , (jsph-1)*nbasis+j ) = zero
+                endif
+               
+              enddo 
             enddo 
           enddo 
         enddo 
-      enddo 
 !
-!
-      write(*,*) 'A = '
-      do isph = 1,nsph
-        do i = 1,nbasis
-          write(*,"(4x,300(e12.5,2x))") ( A((isph-1)*nbasis+i,j), j=1,nbasis*nsph )
+!       print A
+        write(*,*) 'A = '
+        do isph = 1,nsph
+          do i = 1,nbasis
+            write(*,"(4x,300(e12.5,2x))") ( A((isph-1)*nbasis+i,j), j=1,nbasis*nsph )
+          enddo
         enddo
-      enddo
-      write(*,*)''
+        write(*,*)''
 !
-      write(*,*) '(A^T)^T = '
-      do isph = 1,nsph
-        do i = 1,nbasis
-          write(*,"(4x,300(e12.5,2x))") ( AT(j,(isph-1)*nbasis+i), j=1,nbasis*nsph )
+!       print A^T
+        write(*,*) '(A^T)^T = '
+        do isph = 1,nsph
+          do i = 1,nbasis
+            write(*,"(4x,300(e12.5,2x))") ( AT(j,(isph-1)*nbasis+i), j=1,nbasis*nsph )
+          enddo
         enddo
-      enddo
-      write(*,*)''
-!
-!
-!!!!     check < A^T e , f > = < e , A f >
-!!!!     ---------------------------------
-!!!!
-!!!!     initialize random number generator
-!!!      call random_seed
-!!!!      
-!!!!     build e, f
-!!!      s1=zero ; s2=zero
-!!!      do isph = 1,nsph
-!!!        do j = 1,nbasis
-!!!!        
-!!!          call random_number( e(j,isph) )
-!!!          call random_number( f(j,isph) )
-!!!!          
-!!!          s1 = s1 + e(j,isph)**2
-!!!          s2 = s2 + f(j,isph)**2
-!!!!          
-!!!        enddo
-!!!      enddo
-!!!      e(:,:)=e(:,:)/sqrt(s1)
-!!!      f(:,:)=f(:,:)/sqrt(s2)
-!!!!
-!!!!     initialize
-!!!      Af( :)=zero
-!!!      ATe(:)=zero
-!!!      s1=zero
-!!!      s2=zero
-!!!!      
-!!!      do isph = 1,nsph
-!!!!
-!!!!       compute A_i f 
-!!!        call mkrvec( isph, eps, f, Af( :), xlm, xx, basloc, vplm, vcos, vsin )
-!!!!
-!!!!       compute A^T_i e
-!!!        call ADJvec( isph, eps, e, ATe(:), xlm, xx, basloc, vplm, vcos, vsin )
-!!!!
-!!!!       accumulate < e, A f >
-!!!        s1 = s1 + dot_product( e(:,isph), Af( :) )
-!!!!        
-!!!!       accumulate < A^T e, f >
-!!!        s2 = s2 + dot_product( f(:,isph), ATe(:) )
-!!!!        
-!!!      enddo
-!!!!      
-!!!      write(*,1000) abs(s1-s2) / abs(s1)
-!!! 1000 format(' | <e,Af> - <A^T f,e> | / |<e,Af>| = ', e12.5)
-!!!      write(*,*) ''
+        write(*,*)''
+!        
+      endif
 !
 !
 !     check solution of adjoint problem : < e , f > = < A^T s , f > = < s , A f >
@@ -525,7 +486,7 @@ subroutine ADJcheck
       f(:,:)=f(:,:)/sqrt(s2)
 !
 !     solve A_eps^T s = e
-      call ADJpcm( e, s )
+      call pcm( .true., .false., .true., rvoid, e, s )
 !      
 !     initialize
       Af(:) = zero ; s1 = zero ; s2 = zero
@@ -533,7 +494,7 @@ subroutine ADJcheck
       do isph = 1,nsph
 !
 !       compute A_i f 
-        call mkrvec( isph, eps, f, Af(:), xlm, xx, basloc, vplm, vcos, vsin )
+        call mkrvec( isph, eps, f, Af(:), xlm, x, basloc, vplm, vcos, vsin )
 !
 !       accumulate < s , A f >
         s1 = s1 + dot_product( s(:,isph), Af(:) )
@@ -548,216 +509,13 @@ subroutine ADJcheck
  1001 format(' | <e,f> - <s,Af> | / |<s,Af>| = ', e12.5)
       write(*,*) ''
 !
-      return
-
-!     initialize
-      rwork = zero ; rrate = zero
-!
-!     check derivatives
-!     -----------------
-!
-!     1. compute analytical derivatives
-      do ksph = 1,nsph 
-        do isph = 1,nsph
-          do i = 1,nbasis
-            do jsph = 1,nsph
-              do j = 1,nbasis
-!
-!               standard basis vectors e_i, f_j
-                e(:,:   )=zero
-                f(:,:   )=zero
-                e(i,isph)=one
-                f(j,jsph)=one
-!
-!               compute < e, dA/dr_k f > 
-                s3=zero
-                call service_routine1( e(:,:), f(:,:), ksph, s3 )
-!
-!               store
-                do icomp = 1,3
-!
-                  dA( (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp ) = s3(icomp)
-!            
-                enddo
-              enddo
-            enddo
-          enddo
-        enddo
-      enddo
-!
-!     save initial DS
-      nsph_save = nsph
-      x_save = csph(1,:)
-      y_save = csph(2,:)
-      z_save = csph(3,:)
-      r_save = rsph(  :)
-!
-!     set initial increment
-      eeps=0.1d0
-!
-!     loop over increments
-      do iter = 1,niter
-!        
-!       compute A^+
-        do ksph = 1,nsph
-!
-          do icomp = 1,3
-!
-!           deallocate DS      
-            call memfree
-!
-!           perturb     
-            x = x_save
-            y = y_save
-            z = z_save
-            select case(icomp)
-            case(1) ; x(ksph) = x_save(ksph) + eeps
-            case(2) ; y(ksph) = y_save(ksph) + eeps
-            case(3) ; z(ksph) = z_save(ksph) + eeps
-            endselect
-!
-!           allocate new DS      
-            call ddinit( nsph_save, x, y, z, r_save )
-!
-!           initialize
-            err=zero
-            rnorm=zero
-            A_plus(:,:,ksph,icomp)=zero
-!
-!           build A^+
-            do isph = 1,nsph
-              do jsph = 1,nsph
-                do j = 1,nbasis
-!
-                  e(:,:   )=zero
-                  e(j,jsph)=one
-!
-!                 compute A^+_i e_j
-                  ibeg = (isph-1)*nbasis+1
-                  iend = (isph-1)*nbasis+nbasis
-                  call mkrvec( isph, eps, e, A_plus( ibeg:iend,(jsph-1)*nbasis+j,ksph,icomp ), xlm, xx, basloc, vplm, vcos, vsin )
-!
-!!!                  if ( ( isph.eq.2 ) .and. ( jsph.eq.1 ) ) then
-
-!                 accumulate error
-                  do i = 1,nbasis
-                    err = err + ( ( A_plus((isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) -           &
-                                    A(     (isph-1)*nbasis+i,(jsph-1)*nbasis+j           ) ) / eeps -  &
-                                    dA(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) )**2
-                    rnorm = rnorm + (  dA(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) )**2
-!
-                  enddo
-                
-!!!          endif
-
-                enddo
-              enddo
-            enddo
-!            
-!!!!           numerical derivatives
-!!!            write(*,1007) ksph,icomp
-!!! 1007       format(' A(r+r_',i2,',',i1,') =')
-!!!! 
-!!!            do isph = 1,nsph
-!!!              do i = 1,nbasis
-!!!                write(*,"(4x,300(e12.5,2x))") ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) , j=1,nbasis*nsph )
-!!!              enddo
-!!!            enddo
-!!!            write(*,*)''
-!!!!            
-!!!            write(*,1008) ksph,icomp
-!!! 1008       format('( A(r+r_',i2,',',i1,') - A(r) ) / eps =')
-!!!! 
-!!!            do isph = 1,nsph
-!!!              do i = 1,nbasis
-!!!                write(*,"(4x,300(e12.5,2x))") ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp) - &
-!!!                                                     A((isph-1)*nbasis+i,j))/eeps , j=1,nbasis*nsph )
-!!!              enddo
-!!!            enddo
-!!!            write(*,*)''
-!
-!           store relative error
-            rwork(iter,(ksph-1)*3+icomp) = sqrt( err / rnorm )
-!
-!           store rate of convergence
-            if ( iter.gt.1 ) then 
-              rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
-                                                   rwork(iter  ,(ksph-1)*3+icomp)   ) / log(0.5d0)  
-            endif
-!
-          enddo
-        enddo
-!
-!       update increment
-        eeps = eeps/2.d0
-!        
-      enddo
-
-      eeps = eeps*2.d0
-!
-!     printing relative error
-      write(*,*)'Relative error : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(*,"(' dA / dr_'i2','i1' : ',300(e12.5,2x))") j,icomp, ( rwork(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(*,*) ''
-
-!     printing rate of convergence
-      write(*,*)'Rate of convergence : '
-      do j = 1,nsph
-        do icomp = 1,3
-!
-          write(*,"(' dA / dr_'i2','i1' : ',300(f12.3,2x))") j,icomp, ( rrate(iter,(j-1)*3+icomp) , iter=1,niter )
-!        
-        enddo
-      enddo
-      write(*,*) ''
-
-!
-!!!!     printing
-!!!      do ksph = 1,nsph
-!!!        do icomp = 1,3
-!!!!        
-!!!!         analytical derivatives
-!!!          write(*,1005) ksph,icomp
-!!! 1005     format(' dA / dr_',i2,',',i1,' =')
-!!!!
-!!!          do isph = 1,nsph
-!!!            do i = 1,nbasis
-!!!              write(*,"(4x,300(e12.5,2x))") ( dA((isph-1)*nbasis+i,j,ksph,icomp), j=1,nbasis*nsph )
-!!!            enddo
-!!!          enddo
-!!!!          
-!!!!         numerical derivatives
-!!!          write(*,1006) ksph,icomp
-!!! 1006     format(' ( A(r+r_',i2,',',i1,') - A(r) ) / eps =')
-!!!! 
-!!!          do isph = 1,nsph
-!!!            do i = 1,nbasis
-!!!              write(*,"(4x,300(e12.5,2x))") &
-!!!              ( ( A_plus((isph-1)*nbasis+i,j,ksph,icomp)- &
-!!!                       A((isph-1)*nbasis+i,j)             ) / eeps , j=1,nbasis*nsph )
-!!!            enddo
-!!!          enddo
-!!!          write(*,*)''
-!!!! 
-!!!        enddo
-!!!      enddo
-!
-!     restore DS
-      call memfree
-      call ddinit( nsph_save, x_save, y_save, z_save, r_save )
-!
-!     deactivate quiet flag      
-      iquiet = .false.
+!     restore flags
+      iquiet = iquiet_save ; iprint = iprint_save ; do_diag = do_diag_save
 !
 !
 endsubroutine ADJcheck
 !---------------------------------------------------------------------------------------
+!
 !
 !
 !

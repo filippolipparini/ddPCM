@@ -47,3 +47,6 @@ TODO list :
                            
 7. iefpcm : move mrkvec,(mkrvec_fmm),adjvec,mkprec,adjprec somewhere else ( ddcosmo ? ) ; eventually remove
    ------
+            mrkvec : review extension ( transition layer missing ) ; remove eps_s, xlm, x from head ( discuss )
+
+            adjvec : review whole routine
