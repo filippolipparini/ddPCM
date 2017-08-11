@@ -1,23 +1,11 @@
 subroutine debug_tests()
 !
-      use ddcosmo , only : lmax, ngrid, nsph, read_x, read_y, read_z, read_r, &
-                           ddinit, ncav, nbasis, read_q, ccav, memfree, &
-                           reset_ngrid, iquiet, iprint, args, &
-                           read_molecule_file
+      use ddcosmo , only : iquiet, iprint
 !      
       implicit none
-      real*8 :: xx(1), esolv, charge(nsph)!, x(nsph), y(nsph), z(nsph), rvdw(nsph)
-      real*8, allocatable :: phi(:), psi(:,:), f(:,:), sigma(:,:), s(:,:), &
-                             phi_eps(:,:),grid_aux(:,:),w_aux(:)
-      integer :: idec, igrid, lmax_save, ngrid_save, istatus, i, nsph_save, &
-                 iprint_save, np, iidec
+      integer ::  iprint_save, idec
       logical :: iquiet_save
 !      
-      integer, parameter, dimension(32) :: ngrid_vec = (/   6,  14,  26,  38,  50,  74,  86, 110,  &
-                                                          146, 170, 194, 230, 266, 302, 350, 434,  &
-                                                          590, 770, 974,1202,1454,1730,2030,2354,  &
-                                                         2702,3074,3470,3890,4334,4802,5294,5810/)
-!
 !----------------------------------------------------------------------------------
 !
 !     set on quiet mode
@@ -51,274 +39,11 @@ subroutine debug_tests()
         case(1) ; call check_der_U()
         case(2) ; call check_der_L()
         case(3) ; call check_der_A()
-!                
-!       COSMO forces
-!       ============
-        case(4)
-!
-!         save parameters
-          lmax_save = lmax ; ngrid_save = ngrid 
-!
-!         loop over angular momenta
-          do lmax = 2,10
-!
-!           set ngrid so that 2*lmax is integrated exactely
-            call reset_ngrid( igrid )
-!
-!           loop over extra grids
-            do i = 1,4
-!
-!             free the memory
-              call memfree()
-!
-!             recreate nsph, read_x, read_y, read_z, read_r, read_q
-              call read_molecule_file()
-!
-!             redirect charge [ THIS WILL NEED TO BE CLEANED UP ]
-              charge = read_q
-!
-!             initialize datastructure
-              call ddinit( nsph, read_x, read_y, read_z, read_r )
-!
-!             allocate workspaces
-              allocate( phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph), s(nbasis,nsph), f(3,nsph) , stat=istatus )
-              if ( istatus.ne.0 ) then
-                write(*,*)'debug_tests : COSMO allocation failed !'
-                stop
-              endif
-!              
-!             solute electrostatic potential phi, and psi vector
-              call mkrhs( nsph, charge, read_x, read_y, read_z, ncav, ccav, phi, nbasis, psi )
-!
-!             cosmo equation
-              call cosmo( .false., .true., phi, xx, psi, sigma, esolv )
-!     
-!             cosmo adjoint equation
-              call cosmo( .true., .false., phi, xx, psi, s, esolv )
-!              
-!             compute forces
-              call forces( nsph, charge, phi, sigma, s, f )
-!
-!             FD convergence test
-              call check_forcesCOSMO( esolv, charge, f )
-!              
-!             deallocate workspaces
-              deallocate( phi, psi, sigma, s, f , stat=istatus )
-              if ( istatus.ne.0 ) then
-                write(*,*)'debug_tests : COSMO deallocation failed !'
-                stop
-              endif
-!
-!             increment grid number        
-              igrid = igrid + 1
-! 
-!             update number of grid points
-              ngrid = ngrid_vec(igrid)
-!              
-            enddo
-          enddo
-!          
-!         free the memory
-          call memfree()
-!
-!         restore parameters
-          lmax = lmax_save ; ngrid = ngrid_save
-!          
-!         recreate nsph, read_x, read_y, read_z, read_r, read_q
-          call read_molecule_file()
-!          
-!         initialize datastructure
-          call ddinit( nsph, read_x, read_y, read_z, read_r )
-!                
-!       PCM forces
-!       ==========
-        case(5)
-!                
-!         save parameters
-          lmax_save = lmax ; ngrid_save = ngrid
-!          
-!         loop over angular momenta
-          do lmax = 2,10
-!
-!           set ngrid so that 2*lmax is integrated exactely
-            call reset_ngrid( igrid )
-!
-!           loop over extra grids
-            do i = 1,4
-!
-!             free the memory
-              call memfree()
-!              
-!             recreate nsph, read_x, read_y, read_z, read_r, read_q
-              call read_molecule_file()
-!
-!             redirect charge [ THIS WILL NEED TO BE CLEANED UP ]
-              charge = read_q
-!
-!             initialize datastructure
-              call ddinit( nsph, read_x, read_y, read_z, read_r )
-!
-!             allocate workspaces
-              allocate( phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph), s(nbasis,nsph), &
-                        f(3,nsph) , phi_eps(nbasis,nsph) , stat=istatus )
-              if ( istatus.ne.0 ) then
-                write(*,*)'debug_tests : PCM allocation failed !'
-                stop
-              endif
-!              
-!             solute electrostatic potential phi, and psi vector
-              call mkrhs( nsph, charge, read_x, read_y, read_z, ncav, ccav, phi, nbasis, psi )
-!
-!             pcm equations
-              call pcm(   .false.,  .true., .true., phi,      xx, phi_eps )
-              call cosmo( .false., .false.,          xx, phi_eps, psi, sigma, esolv )
-!     
-!             cosmo adjoint equation
-              call cosmo( .true., .false., phi, xx, psi, s, esolv )
-!              
-!             compute forces
-              call compute_forces( phi, charge, psi, sigma, phi_eps, f )
-!
-!             FD convergence test
-              call check_forcesPCM( charge, f, esolv )
-!              
-!             deallocate workspaces
-              deallocate( phi, psi, sigma, s, f, phi_eps , stat=istatus )
-              if ( istatus.ne.0 ) then
-                write(*,*)'debug_tests : PCM deallocation failed !'
-                stop
-              endif
-!
-!             increment grid number        
-              igrid = igrid + 1
-! 
-!             update number of grid points
-              ngrid = ngrid_vec(igrid)
-!              
-            enddo
-          enddo
-!          
-!         free the memory
-          call memfree()
-!
-!         restore parameters
-          lmax = lmax_save ; ngrid = ngrid_save 
-!          
-!         recreate nsph, read_x, read_y, read_z, read_r, read_q
-          call read_molecule_file()
-!          
-!         initialize datastructure
-          call ddinit( nsph, read_x, read_y, read_z, read_r )
-!
-!       POINTS IN SWITCH REGION
-!       =======================
-        case(6)
-!
-!         header
-          write(*,*)''
-          write(*,*)'-----------------------'
-          write(*,*)' lmax | ngrid | points '
-          write(*,*)'-----------------------'
-!                
-!         save parameters
-          lmax_save = lmax ; ngrid_save = ngrid
-!          
-!         loop over angular momenta
-          do lmax = 2,10
-!
-!           set ngrid so that 2*lmax is integrated exactely
-            call reset_ngrid( igrid )
-!
-!           loop over extra grids
-            do i = 1,4
-!
-!             free the memory
-              call memfree()
-!              
-!             recreate nsph, read_x, read_y, read_z, read_r, read_q
-              call read_molecule_file()
-!
-!             redirect charge [ THIS WILL NEED TO BE CLEANED UP ]
-              charge = read_q
-!
-!             initialize datastructure
-              call ddinit( nsph, read_x, read_y, read_z, read_r )
-!
-!             count points
-              call npoints_switch_region( np )
-              write(*,1000) lmax, ngrid, np
- 1000         format(2x,i4,3x,i5,3x,i6)         
-!
-!             increment grid number        
-              igrid = igrid + 1
-! 
-!             update number of grid points
-              ngrid = ngrid_vec(igrid)
-!              
-            enddo
-          enddo
-!
-!         footer
-          write(*,*)'-----------------------'
-          write(*,*)''
-!
-!         repeat in infinite loop
-          do 
-!
-            write(*,*)'Print points in Lebedev grid? ngrid - Yes ; 0 - No'
-            read(*,*) iidec
-!
-!           exit inifinite loop
-            if ( iidec.le.0 )  exit
-!
-            allocate( w_aux(iidec), grid_aux(3,iidec) , stat=istatus )
-            if ( istatus.ne.0 ) then
-              write(*,*)'debug_tests : GRID failed allocation !'      
-              stop
-            endif
-!
-!           load grid
-            call llgrid( iidec, w_aux, grid_aux )
-!
-!           print grid
-            do i = 1,iidec
-!
-              write(*,1001) i,grid_aux(:,i)
- 1001         format(' i = ',i3,' ; point = ',3(f6.3,2x) )            
-!
-            enddo
-            write(*,*)''
-!            
-            deallocate( w_aux, grid_aux , stat=istatus )
-            if ( istatus.ne.0 ) then
-              write(*,*)'debug_tests : GRID failed deallocation !'      
-              stop
-            endif
-!
-          enddo
-!          
-!         free the memory
-          call memfree()
-!
-!         restore parameters
-          lmax = lmax_save ; ngrid = ngrid_save 
-!          
-!         recreate nsph, read_x, read_y, read_z, read_r, read_q
-          call read_molecule_file()
-!          
-!         initialize datastructure
-          call ddinit( nsph, read_x, read_y, read_z, read_r )
-!
-!       FMM
-!       ===
+        case(4) ; call check_cosmo()
+        case(5) ; call check_pcm()
+        case(6) ; call check_switch_region()
         case(7) ; call test_fmm()
-!
-!       OLD AND NEW PCM
-!       ===============
         case(8) ; call check_old_new_pcm()
-!
-!       CHECK ADJOINT PCM MATRIX
-!       ========================
         case(9) ; call ADJcheck()
 !          
         endselect
@@ -332,6 +57,330 @@ subroutine debug_tests()
 !
 endsubroutine debug_tests
 !----------------------------------------------------------------------------------
+!
+!
+!
+!
+!----------------------------------------------------------------------------------
+! Purpose : check implementation of COSMO forces.
+!----------------------------------------------------------------------------------
+!
+subroutine check_cosmo()
+!
+      use ddcosmo , only : lmax, ngrid, nsph, read_x, read_y, read_z, read_r, &
+                           ddinit, ncav, nbasis, read_q, ccav, memfree, &
+                           reset_ngrid, ngrid_vec, read_molecule_file
+!      
+      implicit none
+      real*8, allocatable :: phi(:), psi(:,:), f(:,:), sigma(:,:), s(:,:)
+      real*8 :: xx(1), esolv, charge(nsph)
+      integer :: igrid, lmax_save, ngrid_save, istatus, i, nsph_save
+!
+!----------------------------------------------------------------------------------
+!
+!     save parameters
+      lmax_save = lmax ; ngrid_save = ngrid 
+!
+!     loop over angular momenta
+      do lmax = 2,10
+!
+!       set ngrid so that 2*lmax is integrated exactely
+        call reset_ngrid( igrid )
+!
+!       loop over extra grids
+        do i = 1,4
+!
+!         free the memory
+          call memfree()
+!
+!         recreate nsph, read_x, read_y, read_z, read_r, read_q
+          call read_molecule_file()
+!
+!         redirect charge [ THIS WILL NEED TO BE CLEANED UP ]
+          charge = read_q
+!
+!         initialize datastructure
+          call ddinit( nsph, read_x, read_y, read_z, read_r )
+!
+!         allocate workspaces
+          allocate( phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph), s(nbasis,nsph), f(3,nsph) , stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*)'check_cosmo : allocation failed !'
+            stop
+          endif
+!          
+!         solute electrostatic potential phi, and psi vector
+          call mkrhs( nsph, charge, read_x, read_y, read_z, ncav, ccav, phi, nbasis, psi )
+!
+!         cosmo equation
+          call cosmo( .false., .true., phi, xx, psi, sigma, esolv )
+!     
+!         cosmo adjoint equation
+          call cosmo( .true., .false., phi, xx, psi, s, esolv )
+!          
+!         compute forces
+          call forces( nsph, charge, phi, sigma, s, f )
+!
+!         FD convergence test
+          call check_forcesCOSMO( esolv, charge, f )
+!          
+!         deallocate workspaces
+          deallocate( phi, psi, sigma, s, f , stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*)'check_cosmo : deallocation failed !'
+            stop
+          endif
+!
+!         increment grid number        
+          igrid = igrid + 1
+! 
+!         update number of grid points
+          ngrid = ngrid_vec(igrid)
+!          
+        enddo
+      enddo
+!      
+!     free the memory
+      call memfree()
+!
+!     restore parameters
+      lmax = lmax_save ; ngrid = ngrid_save
+!      
+!     recreate nsph, read_x, read_y, read_z, read_r, read_q
+      call read_molecule_file()
+!      
+!     initialize datastructure
+      call ddinit( nsph, read_x, read_y, read_z, read_r )
+!
+!
+endsubroutine check_cosmo
+!----------------------------------------------------------------------------------
+!
+!
+!
+!
+!
+!
+!----------------------------------------------------------------------------------
+! Purpose : check implementation of PCM forces.
+!----------------------------------------------------------------------------------
+!
+subroutine check_pcm()
+!
+      use ddcosmo , only : lmax, ngrid, nsph, read_x, read_y, read_z, read_r, &
+                           ddinit, ncav, nbasis, read_q, ccav, memfree, &
+                           reset_ngrid, read_molecule_file, ngrid_vec
+!      
+      implicit none
+      real*8, allocatable :: phi(:), psi(:,:), f(:,:), sigma(:,:), s(:,:), &
+                             phi_eps(:,:)
+      real*8 :: xx(1), esolv, charge(nsph)
+      integer :: igrid, lmax_save, ngrid_save, istatus, i, nsph_save
+!
+!----------------------------------------------------------------------------------
+!
+!     save parameters
+      lmax_save = lmax ; ngrid_save = ngrid
+!      
+!     loop over angular momenta
+      do lmax = 2,10
+!
+!       set ngrid so that 2*lmax is integrated exactely
+        call reset_ngrid( igrid )
+!
+!       loop over extra grids
+        do i = 1,4
+!
+!         free the memory
+          call memfree()
+!          
+!         recreate nsph, read_x, read_y, read_z, read_r, read_q
+          call read_molecule_file()
+!
+!         redirect charge [ THIS WILL NEED TO BE CLEANED UP ]
+          charge = read_q
+!
+!         initialize datastructure
+          call ddinit( nsph, read_x, read_y, read_z, read_r )
+!
+!         allocate workspaces
+          allocate( phi(ncav), psi(nbasis,nsph), sigma(nbasis,nsph), s(nbasis,nsph), &
+                    f(3,nsph) , phi_eps(nbasis,nsph) , stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*)'debug_tests : PCM allocation failed !'
+            stop
+          endif
+!          
+!         solute electrostatic potential phi, and psi vector
+          call mkrhs( nsph, charge, read_x, read_y, read_z, ncav, ccav, phi, nbasis, psi )
+!
+!         pcm equations
+          call pcm(   .false.,  .true., .true., phi,      xx, phi_eps )
+          call cosmo( .false., .false.,          xx, phi_eps, psi, sigma, esolv )
+!     
+!         cosmo adjoint equation
+          call cosmo( .true., .false., phi, xx, psi, s, esolv )
+!          
+!         compute forces
+          call compute_forces( phi, charge, psi, sigma, phi_eps, f )
+!
+!         FD convergence test
+          call check_forcesPCM( esolv, charge, f )
+!          
+!         deallocate workspaces
+          deallocate( phi, psi, sigma, s, f, phi_eps , stat=istatus )
+          if ( istatus.ne.0 ) then
+            write(*,*)'debug_tests : PCM deallocation failed !'
+            stop
+          endif
+!
+!         increment grid number        
+          igrid = igrid + 1
+! 
+!         update number of grid points
+          ngrid = ngrid_vec(igrid)
+!          
+        enddo
+      enddo
+!      
+!     free the memory
+      call memfree()
+!
+!     restore parameters
+      lmax = lmax_save ; ngrid = ngrid_save 
+!      
+!     recreate nsph, read_x, read_y, read_z, read_r, read_q
+      call read_molecule_file()
+!      
+!     initialize datastructure
+      call ddinit( nsph, read_x, read_y, read_z, read_r )
+!
+!
+endsubroutine check_pcm
+!----------------------------------------------------------------------------------
+!
+!
+!
+!
+!
+!----------------------------------------------------------------------------------
+! Purpose : check number of integration points in switch region.
+!----------------------------------------------------------------------------------
+!
+subroutine check_switch_region()
+!
+      use ddcosmo , only : lmax, ngrid, nsph, read_x, read_y, read_z, read_r, &
+                           ddinit, ncav, nbasis, read_q, ccav, memfree, &
+                           reset_ngrid, read_molecule_file, ngrid_vec
+!      
+      implicit none
+      real*8, allocatable :: phi(:), psi(:,:), f(:,:), sigma(:,:), s(:,:), &
+                             phi_eps(:,:),grid_aux(:,:),w_aux(:)
+      real*8 :: xx(1), esolv, charge(nsph)
+      integer :: idec, igrid, lmax_save, ngrid_save, istatus, i, nsph_save, np
+!
+!----------------------------------------------------------------------------------
+!
+!     header
+      write(*,*)''
+      write(*,*)'-----------------------'
+      write(*,*)' lmax | ngrid | points '
+      write(*,*)'-----------------------'
+!            
+!     save parameters
+      lmax_save = lmax ; ngrid_save = ngrid
+!      
+!     loop over angular momenta
+      do lmax = 2,10
+!
+!       set ngrid so that 2*lmax is integrated exactely
+        call reset_ngrid( igrid )
+!
+!       loop over extra grids
+        do i = 1,4
+!
+!         free the memory
+          call memfree()
+!          
+!         recreate nsph, read_x, read_y, read_z, read_r, read_q
+          call read_molecule_file()
+!
+!         redirect charge [ THIS WILL NEED TO BE CLEANED UP ]
+          charge = read_q
+!
+!         initialize datastructure
+          call ddinit( nsph, read_x, read_y, read_z, read_r )
+!
+!         count points
+          call npoints_switch_region( np )
+          write(*,1000) lmax, ngrid, np
+ 1000     format(2x,i4,3x,i5,3x,i6)         
+!
+!         increment grid number        
+          igrid = igrid + 1
+! 
+!         update number of grid points
+          ngrid = ngrid_vec(igrid)
+!          
+        enddo
+      enddo
+!
+!     footer
+      write(*,*)'-----------------------'
+      write(*,*)''
+!
+!     repeat in infinite loop
+      do 
+!
+        write(*,*)'Print points in Lebedev grid? ngrid - Yes ; 0 - No'
+        read(*,*) idec
+!
+!       exit inifinite loop
+        if ( idec.le.0 )  exit
+!
+        allocate( w_aux(idec), grid_aux(3,idec) , stat=istatus )
+        if ( istatus.ne.0 ) then
+          write(*,*)'debug_tests : GRID failed allocation !'      
+          stop
+        endif
+!
+!       load grid
+        call llgrid( idec, w_aux, grid_aux )
+!
+!       print grid
+        do i = 1,idec
+!
+          write(*,1001) i,grid_aux(:,i)
+ 1001     format(' i = ',i3,' ; point = ',3(f6.3,2x) )            
+!
+        enddo
+        write(*,*)''
+!        
+        deallocate( w_aux, grid_aux , stat=istatus )
+        if ( istatus.ne.0 ) then
+          write(*,*)'debug_tests : GRID failed deallocation !'      
+          stop
+        endif
+!
+      enddo
+!      
+!     free the memory
+      call memfree()
+!
+!     restore parameters
+      lmax = lmax_save ; ngrid = ngrid_save 
+!      
+!     recreate nsph, read_x, read_y, read_z, read_r, read_q
+      call read_molecule_file()
+!      
+!     initialize datastructure
+      call ddinit( nsph, read_x, read_y, read_z, read_r )
+!
+!
+endsubroutine check_switch_region
+!----------------------------------------------------------------------------------
+!
+!
 !
 !
 !
@@ -394,6 +443,7 @@ subroutine ADJcheck()
 !     compute Frobenious norm of A and A^T
       do isph = 1,nsph
         do i = 1,nbasis
+!              
           do jsph = 1,nsph
             do j = 1,nbasis
 !
@@ -524,11 +574,11 @@ endsubroutine ADJcheck
 !---------------------------------------------------------------------------------------
 ! Purpose : check rates of convergence of COSMO forces.
 !---------------------------------------------------------------------------------------
+!
 subroutine check_forcesCOSMO( E0, charge, f )
 !
       use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
-                           ncav, ccav, ngrid, zero, one, lmax, &
-                           iprint, tokcal
+                           ncav, ccav, ngrid, zero, one, lmax, iprint, tokcal
 !                           
       implicit none
       real*8,                    intent(in) :: E0
@@ -610,9 +660,6 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !           account for a potentially null shift
             if ( abs( h ).gt.1.E-12 ) then
 !                    
-!             numerical derivative of energy
-              ework(iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
-!              
 !             account for a potentially null component of the force
               if ( abs( f(icomp,ksph) ).gt.1.E-12 ) then
 !                      
@@ -622,6 +669,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
 !               store
                 rwork(iter,(ksph-1)*3+icomp) = err
                 hwork(iter,(ksph-1)*3+icomp) = h
+                ework(iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
 !                
 !               compute rate
                 if ( iter.gt.1 ) then 
@@ -636,6 +684,7 @@ subroutine check_forcesCOSMO( E0, charge, f )
           enddo
         enddo
 !
+!       decrease increment
         eeps = eeps / 2.d0
 !
       enddo
@@ -770,16 +819,16 @@ endsubroutine check_forcesCOSMO
 ! Purpose : check rates of convergence of PCM forces.
 !---------------------------------------------------------------------------------------
 !
-subroutine check_forcesPCM( charge, f, esolv )
+subroutine check_forcesPCM( E0, charge, f )
 !
       use ddcosmo , only : nbasis, nsph, iquiet, csph, rsph, memfree, ddinit, &
                            eps, ncav, ccav, ngrid, zero, sprod, wghpot, one, &
                            lmax, iprint
 !                           
       implicit none
+      real*8                                :: E0
       real*8, dimension(  nsph), intent(in) :: charge
       real*8, dimension(3,nsph), intent(in) :: f
-      real*8                                :: esolv
 !
       integer,parameter :: niter = 4
 !
@@ -788,7 +837,7 @@ subroutine check_forcesPCM( charge, f, esolv )
       real*8 :: x_save(nsph), y_save(nsph), z_save(nsph), r_save(nsph), phi_eps(nbasis,nsph)
       real*8 :: x(nsph), y(nsph), z(nsph), rwork(niter,nsph*3), rrate(niter,nsph*3), &
                 hwork(niter,nsph*3),ework(niter,nsph*3),fwork(niter,nsph*3),eework(niter,nsph*3)
-      real*8 :: E0, E_plus, err, eeps, h
+      real*8 :: E_plus, err, eeps, h
       integer :: iter, icomp, ksph, nsph_save, j, ncav_save, nbasis_save, iprint_save
 !
       character(len=10) :: x1,x2
@@ -803,9 +852,6 @@ subroutine check_forcesPCM( charge, f, esolv )
 !      
 !     activate quiet mode
       iquiet = .true. ; iprint = 0
-!
-!     store esolv
-      E0 = esolv
 !
 !     compute number of points in switch region
       call npoints_switch_region( np )
@@ -854,16 +900,9 @@ subroutine check_forcesPCM( charge, f, esolv )
             call mkrhs( nsph_save, charge, x, y, z, ncav_save, ccav, phi, nbasis_save, psi )
 !
 !           solve PCM equations       
-!!!            g(:,:)=zero ; sigma(:,:)=zero
-!!!            call wghpot( phi, g )
-!!!            call iefpcm( phi, g, psi, sigma, phi_eps, E_plus )
+            E_plus = zero ; sigma = zero ; phi_eps = zero
             call pcm(   .false.,  .true., .true., phi,      xx, phi_eps )
             call cosmo( .false., .false.,          xx, phi_eps, psi, sigma, E_plus )
-
-
-!
-!           compute energy
-!!!            E_plus = 0.5d0 * (eps-1.d0)/eps * sprod( nbasis*nsph, sigma, psi )
 !
 !           account for a potentially null shift
             if ( abs(h) .gt. 1.E-12 ) then
@@ -872,23 +911,15 @@ subroutine check_forcesPCM( charge, f, esolv )
               if ( abs( f(icomp,ksph) ).gt.1.E-12 ) then
 !                        
 !               compute relative error
-!!!                err = abs( (E_plus - E0) / eeps + f(ksph,icomp) ) / abs( f(ksph,icomp) )
                 err = abs( (E_plus - E0) / h + f(icomp,ksph) ) / abs( f(icomp,ksph) )
 !
 !               store
-                rwork(iter,(ksph-1)*3+icomp) = err
-                hwork(iter,(ksph-1)*3+icomp) = h
-                ework(iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
+                rwork( iter,(ksph-1)*3+icomp) = err
+                hwork( iter,(ksph-1)*3+icomp) = h
+                ework( iter,(ksph-1)*3+icomp) = ( E_plus - E0 ) / h
                 eework(iter,(ksph-1)*3+icomp) = E_plus
-                fwork(iter,(ksph-1)*3+icomp) = f(icomp,ksph)
-
-                
-!!!                if ( abs( ( E_plus - E0 ) / h ) .gt. 1.E+03) then
-!!!                  write(*,*) 'E_plus = ',E_plus
-!!!                  write(*,*) 'E0     = ',E0
-!!!                  stop
-!!!                endif
-
+                fwork( iter,(ksph-1)*3+icomp) = f(icomp,ksph)
+!                
 !               compute rate
                 if ( iter.gt.1 ) then 
                   rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
@@ -902,6 +933,7 @@ subroutine check_forcesPCM( charge, f, esolv )
           enddo
         enddo
 !
+!       decrease increment
         eeps = eeps / 2.d0
 !
       enddo
@@ -917,7 +949,7 @@ subroutine check_forcesPCM( charge, f, esolv )
  7325 format(' lmax = ',i2,' , ngrid = ',i4,' - Integration points NOT PRESENT in the switch region')     
       write(*,*)''
 !      
-!     print numerical derivative of energy
+!     print energy for different configurations
       write(*,8234) E0
  8234 format(' Energy (E_ref = ',e12.5,' ) : ')
       do j = 1,nsph
@@ -928,7 +960,8 @@ subroutine check_forcesPCM( charge, f, esolv )
         enddo
       enddo
       write(*,*) ''
-
+!
+!     print numerical derivative of energy
       write(*,*)'Numerical derivative of energy : '
       do j = 1,nsph
         do icomp = 1,3
@@ -1209,14 +1242,6 @@ subroutine check_der_A()
 !                 recall to account for do_diag !!!
                   call mkrvec( isph, eps, e, A_plus( ibeg:iend,(jsph-1)*nbasis+j,ksph,icomp ), xlm, xx, basloc, vplm, vcos, vsin )
 !
-!!!!                 accumulate error
-!!!                  do i = 1,nbasis
-!!!                    err = err + ( ( A_plus((isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) -        &
-!!!                                    A(     (isph-1)*nbasis+i,(jsph-1)*nbasis+j           ) ) / h -  &
-!!!                                    dA(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp)           )**2
-!!!!
-!!!                  enddo
-!
                 enddo
               enddo
             enddo
@@ -1258,15 +1283,13 @@ subroutine check_der_A()
 !           take square root
             err = sqrt(err)
             rnorm = sqrt(rnorm)
-
+!
             do isph = 1,nsph
               do jsph = 1,nsph
-
+!
                 err0(isph,jsph,(ksph-1)*3+icomp,iter) = &
                 sqrt( err0(isph,jsph,(ksph-1)*3+icomp,iter)/rnorm )
-!!!                sqrt( err0(isph,jsph,(ksph-1)*3+icomp,iter)/rnorm / &
-!!!                      rnorm0(isph,jsph,(ksph-1)*3+icomp,iter)/rnorm )
-
+!
               enddo
             enddo
 !
@@ -1274,36 +1297,32 @@ subroutine check_der_A()
             rwork(iter,(ksph-1)*3+icomp) = err/rnorm
             hwork(iter,(ksph-1)*3+icomp) = h
 !
-!!!            do isph = 1,nsph
-!!!              write(*,"(' err('i2',:) = ', 300(e12.5,2x))") isph, ( sqrt(err0(isph,jsph))/rnorm , jsph=1,nsph )
-!!!            enddo
-!!!            read(*,*)
-!
 !           compute rate
             if ( iter.gt.1 ) then 
               rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
                                                    rwork(iter  ,(ksph-1)*3+icomp)   ) / &
                                               log( hwork(iter  ,(ksph-1)*3+icomp) / &
                                                    hwork(iter-1,(ksph-1)*3+icomp)   )
+!                                                   
             endif
 ! 
           enddo
         enddo
 !
-!       update
+!       decrease increment
         eeps = eeps / 2.d0
 !        
       enddo
 !
 !     extensive printing
-      do ksph=1,nsph
-        do icomp=1,3
+      do ksph = 1,nsph
+        do icomp = 1,3
 !
           write(*,*)'---------------------------------------------------------------'
           write(*,"(' dA / dr_'i2','i1' rel. error : ')") ksph,icomp
           write(*,*)''
 !
-          do iter=1,niter
+          do iter = 1,niter
             do isph = 1,nsph
 
               write(*,"(' [',300(e12.5,2x),' ]')") ( err0(isph,jsph,(ksph-1)*3+icomp,iter) , jsph=1,nsph )
@@ -1344,6 +1363,9 @@ subroutine check_der_A()
 !
 endsubroutine check_der_A
 !----------------------------------------------------------------------------------------------
+!
+!
+!
 !
 !
 !
@@ -1491,6 +1513,9 @@ endsubroutine check_der_U
 !
 !
 !
+!
+!
+!
 !-----------------------------------------------------------------------------------------
 ! Purpose : check derivatives of COSMO matrix.
 !-----------------------------------------------------------------------------------------
@@ -1520,7 +1545,10 @@ subroutine check_der_L()
 !
 !-----------------------------------------------------------------------------------------
 !
+!     save flag
       do_diag_save = do_diag
+!
+!     activate action of diagonal blocks
       do_diag = .true.
 !      
 !     build analytical derivative dL
@@ -1671,14 +1699,6 @@ subroutine check_der_L()
 !                    
                   enddo
 !
-!!!!                 accumulate error
-!!!                  do i = 1,nbasis
-!!!                    err = err + ( ( A_plus((isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp) -        &
-!!!                                    A(     (isph-1)*nbasis+i,(jsph-1)*nbasis+j           ) ) / h -  &
-!!!                                    dA(    (isph-1)*nbasis+i,(jsph-1)*nbasis+j,ksph,icomp)           )**2
-!!!!
-!!!                  enddo
-!
                 enddo
               enddo
             enddo
@@ -1726,8 +1746,6 @@ subroutine check_der_L()
 
                 err0(isph,jsph,(ksph-1)*3+icomp,iter) = &
                 sqrt( err0(isph,jsph,(ksph-1)*3+icomp,iter)/rnorm )
-!!!                sqrt( err0(isph,jsph,(ksph-1)*3+icomp,iter)/rnorm / &
-!!!                      rnorm0(isph,jsph,(ksph-1)*3+icomp,iter)/rnorm )
 
               enddo
             enddo
@@ -1736,36 +1754,32 @@ subroutine check_der_L()
             rwork(iter,(ksph-1)*3+icomp) = err/rnorm
             hwork(iter,(ksph-1)*3+icomp) = h
 !
-!!!            do isph = 1,nsph
-!!!              write(*,"(' err('i2',:) = ', 300(e12.5,2x))") isph, ( sqrt(err0(isph,jsph))/rnorm , jsph=1,nsph )
-!!!            enddo
-!!!            read(*,*)
-!
 !           compute rate
             if ( iter.gt.1 ) then 
               rrate(iter,(ksph-1)*3+icomp) =  log( rwork(iter-1,(ksph-1)*3+icomp) / &
                                                    rwork(iter  ,(ksph-1)*3+icomp)   ) / &
                                               log( hwork(iter  ,(ksph-1)*3+icomp) / &
                                                    hwork(iter-1,(ksph-1)*3+icomp)   )
+!                                                   
             endif
 ! 
           enddo
         enddo
 !
-!       update
+!       decrease increment
         eeps = eeps / 2.d0
 !        
       enddo
 !
 !     extensive printing
-      do ksph=1,nsph
-        do icomp=1,3
+      do ksph = 1,nsph
+        do icomp = 1,3
 !
           write(*,*)'---------------------------------------------------------------'
           write(*,"(' dL / dr_'i2','i1' rel. error : ')") ksph,icomp
           write(*,*)''
 !
-          do iter=1,niter
+          do iter = 1,niter
             do isph = 1,nsph
 
               write(*,"(' [',300(e12.5,2x),' ]')") ( err0(isph,jsph,(ksph-1)*3+icomp,iter) , jsph=1,nsph )
@@ -1800,11 +1814,16 @@ subroutine check_der_L()
       write(*,*) ''
       read(*,*)
 !
-!
+!     restore flag
       do_diag = do_diag_save
 !
 !
 endsubroutine check_der_L
+!-----------------------------------------------------------------------------------------
+!
+!
+!
+!
 !
 !
 !-----------------------------------------------------------------------------------------
@@ -1854,6 +1873,10 @@ subroutine npoints_switch_region( np )
 !
 endsubroutine npoints_switch_region
 !-----------------------------------------------------------------------------------------
+!
+!
+!
+!
 !
 !
 !-----------------------------------------------------------------------------------------
@@ -1917,6 +1940,7 @@ endsubroutine test_fmm
 !
 !
 !-----------------------------------------------------------------------------------------
+!
 subroutine check_old_new_pcm()
 !
       use ddcosmo , only : ngrid, nsph, wghpot, ncav, nbasis, memfree, &
@@ -2028,4 +2052,4 @@ subroutine check_old_new_pcm()
       iquiet = iquiet_save ; iprint = iprint_save ; use_fmm = use_fmm_save
 !
 !
-endsubroutine
+endsubroutine check_old_new_pcm

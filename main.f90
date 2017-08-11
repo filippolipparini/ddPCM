@@ -304,7 +304,7 @@ program main
 !           check forces
             write(*,*)'check forces ? 1 - Yes'
             read(*,*) iidec
-            if ( iidec.eq.1 )  call check_forcesPCM( charge, fx, esolv )
+            if ( iidec.eq.1 )  call check_forcesPCM( esolv, charge, fx )
 !            
 !           deallocate workspaces
             deallocate( sigma, phi_eps, fx , stat=istatus )
@@ -401,7 +401,7 @@ program main
 !
 !         compute forces
           call compute_forces( phi, charge, psi, sigma, phi_eps, fx )
-!!!          call check_forcesPCM( charge, fx, esolv )
+!!!          call check_forcesPCM( esolv, charge, fx )
 !          
 !         deallocate workspaces
           deallocate( phi_eps, fx , stat=istatus )
