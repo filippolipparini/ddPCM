@@ -1,11 +1,17 @@
 \section{Computation of Forces}\label{sec:forces}
-In the case of a classical solute, the form of the charge density $\rho$ allows to compute the solvation energy as a sum of subdomain contributions, which perfectly fits the ddCOSMO paradigm. The spherical harmonics addition theorem implies that
+%In the case of a classical solute, the form of the charge density $\rho$ allows to compute 
+The solvation energy can be written as a sum of subdomain contributions, which perfectly fits the ddCOSMO paradigm. 
+Indeed, the spherical harmonics addition theorem implies that
 \[
 W_j(x) = (\tilde{\cS}_j \, \sigma_j)(x) = \sum_{\ell,m} [X_j]_\ell^m (\tilde{\cS}_j \, Y_\ell^m)(x) = \sum_{\ell,m} [X_j]_\ell^m \, \frac{4\pi}{2\ell+1} \,\frac{r^\ell}{r_j^{\ell+1}} \, Y_\ell^m(y)
 \]
 where $x = x_j + r\, y$, so that the solvation energy can be determined as
 \[
-E_s = \tfrac{1}{2} \,f(\varepsilon) \, \sum_{j=1}^M \int_{\Omega_j} \rho(x) W_j(x) \, dx = \tfrac{1}{2}\, f(\varepsilon) \, \sum_{j=1}^M \sum_{\ell,m} [X_j]_\ell^m \, \frac{4\pi}{2\ell+1} \,\frac{1}{r_j^{\ell+1}} 
+E_s = \tfrac{1}{2} 
+%\,f(\varepsilon) 
+\, \sum_{j=1}^M \int_{\Omega_j} \rho(x) W_j(x) \, dx = \tfrac{1}{2}
+%\, f(\varepsilon) 
+\, \sum_{j=1}^M \sum_{\ell,m} [X_j]_\ell^m \, \frac{4\pi}{2\ell+1} \,\frac{1}{r_j^{\ell+1}} 
 \int_{\Omega_j} \rho(x) \, r^\ell \, Y_\ell^m(y) \, dx
 \]
 If we define
@@ -14,7 +20,12 @@ If we define
 \]
 we can compactly write the energy as
 \[
-E_s = \tfrac{1}{2} \,f(\varepsilon) \, \sum_j \sum_{\ell,m} [\Psi_j]_\ell^m [X_j]_\ell^m =: \tfrac{1}{2} \,f(\varepsilon) \,\langle \Psi, X \rangle
+E_s = \tfrac{1}{2}
+% \,f(\varepsilon)
+ \, \sum_j \sum_{\ell,m} [\Psi_j]_\ell^m [X_j]_\ell^m
+  =: \tfrac{1}{2} 
+  %\,f(\varepsilon) 
+  \,\langle \Psi, X \rangle
 \]
 where the angular brackets indicate the double scalar product over $j$ and $\ell,m$.
 
