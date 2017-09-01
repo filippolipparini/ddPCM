@@ -162,14 +162,18 @@ which is known as the IEF-PCM equation. It involves operators $\cR_\infty$ and $
 
 \subsection{The ddPCM-method}
 
+
 Let us recall how to solve equation \eqref{eq:IEFPCM} within the domain-decomposition paradigm. The first step is to write the IEF-PCM integral equation \eqref{eq:IEFPCM} as a succession of two integral equations, one of which is equivalent to the COSMO equation\cite{Cances_Librone_PCM}. Indeed, if we define $\Phi_\varepsilon = \cS \, \sigma$, equation \eqref{eq:IEFPCM} becomes
 \begin{alignat}{3}
 \cR_\varepsilon \, \Phi_\varepsilon & = \cR_\infty \, \Phi \qquad && \text{on }\Gamma  \label{eq:ddPCM-1} \\
 \cS \, \sigma & = -\Phi_\varepsilon  && \text{on }\Gamma \label{eq:ddPCM-2} 
 \end{alignat}
-The ddPCM strategy is an extension of ddCOSMO in the following sense: first, equation \eqref{eq:ddPCM-1} is solved in order to compute the right-hand side $-\Phi_\varepsilon$ of equation \eqref{eq:ddPCM-2}; secondly, ddCOSMO is employed to solve equation \eqref{eq:ddPCM-2} with the modified potential $-\Phi_\varepsilon$, and compute the solvation energy $E_s$. Both steps are carried out through a domain-decomposition approach.
+The ddPCM strategy is an extension of ddCOSMO in the following sense: first, equation \eqref{eq:ddPCM-1} is solved in order to compute the right-hand side $-\Phi_\varepsilon$ of equation \eqref{eq:ddPCM-2}; secondly, ddCOSMO is employed to solve equation \eqref{eq:ddPCM-2} with the modified potential $-\Phi_\varepsilon$, and compute the solvation energy $E_s$.
 
-{\bf Step 1.} As anticipated above, let the cavity $\Omega$ be the union of $M$ spheres $\Omega_j = B(x_j, r_j)$ with boundaries $\Gamma_j$. Let $U_j: \Gamma_j \to \mathbb{R}$ be the characteristic function of $\Gamma_j^\text{ext}:= \Gamma_j \cap \Gamma$, and define extensions $\Phi_j , \Phi_{\varepsilon,j} : \Gamma_j \to \mathbb{R}$ as  $\Phi_j (s)= U_j(s) \, \widetilde{\Phi}(s)$ and $\Phi_{\varepsilon,j}(s)= U_j(s) \, \widetilde{\Phi}_{\varepsilon}(s)$ for $s \in \Gamma_j$, where $\tilde{(\cdot)}$ indicates the trivial extension to $\overline{\Omega}$.
+In order to discuss the domain-decomposition approach employed for both steps, let us introduce some notation. As anticipated, we take the cavity $\Omega$ be the union of $M$ spheres $\Omega_j = B(x_j, r_j)$ with boundaries $\Gamma_j$. Let $U_j: \Gamma_j \to \mathbb{R}$ be the characteristic function of $\Gamma_j^\text{ext}:= \Gamma_j \cap \Gamma$, and define extensions $\Phi_j , \Phi_{\varepsilon,j} : \Gamma_j \to \mathbb{R}$ as  $\Phi_j (s)= U_j(s) \, \widetilde{\Phi}(s)$ and $\Phi_{\varepsilon,j}(s)= U_j(s) \, \widetilde{\Phi}_{\varepsilon}(s)$ for $s \in \Gamma_j$, where $\tilde{(\cdot)}$ indicates the trivial extension to $\overline{\Omega}$.
+
+
+{\bf Step 1.} 
 %\[
 %\Phi_j =
 %\begin{cases}
@@ -184,33 +188,28 @@ The ddPCM strategy is an extension of ddCOSMO in the following sense: first, equ
 %\end{cases}
 %\]
 % Let $\chi_k$ be the characteristic function of $\Omega_k$, and define coefficients $\omega_{jk}(s) = \chi_k(s) / |N_j(s)|$, where $N_j(s)$ is the set of all subdomains that contain $s \in \overline{\Omega}_j$, and $|N_j(s)|$ is its cardinality. Notice that $\sum_{k \in N_j(\,\cdot\,)} \omega_{jk}(\,\cdot\,)$ is the characteristic function of $\Gamma_j^\text{int} := \Gamma_j \setminus \Gamma_j^\text{ext}$, while $U_j(\,\cdot\,) = 1 - \sum_{k \in N_j(\,\cdot\,)} \omega_{jk}(\,\cdot\,)$ is the characteristic function of $ \Gamma_j^\text{ext}$. Thus, the extensions can be compactly defined as 
-
-First, we enforce \eqref{eq:ddPCM-1} on each $\Gamma_j^\text{ext}$ and $\Phi_{\varepsilon,j}=0$ on $\Gamma_j^\text{int}$ by one joint equation
+We enforce the integral equation \eqref{eq:ddPCM-1} on $\Gamma_j^\text{ext}$, along with the boundary condition $\Phi_{\varepsilon,j}=0$ on $\Gamma_j^\text{int}$, by the single local integral equation
 \begin{equation}
 	\label{eq:ddPCM_aux1}
-	\alpha(1 - U_j)\Phi_{\varepsilon,j} + U_j \bigg( {\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon} \bigg) = U_j \bigg( {\mathcal{R}}_{\infty} \, \Phi \bigg)\qquad \text{on }\Gamma_j
+	\alpha(1 - U_j)\,\Phi_{\varepsilon,j} + U_j \, {\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon} = U_j \, {\mathcal{R}}_{\infty} \, \Phi \qquad \text{on }\Gamma_j
 \end{equation}
-for any $\alpha>0$.
-
-Second, since we extended the both $\Phi_j , \Phi_{\varepsilon,j}$ trivially on $\Gamma_j^\text{int}$, the double layer operator $\cD$ can be decomposed as
+where $\alpha$ is an arbitrary nonzero scalar, and ${\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon}$ and $ {\mathcal{R}}_{\infty} \, \Phi$ should be understood as their trivial extensions to $\Gamma_j$. Employing the extensions $\Phi_j , \Phi_{\varepsilon,j}$, the double layer operator $\cD$ can be decomposed as
 \[
-(\mathcal{D} \, \Phi ) (s) = ( \mathcal{D}_j \, \Phi_j )(s) + \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_k )(s) 
+(\mathcal{D} \, \Phi ) (s) = ( \mathcal{D}_j \, \Phi_j )(s) + \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_k )(s) \qquad ; \qquad s \in \Gamma_j^\text{ext} \quad, \quad  j = 1 , \ldots , M
 \]
-where $\cD_j$ and $\tilde{\cD}_j$ are, respectively, the local double layer operator and the local double layer potential on $\Gamma_j$. 
-We refer to\cite{ddPCM} for concise details for these operators.
-Thus, we can also decompose ${\mathcal{R}}_{\varepsilon}$ in \eqref{eq:ddPCM_aux1} as
+where $\cD_j$ and $\tilde{\cD}_j$ are, respectively, the local double layer operator and the local double layer potential on $\Gamma_j$. Consequently, operator ${\mathcal{R}}_{\varepsilon}$ also decomposes as
 \begin{equation}\label{eq:PCM_aux2}
-{\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon}
+({\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon})(s)
 =
-{\mathcal{R}}_{\varepsilon,j} \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{R}}_{\varepsilon,k} \, \Phi_{\varepsilon,k} 
+({\mathcal{R}}_{\varepsilon,j} \, \Phi_{\varepsilon,j})(s) + \sum_{k \ne j} (\tilde{\mathcal{R}}_{\varepsilon,k} \, \Phi_{\varepsilon,k})(s)
 %= {\mathcal{R}}_{\infty,j} \, \Phi_{j} + \sum_{k \ne j} \tilde{\mathcal{R}}_{\infty,k} \, \Phi_{k} 
-\qquad \text{on }\Gamma_j^\text{ext}
+ \qquad ; \qquad s \in \Gamma_j^\text{ext} \quad, \quad  j = 1 , \ldots , M
 \end{equation}
 %\[
 %2 \pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, \Phi_{\varepsilon,j}(s) - ( \mathcal{D}_j \, \Phi_{\varepsilon,j} )(s) - \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_{\varepsilon,k})(s) 
 %= 2 \pi  \, \Phi_j(s) -  (\mathcal{D}_j \, \Phi_j)(s) - \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_k)(s)
 %\]
-where the operators ${\mathcal{R}}_{\varepsilon,j}$ and $\tilde{\mathcal{R}}_{\varepsilon,j}$ are defined as
+where the local operators ${\mathcal{R}}_{\varepsilon,j}$ and $\tilde{\mathcal{R}}_{\varepsilon,j}$ are defined as
 \[
 {\mathcal{R}}_{\varepsilon,j} = 2 \pi \frac{\varepsilon + 1}{\varepsilon - 1} \, \cI - {\mathcal{D}}_j  \qquad, \qquad
 \tilde{\mathcal{R}}_{\varepsilon,j} =  - \tilde{\mathcal{D}}_j
@@ -223,14 +222,13 @@ with the obvious extension to the case $\varepsilon = \infty$.
 %\alpha(1 - U_j)\Phi_{\varepsilon,j} + U_j \bigg( {\mathcal{R}}_{\varepsilon,j} \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{R}}_{\varepsilon,k} \, \Phi_{\varepsilon,k}\bigg) = U_j \bigg( {\mathcal{R}}_{\infty,j} \, \Phi_{j} - \sum_{k \ne j} \tilde{\mathcal{R}}_{\infty,k} \, \Phi_{k} \bigg)\qquad \text{on }\Gamma_j
 %\]
 %where $\alpha$ in an arbitrary scalar. 
-
-Inserting \eqref{eq:PCM_aux2} into \eqref{eq:ddPCM_aux1}, in combination with the particular choice $\alpha = 2\pi(\varepsilon + 1)/(\varepsilon - 1)$, yields a convenient form in terms of the local double layer potentials and double layer operators:
+If we insert \eqref{eq:PCM_aux2} into \eqref{eq:ddPCM_aux1} and select $\alpha = 2\pi(\varepsilon + 1)/(\varepsilon - 1)$, we obtain a convenient form in terms of the local double layer potentials and double layer operators:
 \begin{multline}\label{eq:1}
 2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, \Phi_{\varepsilon,j} - U_j \bigg( {\mathcal{D}}_j \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{D}}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, U_j \Phi_j - U_j \bigg( {\mathcal{D}}_j \Phi_{j} + \sum_{k \ne j} \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
 \end{multline}
 This constitutes our domain-decomposition strategy for equation \eqref{eq:ddPCM-1}. It is important to remark that, because of the summation, every subdomain $\Omega_j$ interacts with all other subdomains. We anticipate that this contrasts with the ddCOSMO strategy for equation \eqref{eq:ddPCM-2}.
 
-{\bf Step 2.} Local problems for equation \eqref{eq:ddPCM-2} arise from the fact that each restriction $W_j := W |_{\overline{\Omega}_j}$ is harmonic over each subdomain $\Omega_j$. Thus, it can be represented as 
+{\bf Step 2.} The restriction $W_j := W |_{\overline{\Omega}_j}$ is harmonic over the subdomain $\Omega_j$, thus it can be represented as 
 \begin{equation}\label{eq:COSMOloc}
 W_j(x) = (\tilde{\mathcal{S}}_j \,  \sigma_j) (x) \quad , \quad x \in \Omega_j \qquad ; \qquad
 W_j(s) = (\mathcal{S}_j \,  \sigma_j) (s) \quad , \quad s \in \Gamma_j
@@ -239,9 +237,17 @@ where $\sigma_j$ is an unknown surface charge, and $\cS_j$ and $\tilde{\cS}_j$ a
 \begin{equation}\label{eq:5}
 W_j(s) = - U_j(s) \, \Phi_{\varepsilon,j}(s) +  \big (1 - U_j(s)\big ) \, n_j(s) \, \sum_{k \in N_j} {W}_k(s) \qquad s \in \Gamma_j
 \end{equation}
+{\bf (replace by following, since characteristic functions are redundant)}
+\begin{equation}
+W_j(s) = - \Phi_{\varepsilon,j}(s) +  n_j(s) \, \sum_{k \in N_j} {W}_k(s) \qquad ; \qquad s \in \Gamma_j \quad , \quad j = 1, \ldots , M
+\end{equation}
 where $N_j$ is the set of all neighboring subdomains of $\Omega_j$, $W_k$ is understood as its trivial extension to $\Omega$, and $n_j$ is a normalization factor. If $s$ does not belong to any neighbor of $\Omega_j$, then $n_j(s)$ vanishes. Otherwise, $n_j(s)$ is the reciprocal of the number of neighbors. When we substitute the local problems \eqref{eq:COSMOloc} into the decomposition \eqref{eq:5}, and define $(\tilde{\cS}_{jk} \, \sigma_k) (s) = n_j(s) \, (\tilde{\cS}_k \, \sigma_k)(s)$, we obtain
 \begin{equation}\label{eq:2}
 \mathcal{S}_j \, \sigma_j  = -U_j \, \Phi_{\varepsilon,j} + \big (1 - U_j(s)\big ) \, \sum_{k \in N_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \qquad \text{on } \Gamma_j
+\end{equation}
+{\bf (replace by following, since characteristic functions are redundant)}
+\begin{equation}\label{eq:2}
+\mathcal{S}_j \, \sigma_j  = - \Phi_{\varepsilon,j} +  \sum_{k \in N_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \qquad \text{on } \Gamma_j
 \end{equation}
 As opposed to the local problem \eqref{eq:1} which features a global interaction of all subdomains, the ddCOSMO step \eqref{eq:2} is characterized by the interaction of subdomain $\Omega_j$ with only its neighbors. This results in a sparse, rather than dense, discrete operator.
 
