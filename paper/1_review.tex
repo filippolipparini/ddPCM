@@ -1,9 +1,9 @@
 \section{A Brief Review of the ddPCM Strategy}\label{sec:review}
 
-\subsection{The Polarizable Continuum Model}
+%\subsection{The Polarizable Continuum Model}
 The foundation of Polarizable Continuum Solvation Models (PCSM's) is the assumption that the solvent in a solute-solvent system can be treated as either a dielectric, or a conducting continuum medium on the outside of the molecular cavity $\Omega$ of the solute. We follow the customary approach of taking the cavity to be the so-called Van der Waals cavity\cite{ReviewPCM_2005}, i.e., the union of spheres centered at each atom with radii coinciding with the van der Waals radii.
 Within this approach, the topologically similar Solvent Accessible Surface (SAS) cavity can be treated as well. 
-Models based on the Solvent Excluded Surface (SES) have recently been proposed~\cite{} but are not considered here.
+Models based on the Solvent Excluded Surface (SES) have also been proposed\cite{Quan_DDPCM_SES,C5CP03410H,Harbrecht2011,JCC:JCC21431}, but will not be considered here.
 
 The electrostatic part of the solute-solvent interaction is given by $E_s = \tfrac{1}{2}\, f(\varepsilon)\,\int_\Omega \rho(x) W(x) \, dx$, where $f(\varepsilon)$ is an empirical scaling that depends on the dielectric constant of the solvent (and which is only applied in the case of the COSMO), $\rho$ is the charge density of the solute, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to, respectively, as the reaction potential and the electrostatic contribution to the solvation energy. 
 
@@ -160,7 +160,7 @@ which is known as the IEF-PCM equation. It involves operators $\cR_\infty$ and $
 
 %A straightforward application of Schwarz's domain decomposition to the PCM problem is, unfortunately, not possible. A qualitative argument to understand why this is the case is the following: as the PCM problem is defined in the whole space, and not only inside the cavity, the domain would decompose in the spheres that make the cavity plus the space occupied by the dielectric. The latter subdomain, which is not present in the COSMO, touches all the spheres which are exposed to the solvent, coupling them and destroying the sparsity of the resulting system of equations, making the overall strategy not effective. However, 
 
-\subsection{The ddPCM-method}
+%\subsection{The ddPCM-method}
 
 Let us recall how to solve equation \eqref{eq:IEFPCM} within the domain-decomposition paradigm. The first step is to write the IEF-PCM integral equation \eqref{eq:IEFPCM} as a succession of two integral equations, one of which is equivalent to the COSMO equation\cite{Cances_Librone_PCM}. Indeed, if we define $\Phi_\varepsilon = \cS \, \sigma$, equation \eqref{eq:IEFPCM} becomes
 \begin{alignat}{3}
@@ -197,7 +197,7 @@ Second, since we extended the both $\Phi_j , \Phi_{\varepsilon,j}$ trivially on 
 (\mathcal{D} \, \Phi ) (s) = ( \mathcal{D}_j \, \Phi_j )(s) + \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_k )(s) 
 \]
 where $\cD_j$ and $\tilde{\cD}_j$ are, respectively, the local double layer operator and the local double layer potential on $\Gamma_j$. 
-We refer to\cite{ddPCM} for concise details for these operators.
+We refer to\cite{Stamm_JCP_DDPCM} for concise details for these operators.
 Thus, we can also decompose ${\mathcal{R}}_{\varepsilon}$ in \eqref{eq:ddPCM_aux1} as
 \begin{equation}\label{eq:PCM_aux2}
 {\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon}
@@ -247,7 +247,7 @@ As opposed to the local problem \eqref{eq:1} which features a global interaction
 
 We discretize equation \eqref{eq:1} and \eqref{eq:2} by expanding $\Phi_j$, $\Phi_{\varepsilon,j}$ and $\sigma_j$ as truncated series of spherical harmonics. If $Y_\ell^m$ indicates the spherical harmonic of degree $\ell$ and order $m$ on the unit sphere $\mathbb{S}$, we approximate the surface charge $\sigma_j$ as
 \[
-\sigma_j(s) = \sigma_j(x_j + r_j y) = \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [X_j]_\ell^m \, Y_\ell^m(y)
+\sigma_j(s) = \sigma_j(x_j + r_j y) = \frac{1}{r_j}\sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [X_j]_\ell^m \, Y_\ell^m(y)
 \]
 for some unknown coefficients $X = [X_j]_\ell^m$ and a prescribed integer parameter ${L_\text{max}}$. Here $y$ is the variable on $\mathbb{S}$. We approximate $\Phi_{\varepsilon,j}$ and $\Phi_j$ in the same fashion, namely
 \[

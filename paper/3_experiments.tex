@@ -1,1 +1,22 @@
 \section{Numerical Experiments}\label{sec:experiments}
+\subsection{Convergence tests}
+We first verify the implementation of the computation of the forces.
+Let us denote by $	\mathcal{F}_{i,\alpha}$ the $\alpha$-component of the force  $	\mathcal{F}_{i}$ for $\alpha=1,2,3$. Let $e_\alpha$ be the canonical unit vectors of $\mathbb R^3$.
+Then, for any atomic position $x_i$ we consider a sequence $\delta_1,\delta_2,\ldots$ and consider the approximate force obtained by finite difference
+\[
+	\mathcal{F}_{i,\alpha}
+	\approx
+	\mathcal{F}_{i,\alpha}(\delta_n)
+	= 
+	\frac{E_s(x_1,\ldots,x_i + \delta_n e_\alpha,\ldots,x_M) - E_s(x_1,\ldots,x_i,\ldots,x_M)}{\delta_n},
+\]
+where we have made explicit the dependency of the solvation energy on the nuclear positions.
+
+In table \ref{tab:}, we illustrate the RMS of the approximate forces with $\delta_n = x^{-n}$ 
+for caffeine.
+
+\ldots
+
+
+\subsection{Timings}
+Timings for different molecular structures depending on the number of atoms (i.e. alanine chains, hemoglobin, etc).

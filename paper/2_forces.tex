@@ -1,24 +1,17 @@
-\section{Computation of Forces}\label{sec:forces}
+\section{Computation of the ddPCM-Forces}\label{sec:forces}
 %In the case of a classical solute, the form of the charge density $\rho$ allows to compute 
-The solvation energy can be written as a sum of subdomain contributions, which perfectly fits the ddCOSMO paradigm. 
-Indeed, the spherical harmonics addition theorem implies that
+The solvation energy can be written as a sum of subdomain contributions, which perfectly fits the domain-decomposition paradigm. 
+
+First, for a classical solute's charge distribution of the form of $\rho=\sum_j q_j \delta_{x_j}$, we can develop
 \[
-W_j(x) = (\tilde{\cS}_j \, \sigma_j)(x) = \sum_{\ell,m} [X_j]_\ell^m (\tilde{\cS}_j \, Y_\ell^m)(x) = \sum_{\ell,m} [X_j]_\ell^m \, \frac{4\pi}{2\ell+1} \,\frac{r^\ell}{r_j^{\ell+1}} \, Y_\ell^m(y)
+	E_s 
+	= \frac{1}{2} \,  \int_{\Omega} \rho(x) W(x) \, dx
+	= \frac{1}{2} \, \sum_j q_j  W(x_j)
+	= 2 \pi \, \sum_j q_j [X_j]_0^0    \, Y_0^0
+	= {\sqrt{\pi}}\, \sum_j q_j [X_j]_0^0
 \]
-where $x = x_j + r\, y$, so that the solvation energy can be determined as
-\[
-E_s = \tfrac{1}{2} 
-%\,f(\varepsilon) 
-\, \sum_{j=1}^M \int_{\Omega_j} \rho(x) W_j(x) \, dx = \tfrac{1}{2}
-%\, f(\varepsilon) 
-\, \sum_{j=1}^M \sum_{\ell,m} [X_j]_\ell^m \, \frac{4\pi}{2\ell+1} \,\frac{1}{r_j^{\ell+1}} 
-\int_{\Omega_j} \rho(x) \, r^\ell \, Y_\ell^m(y) \, dx
-\]
-If we define
-\[
-[\Psi_j]_\ell^m = \frac{4\pi}{2\ell+1}\, \frac{1}{r_j^{\ell+1}}\int_{\Omega_j} \rho(x) \, r^\ell \, Y_\ell^m(y) \, dx
-\]
-we can compactly write the energy as
+This concept easily generalizes to point multipolar charge distributions. 
+The evaluation of the energy for charge distributions is a bit more involved as it requires a three-dimensional integration and we refer to \cite{Lipparini_JCP_ddCOSMO-QM} for more details. In all cases however, the energy can be written as
 \[
 E_s = \tfrac{1}{2}
 % \,f(\varepsilon)
@@ -28,23 +21,65 @@ E_s = \tfrac{1}{2}
   \,\langle \Psi, X \rangle
 \]
 where the angular brackets indicate the double scalar product over $j$ and $\ell,m$.
+For example, for the classical charge as illustrated above, we have 
+\[
+	[\Psi_j]_\ell^m = {\sqrt{\pi}}\, q_j \, \delta_{\ell,0} \delta_{m,0}.
+\]
+
+% THE FOLLOWING IS NOT ENTIRELY CORRECT SINCE THE OVERLAP IN THE INTEGRALS SHOULD BE SUBSTRACTED
+%Indeed, the spherical harmonics addition theorem implies that
+%\[
+%W_j(x) = (\tilde{\cS}_j \, \sigma_j)(x) = \sum_{\ell,m} [X_j]_\ell^m (\tilde{\cS}_j \, Y_\ell^m)(x) = \sum_{\ell,m} [X_j]_\ell^m \, \frac{4\pi}{2\ell+1} \,\frac{r^\ell}{r_j^{\ell+1}} \, Y_\ell^m(y)
+%\]
+%where $x = x_j + r\, y$, so that the solvation energy can be determined as
+%\[
+%E_s = \tfrac{1}{2} 
+%%\,f(\varepsilon) 
+%\, \sum_{j=1}^M \int_{\Omega_j} \rho(x) W_j(x) \, dx = \tfrac{1}{2}
+%%\, f(\varepsilon) 
+%\, \sum_{j=1}^M \sum_{\ell,m} [X_j]_\ell^m \, \frac{4\pi}{2\ell+1} \,\frac{1}{r_j^{\ell+1}} 
+%\int_{\Omega_j} \rho(x) \, r^\ell \, Y_\ell^m(y) \, dx
+%\]
+%If we define
+%\[
+%[\Psi_j]_\ell^m = \frac{4\pi}{2\ell+1}\, \frac{1}{r_j^{\ell+1}}\int_{\Omega_j} \rho(x) \, r^\ell \, Y_\ell^m(y) \, dx
+%\]
+%we can compactly write the energy as
+%\[
+%E_s = \tfrac{1}{2}
+%% \,f(\varepsilon)
+% \, \sum_j \sum_{\ell,m} [\Psi_j]_\ell^m [X_j]_\ell^m
+%  =: \tfrac{1}{2} 
+%  %\,f(\varepsilon) 
+%  \,\langle \Psi, X \rangle
+%\]
+%where the angular brackets indicate the double scalar product over $j$ and $\ell,m$.
 
 The force acting on the $i$-th particle can be computed as
 \[
-\mathcal{F}_i = -\nabla E_s = - \tfrac{1}{2} \,f(\varepsilon) \,  \langle \Psi, \nabla X \rangle % = - \langle \Psi, \nabla_j\sigma \rangle
+\mathcal{F}_i = -\nablai E_s = - \tfrac{1}{2} 
+%\,f(\varepsilon) 
+\,  \langle \Psi, \nablai X \rangle 
+% = - \langle \Psi, \nabla_j\sigma \rangle
 \]
-where the gradient is understood with respect to $x_i$. Here we used the fact that $\Psi$ is independent of the atomic positions. On the other hand, since both the COSMO operator and right-hand side depend on $x_1 , \ldots, x_M$, so does the unknown $X$. The idea is consider the adjoint problem $(A_\varepsilon \, L)^* s = \Psi$ and compute the quantity $\langle \Psi, \nabla X \rangle = \langle s ,  A_\varepsilon \, L \, \nabla X\rangle$ through an integration-by-parts-like approach.
+where the gradient $\nablai$ is understood with respect to $x_i$ and $X$ denotes the solution to the ddPCM-equations~\eqref{eq:6}. 
+Here we used the fact that the entries of the vector $\Psi$ are independent of the atomic positions. On the other hand, since both the matrices $A_\varepsilon$, $A_\infty$ and the right-hand side $F$ depend on the nuclear positions $x_1 , \ldots, x_M$, so does the unknown $X$ of~\eqref{eq:6}, which can compactly be written as $A_\varepsilon \, L \, X = A_\infty \, F$.
+The idea adjoint differentiation is to consider the adjoint problem $(A_\varepsilon \, L)^* s = \Psi$ and compute the quantity $\langle \Psi, \nablai X \rangle = \langle s ,  A_\varepsilon \, L \, \nablai X\rangle$ by using the definition of the adjoint matrix.
 
 If combine equations \eqref{eq:6}, the fully discretized problem becomes $A_\varepsilon \, L \, X = A_\infty \, F$, and Leibnitz differentiation rule allows to move derivatives from $X$ onto the other terms, namely
 \[
-A_\varepsilon \, L \, \nabla X = \nabla A_\infty \, F +  A_\infty \, \nabla F - \nabla A_\varepsilon \, L \, X -  A_\varepsilon \, \nabla L \, X=: h
+A_\varepsilon \, L \, \nablai X = \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \, L \, X -  A_\varepsilon \, \nablai L \, X=: h_i
 \]
 Thus, once the solution $s$ of the adjoint problem and vector $h$ have been determined, the forces can be computed as
 \[
-\mathcal{F}_i =  - \tfrac{1}{2} \,f(\varepsilon) \,  \langle s, h \rangle
+\mathcal{F}_i =  - \tfrac{1}{2} 
+%\,f(\varepsilon)
+ \,  \langle s, h_i \rangle
 \]
-The derivatives $\nabla L $ of the ddCOSMO discretization were discussed in \cite{}. The quantity $\nabla F$ is \emph{a priori} nonzero since $F_j$ is the discretization of $\Phi_j = U_j \, \tilde{\Phi}$. In remainder of this section we discuss the derivatives of the ddPCM matrix.
+The derivatives $\nablai L $ of the ddCOSMO discretization were discussed in \cite{Lipparini_JCTC_ddCOSMO} and we now focus on the new parts due to the ddPCM-method. The quantity $\nablai F$ is \emph{a priori} nonzero since $F_j$ is the discretization of $\Phi_j = U_j \, \tilde{\Phi}$. 
+\color{red} Wouldn't it be simple to put the formula at the end of this section? \color{black}
 
+In the remainder of this section we discuss the derivatives of the ddPCM matrix $A_\varepsilon$.
 Let $\{ s_n\}$ be the $N_\text{grid}$ Lebedev integration points and define the following quantities
 \[
 t_n^{jk} = \frac{|x_j + r_j s_n -x_k|}{r_k} \quad , \quad s_n^{jk} = \frac{x_j + r_j s_n -x_k}{|x_j + r_j s_n -x_k|}\quad , \quad U_j^n = U_j(x_j + r_j s_n)
@@ -58,7 +93,7 @@ where $\{ w_n\}$ are the weights associated to the integration points. Since the
 
 The case of the diagonal blocks yields
 \[
-{[\nabla A_{jj}]}_{\ell \ell'}^{mm'} = \frac{2\pi}{2 \ell' + 1} \,\sum_{n} w_n \, \nabla U_j^n  \,Y_\ell^m(s_n) \,  Y_{\ell'}^{m'}(s_n)
+{[\nablai A_{jj}]}_{\ell \ell'}^{mm'} = \frac{2\pi}{2 \ell' + 1} \,\sum_{n} w_n \, \nablai U_j^n  \,Y_\ell^m(s_n) \,  Y_{\ell'}^{m'}(s_n)
 \]
 so that it only requires the derivatives of the characteristic function. The function $U_j$ is, in practice, a smoothed version of the (discontinuous!)~characteristic function, and is defined as 
 \[
@@ -70,31 +105,33 @@ U_j(x_j + r_j y) =
 \qquad , \qquad 
 f_j(y) = \sum_{k \in N_j} \chi \bigg(\frac{|x_j + r_j y - x_k|}{r_k}\bigg)
 \]
-where $y$ varies on $\mathbb{S}^2$ and $\chi$ is a regularized characteristic function of $[0,1]$. We conclude that $\nabla U_j$ and, consequently, $\nabla A_{jj}$ are \emph{a priori} nonzero only when $i \in N_j$ or $i = j$.
+where $y$ varies on $\mathbb{S}^2$ and $\chi$ is a regularized characteristic function of $[0,1]$. We conclude that $\nablai U_j$ and, consequently, $\nablai A_{jj}$ are \emph{a priori} nonzero only when $i \in N_j$ or $i = j$.
 
 The case of the off-diagonal blocks, i.e., $j \not=k$, is more involved since it includes the gradient of the product of three functions, namely
 \begin{equation}\label{eq:7}
-{[\nabla A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nabla \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big]
+{[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nablai \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big]
 \end{equation}
 %\cdots\Big[ \nabla U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \, \nabla \Big( \big( t_n^{jk}\big)^{-(\ell'+1)} \Big)\, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \nabla Y_{\ell'}^{m'} (s_n^{jk}) \Big]
 %\end{multline*}
 However, since $t_n^{jk}$ and $s_n^{jk}$ depend only upon $x_j$ and $x_k$, if we assume $i \not=j$ and $i\not=k$, we obtain
 \begin{equation}\label{eq:8}
-{[\nabla A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nabla U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
+{[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nabla U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
 \end{equation}
 %Such relation holds, in particular, for $i \in N_j$ and $i \not= k$.
-Thus, since $U_j$ depends only upon $x_i$ such that $i \in N_j$, we conclude that $\nabla A_{jk}$ vanishes whenever $i \not= j$ and $i \not=k$ and $i \not\in N_j$. In order to discuss the opposite case, i.e., $i = j$ or $i =k$ or $i \in N_j$, notice that the events $(i = j)$ and $(i = k)$ are mutually exclusive, as are $(i = j)$ and $(i \in N_j)$. We obtain the subcases $i = j$, and $i = k$, and $i \in N_j \, , \, i \not= k$, which we address individually.
+Thus, since $U_j$ depends only upon $x_i$ such that $i \in N_j$, we conclude that $\nablai A_{jk}$ vanishes whenever $i \not= j$ and $i \not=k$ and $i \not\in N_j$. In order to discuss the opposite case, i.e., $i = j$ or $i =k$ or $i \in N_j$, notice that the events $(i = j)$ and $(i = k)$ are mutually exclusive, as are $(i = j)$ and $(i \in N_j)$. We obtain the three subcases $i = j$, and $i = k$, and $i \in N_j \, , \, i \not= k$, which we address individually.
 
 Standard differentiation implies that
 \begin{multline}\label{eq:9}
-\nabla \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] = \nabla U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) - \\
-+ U_j^n  \, (\ell' + 1)  \big( t_n^{jk}\big)^{-(\ell'+2)} \, \nabla t_n^{jk} \, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \big( D\, s_n^{ji} \big)^T\, \nabla Y_{\ell'}^{m'} (s_n^{jk})
+\nablai \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] = \nablai U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) - \\
++ U_j^n  \, (\ell' + 1)  \big( t_n^{jk}\big)^{-(\ell'+2)} \, \nablai t_n^{jk} \, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \big( \Di\, s_n^{ji} \big)^T\, \nablai Y_{\ell'}^{m'} (s_n^{jk})
 \end{multline}
-where $D$ emphasizes that the gradient of the vector quantity $s_j^{jk}$ is indeed its Jacobian matrix. We proceed to evaluate $\nabla t_n^{jk}$ and $ D \, s_n^{jk}$. When $i = j$, differentiation implies
+where $\Di$ emphasizes that the gradient of the vector quantity $s_j^{jk}$ is indeed its Jacobian matrix and where the extra subscripts refer to the variables with respect to which differentiation is taken. We proceed to evaluate $\nablai t_n^{jk}$ and $ \Di \, s_n^{jk}$. When $i = j$, differentiation implies
 \[
-\nabla t_n^{jk} = \frac{s_n^{jk}}{r_k} \qquad , \qquad D \, s_n^{jk} = \frac{I - s_n^{jk} \otimes s_n^{jk} }{|x_j + r_j s_n - x_k|^3}
+\nablaj t_n^{jk} = \frac{s_n^{jk}}{r_k} \qquad , \qquad \Dj \, s_n^{jk} = \frac{I - s_n^{jk} \otimes s_n^{jk} }{|x_j + r_j s_n - x_k|^3}
 \]
-where $I$ is the identity matrix and $\otimes$ indicates the outer product. We remark that the Jacobian matrix $D \, s_n^{jk}$ is symmetric, so that the transpose in \eqref{eq:9} is redundant. Analogously, the case $i = k$ yields $\nabla_{\! j} \, t_n^{jk} = - \nabla_{\! k} \, t_n^{jk}$ and $D_j \, s_n^{jk} = - D_k \, s_n^{jk}$, where the extra subscripts refer to the variables with respect to which differentiation is taken. Those relationships imply
+where $I$ is the identity matrix and $\otimes$ indicates the outer product. We remark that the Jacobian matrix $\Dj \, s_n^{jk}$ is symmetric, so that the transpose in \eqref{eq:9} is redundant. 
+Due to the particular relation between $x_j$ and $x_k$, we obtain $\nabla_{\! j} \, t_n^{jk} = - \nabla_{\! k} \, t_n^{jk}$ and $D_j \, s_n^{jk} = - D_k \, s_n^{jk}$.
+We can therefore analogously derive the case $i = k$ and those relationships imply
 \begin{multline*}
 \nabla_{\! j} \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] + \nabla_{\! k} \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] = \\
   \Big[ \nabla_{\! j} \, U_j^n + \nabla_{\! k} \, U_j^n  \Big]  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
@@ -103,4 +140,4 @@ which provide a convenient way of evaluating $[\nabla_{\! k} \, A_{jk}]_{\ell \e
 \[
 [ \nabla_{\! j} \, A_{jk}]_{\ell \ell'}^{m m'} + [\nabla_{\! k} \, A_{jk}]_{\ell \ell'}^{m m'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \Big[ \nabla_{\! j} \, U_j^n + \nabla_{\! k} \, U_j^n  \Big]  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
 \]
-for $\nabla A_{jk}$. Finally, the case $i \in N_j \, , \, i \not= k$ reduces to \eqref{eq:8}.
+for $\nablai A_{jk}$. Finally, the case $i \in N_j \, , \, i \not= k$ reduces to \eqref{eq:8}.
