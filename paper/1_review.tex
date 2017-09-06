@@ -188,7 +188,12 @@ In order to discuss the domain-decomposition approach employed for both steps, l
 %\end{cases}
 %\]
 % Let $\chi_k$ be the characteristic function of $\Omega_k$, and define coefficients $\omega_{jk}(s) = \chi_k(s) / |N_j(s)|$, where $N_j(s)$ is the set of all subdomains that contain $s \in \overline{\Omega}_j$, and $|N_j(s)|$ is its cardinality. Notice that $\sum_{k \in N_j(\,\cdot\,)} \omega_{jk}(\,\cdot\,)$ is the characteristic function of $\Gamma_j^\text{int} := \Gamma_j \setminus \Gamma_j^\text{ext}$, while $U_j(\,\cdot\,) = 1 - \sum_{k \in N_j(\,\cdot\,)} \omega_{jk}(\,\cdot\,)$ is the characteristic function of $ \Gamma_j^\text{ext}$. Thus, the extensions can be compactly defined as 
-We enforce the integral equation \eqref{eq:ddPCM-1} on $\Gamma_j^\text{ext}$, along with the boundary condition $\Phi_{\varepsilon,j}=0$ on $\Gamma_j^\text{int}$, by the single local integral equation
+We enforce the integral equation \eqref{eq:ddPCM-1} on $\Gamma_j^\text{ext}$
+%, i.e.
+%\[
+%	\cR_\varepsilon \, \Phi_\varepsilon  = \cR_\infty \, \Phi \qquad  \text{on }\Gamma_j^\text{ext}
+%\]
+along with the condition $\Phi_{\varepsilon,j}=0$ on $\Gamma_j^\text{int}$ combined within one equation
 \begin{equation}
 	\label{eq:ddPCM_aux1}
 	\alpha(1 - U_j)\,\Phi_{\varepsilon,j} + U_j \, {\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon} = U_j \, {\mathcal{R}}_{\infty} \, \Phi \qquad \text{on }\Gamma_j
