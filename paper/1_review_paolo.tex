@@ -88,13 +88,13 @@ which constitutes our domain-decomposition strategy for equation \eqref{eq:ddPCM
 W_j(x) = (\tilde{\mathcal{S}}_j \,  \sigma_j) (x) \quad , \quad x \in \Omega_j \qquad ; \qquad
 W_j(s) = (\mathcal{S}_j \,  \sigma_j) (s) \quad , \quad s \in \Gamma_j
 \end{equation}
-where $\sigma_j$ is an unknown surface charge, and $\cS_j$ and $\tilde{\cS}_j$ are, respectively, the single layer potential and the single layer operator on $\Gamma_j$. The local problems \eqref{eq:COSMOloc}, are coupled together by decomposing $W_j$ as
+where $\sigma_j$ is an unknown surface charge, and $\cS_j$ and $\tilde{\cS}_j$ are, respectively, the single layer potential and the single layer operator on $\Gamma_j$. The local problems \eqref{eq:COSMOloc} are coupled together by decomposing $W_j$ as
 \begin{equation}\label{eq:5}
-W_j(s) = -U_j(s) \, \Phi_{\varepsilon,j}(s) +  n_j(s) \, \sum_{k \in N_j} {W}_k(s) \qquad ; \qquad s \in \Gamma_j \quad , \quad j = 1, \ldots , M
+W_j(s) = - \Phi_{\varepsilon,j}(s) +  n_j(s) \, \sum_{k \in N_j} {W}_k(s) \qquad ; \qquad s \in \Gamma_j \quad , \quad j = 1, \ldots , M
 \end{equation}
-where $N_j$ is the set of all neighboring subdomains of $\Omega_j$, $W_k$ is understood as its trivial extension to $\Omega$, and $n_j$ is a normalization factor. If $s$ does not belong to any neighbor of $\Omega_j$, then $n_j(s)$ vanishes. Otherwise, $n_j(s)$ is the reciprocal of the number of neighbors. When we substitute the local problems \eqref{eq:COSMOloc} into the decomposition \eqref{eq:5}, and define $(\tilde{\cS}_{jk} \, \sigma_k) (s) = n_j(s) \, (\tilde{\cS}_k \, \sigma_k)(s)$, we obtain
+where $N_j$ is the set of all neighboring subdomains of $\Omega_j$, $W_k$ is understood as its trivial extension to $\Omega$, and $n_j$ is a normalization factor. If $s$ does not belong to any neighbor of $\Omega_j$, then $n_j(s)$ vanishes. Otherwise, $n_j(s)$ is the reciprocal of the number of neighbors. The decomposition \eqref{eq:5} also employs the fact that $\Phi_{\varepsilon,j}$ vanishes on $\Gamma_j^\text{int}$. When we substitute the local problems \eqref{eq:COSMOloc} into the decomposition \eqref{eq:5}, and define $(\tilde{\cS}_{jk} \, \sigma_k) (s) = n_j(s) \, (\tilde{\cS}_k \, \sigma_k)(s)$, we obtain
 \begin{equation}\label{eq:2}
-\mathcal{S}_j \, \sigma_j  -  \sum_{k \in N_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k = - U_j \, \Phi_{\varepsilon,j} \qquad \text{on } \Gamma_j
+\mathcal{S}_j \, \sigma_j  -  \sum_{k \in N_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k = -  \Phi_{\varepsilon,j} \qquad \text{on } \Gamma_j
 \end{equation}
 As opposed to the local problem \eqref{eq:1} which features a global interaction of all subdomains, the ddCOSMO step \eqref{eq:2} is characterized by the interaction of subdomain $\Omega_j$ with only its neighbors. This results in a sparse, rather than dense, discrete operator.
 
