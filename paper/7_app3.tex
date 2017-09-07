@@ -1,0 +1,44 @@
+\section{ddCOSMO discretization (Paolo)\label{app:mats}}
+We multiply equation \eqref{eq:2} by a test function $\varphi$, integrate over $\Gamma_j$, namely
+\begin{equation}\label{eq:50}
+\int_{\Gamma_j} \cS_j \, \sigma_j \, \varphi - \sum_{k \in N_j} \int_{\Gamma_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \, \varphi = -\int_{\Gamma_j} U_j \, \Phi_{\varepsilon,j} \, \varphi
+\end{equation}
+and proceed to map quantities to the unit sphere $\mathbb{S}$. In order to do so, we employ the translation-invariant properties $(\cS_j \, \sigma_j)(s) = r_j( \cS \, \hat{\sigma}_j)(z)$ and $(\tilde{\cS}_j \, \sigma_j)(x) = r_j( \tilde{\cS} \, \hat{\sigma}_j)(u)$, where $\cS$ and $\tilde{\cS}$ are, respectively, the single layer operator and potential on the unit sphere, $y = (s - x_j)/r_j$, $u = (x - x_j)/r_j$, and $\hat{\sigma}_j(y) = \sigma_j(s)$. The workhorse for the objects $\cS \, \hat{\sigma}_j$ and $\tilde{\cS} \, \hat{\sigma}_j$ is the Addition Theorem for spherical harmonics.
+
+We expand $\hat{\sigma}_j$ through spherical harmonics $Y_\ell^m$ as
+\[
+\hat{\sigma}_j(y) = \frac{1}{r_j} \, \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \,  [X_j]_{\ell'}^{m'} \, Y_{\ell'}^{m'}(y)
+\]
+for some (unknown!)~coefficients $X_j = [X_j]_{\ell'}^{m'}$, so that the orthogonality of the spherical harmonics implies
+\[
+(\cS \, \hat{\sigma}_j)(y) = \frac{1}{r_j} \, \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, [X_j]_{\ell'}^{m'} \, Y_{\ell'}^{m'}(y)
+\]
+Thus, it is natural to select as a test functions the spherical harmonics, so that
+\begin{equation}\label{eq:51}
+\int_{\Gamma_j} \cS_j \, \sigma_j \, \varphi =  r_j^3 \int_\mathbb{S} \cS \, \hat{\sigma}_j \, Y_\ell^m = r_j^2 \, \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)} \, \delta_{\ell \ell'} \delta_{m m'}\, [X_j]_{\ell'}^{m'} 
+\end{equation}
+due to the orthogonality of the spherical harmonics. A numerical discretization is obtained by truncation the expansion at $\ell'=L_\text{max}$, thus providing the discrete action $L_{jj} \, X_j$, where $L_{jj} = [L_{jj}]_{\ell \ell'}^{m m'}$ is a diagonal matrix.
+
+The discretization of $\int_{\Gamma_j} \tilde{\cS}_{jk} \, \sigma_k \, \varphi $ follows the same strategy. As a preliminary step, we manipulate the integral as
+\[
+\int_{\Gamma_j} \tilde{\cS}_{jk} \, \sigma_k \, \varphi =\int_{\Gamma_j} n_j \, \tilde{\cS}_{k} \, \sigma_k \, \varphi = \int_{\Gamma_j} (1 - U_j ) \,n_j \, \tilde{\cS}_{k} \, \sigma_k \, \varphi = \int_{\Gamma_j} V_j \, \tilde{\cS}_{k} \, \sigma_k \, \varphi
+\]
+where we inserted the characteristic function $U_j$ for convenience, and defined the rescaled characteristic function $V_j : \Gamma_j \to \mathbb{R}$ as $V(s) = (1 - U_j(s)) \, n_j(s)$. We remark that the quantity $V_j \, \tilde{\cS}_{k} \, \sigma_k $ is indeed well defined on the whole $\Gamma_j$, so that the integral is legitimate. The reason for introducing the characteristic function is that we can modify it, e.g., replace it by a smooth counterpart, to improve robustness of the algorithm. When $x \in \Gamma_j$, i.e., $x = s = x_j + r_j y$, then $u = u(y) = (x_j + r_j y -x_k)/r_k$ and $|u| < 1$ because of the assumption $k \in N_j$. Analogously to the previous case, the Addition Theorem implies
+\[
+(\tilde{\cS} \, \hat{\sigma}_k)(u) = \frac{1}{r_k} \, \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, [X_k]_{\ell'}^{m'} \, |u|^{\ell'} \, Y_{\ell'}^{m'}(u/|u|)
+\]
+so that we obtain
+\begin{multline*}
+\int_{\Gamma_j} V_j(s) \, (\tilde{\cS}_{k} \, \sigma_k)(s) \, \varphi(s) \, ds =  r_j^2 \,r_k \int_\mathbb{S} \hat{V}_j(y) \, (\tilde{\cS} \, \hat{\sigma}_k)(u(y)) \, Y_\ell^m(y) \, dy = \\
+= r_j^2 \, \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, [X_k]_{\ell'}^{m'} \int_\mathbb{S} \hat{V}_j(y) \, |u(y)|^{\ell'} \, Y_{\ell'}^{m'}(u(y)/|u(y)|) \, Y_\ell^m(y) \, dy
+\end{multline*}
+As opposed to the diagonal term, the integration has to be carried out numerically. We employ a Lebedev grid with $N_\text{grid}$ nodes $\{s_n\}$ and weights $\{ w_n \}$ to perform numerical quadrature, so that
+\begin{equation}\label{eq:52}
+L_{jk} \, X_k = r_j^2 \, \sum_{\ell'= 0}^{L_\text{max}}  \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, \sum_{n = 1}^{N_\text{grid}} w_n \, \hat{V}_j(s_n) \, |u(s_n)|^{\ell'} \, Y_{\ell'}^{m'}(u(s_n)/|u(y)|) \, Y_\ell^m(s_n)\, [X_k]_{\ell'}^{m'}  
+\end{equation}
+
+Finally, we discuss the right-hand-side of \eqref{eq:50} when $\Phi_{\varepsilon,j}$ is provided by the ddPCM step as a truncated series of spherical harmonics with coefficients $-[G_j]_{\ell'}^{m'}$. Indeed, we obtain
+\begin{equation}\label{eq:53}
+-\int_{\Gamma_j} U_j \, \Phi_{\varepsilon,j} \, \varphi =  - r_j^2 \int_\mathbb{S} \hat{U}_j \, \hat{\Phi}_{\varepsilon,j} \, Y_\ell^m = r_j^2 \,  \sum_{\ell'= 0}^{L_\text{max}} \sum_{m' = -\ell'}^{\ell'} \, [G_j]_{\ell'}^{m'} \,  \int_{\mathbb{S}} \hat{U}_j \, Y_{\ell'}^{m'} \, Y_\ell^m 
+\end{equation}
+and we have to resort to numerical quadrature to evaluate the integral.  Notice that the factor $r_j^2$ appears in \eqref{eq:51}, \eqref{eq:52} and \eqref{eq:53}, so that we can effectively cross it out.

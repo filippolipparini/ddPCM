@@ -51,25 +51,35 @@ In order to discuss the domain-decomposition approach employed for both steps, l
 \begin{equation}\label{eq:16}
 (\mathcal{D} \, \Phi ) (s) = ( \mathcal{D}_j \, \Phi_j )(s) + \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_k )(s) \qquad ; \qquad s \in \Gamma_j^\text{ext} \quad, \quad  j = 1 , \ldots , M
 \end{equation}
-where $\cD_j$ and $\tilde{\cD}_j$ are, respectively, the local double layer operator and the local double layer potential on $\Gamma_j$. An analogous result holds for $\Phi_\varepsilon$ and its local extensions $\Phi_{\varepsilon,j}$. Since the right-hand-side is indeed well-defined for every $s\in \Gamma_j$, we can define the extensions $\widetilde{\mathcal{D} \, \Phi} : \Gamma_j \to \mathbb{R}$ and $\widetilde{\mathcal{D} \, \Phi}_\varepsilon : \Gamma_j \to \mathbb{R}$.
+where $\cD_j$ and $\tilde{\cD}_j$ are, respectively, the local double layer operator and the local double layer potential on $\Gamma_j$. An analogous result holds for $\Phi_\varepsilon$ and its local extensions $\Phi_{\varepsilon,j}$. %Since the right-hand-side is indeed well-defined for every $s\in \Gamma_j$, we can define the extensions $\widetilde{\mathcal{D} \, \Phi} : \Gamma_j \to \mathbb{R}$ and $\widetilde{\mathcal{D} \, \Phi}_\varepsilon : \Gamma_j \to \mathbb{R}$.
 
 {\bf Step 1.} 
-Let $\Phi_{\varepsilon,j}$ and $\Phi_j$ be \emph{arbitrary} local extensions of $\Phi_\varepsilon$ and $\Phi$, and localize the integral equation \eqref{eq:ddPCM-1} to $\Gamma_j$ through the characteristic function $U_j$ as
-\[
-2 \pi \, \frac{\varepsilon + 1}{\varepsilon + 1} \, U_j \, \Phi_{\varepsilon,j} - U_j \, \widetilde{\mathcal{D} \, \Phi}_\varepsilon = 2 \pi \, U_j \, \Phi_j - U_j \, \widetilde{\mathcal{D} \, \Phi} \qquad \text{on }\Gamma_j
-\]
-As a next step, we employ the decomposition \eqref{eq:16}, under the hypotheses that $\Phi_{\varepsilon,j}$ and $\Phi_j$ vanish on $\Gamma_j^\text{int}$, which we impose as additional explicit constraints. We obtain the integral equation 
-\begin{multline}\label{eq:17}
-2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, U_j \, \Phi_{\varepsilon,j} - U_j \bigg( \cD_j \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\cD}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, U_j \, \Phi_j - U_j \bigg( \cD_j \, \Phi_j + \sum_{k \ne j} \tilde{\cD}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
-\end{multline}
-alogn with the constraints
-\begin{alignat}{2}
-\Phi_j & = U_j \, \widetilde{\Phi} \qquad & \text{on }\Gamma_j \label{eq:18}\\
-(1 - U_j) \, \Phi_{\varepsilon,j} & = 0 &\text{on }\Gamma_j \label{eq:19}
-\end{alignat}
-In order to obtain a single equation, we insert \eqref{eq:18} into the right-hand-side of \eqref{eq:17}, multiply \eqref{eq:19} by the factor $2\pi \, (\varepsilon+1)/(\varepsilon-1)$ and add it sidewise to \eqref{eq:17}. This yields
+We localize the integral equation \eqref{eq:ddPCM-1} to $\Gamma_j$ through the characteristic function $U_j$ as
+\begin{equation}\label{eq:20}
+2 \pi \, \frac{\varepsilon + 1}{\varepsilon + 1} \, U_j \, \Phi_{\varepsilon} - U_j \, {\mathcal{D} \, \Phi}_\varepsilon = 2 \pi \, U_j \, \Phi - U_j \, {\mathcal{D} \, \Phi} \qquad \text{on }\Gamma_j
+\end{equation}
+We define $\Phi_j : \Gamma_j \to \mathbb{R}$ as $\Phi_j = U_j\,\Phi$ and, without loss of generality, trade $U_j \, \Phi_\varepsilon$ for $U_j \, \Phi_{\varepsilon,j}$ in the left-hand-side, where $\Phi_{\varepsilon,j} : \Gamma_j \to \mathbb{R}$ is an extension of the unknown $\Phi_\varepsilon$. We ensure that $\Phi_{\varepsilon,j}$ vanishes on $\Gamma_j^\text{int}$ by imposing the additional constraint
+\begin{equation}\label{eq:19}
+(1 - U_j) \, \Phi_{\varepsilon,j}  = 0\qquad \text{on }\Gamma_j 
+\end{equation}
+In order to obtain a single equation, we multiply \eqref{eq:19} by the factor $2\pi \, (\varepsilon+1)/(\varepsilon-1)$, and add it sidewise to \eqref{eq:20}, so that 
+\begin{equation}\label{eq:21}
+2 \pi \, \frac{\varepsilon + 1}{\varepsilon + 1} \, \Phi_{\varepsilon,j} - U_j \, {\mathcal{D} \, \Phi}_\varepsilon = 2 \pi \, \Phi_j - U_j \, {\mathcal{D} \, \Phi} \qquad \text{on }\Gamma_j
+\end{equation}
+When $s \in \Gamma_j^\text{int}$, we recover $\Phi_{\varepsilon,j}(s) = 0$, so that we have effectively built the constraint \eqref{eq:19} into the previous equation. Thus, recalling that $\Phi_j$ vanishes on $\Gamma_j^\text{int}$ by definition, we proceed to apply the decomposition \eqref{eq:16} to both sides of \eqref{eq:21}, and obtain
+%As a next step, we employ the decomposition \eqref{eq:16}, under the hypotheses that $\Phi_{\varepsilon,j}$ and $\Phi_j$ vanish on $\Gamma_j^\text{int}$, which we impose as additional explicit constraints. We obtain the integral equation 
+%\begin{multline}\label{eq:17}
+%2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, U_j \, \Phi_{\varepsilon,j} - U_j \bigg( \cD_j \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\cD}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, U_j \, \Phi_j - U_j \bigg( \cD_j \, \Phi_j + \sum_{k \ne j} \tilde{\cD}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
+%\end{multline}
+%alogn with the constraints
+%\begin{alignat}{2}
+%\Phi_j & = U_j \, \widetilde{\Phi} \qquad & \text{on }\Gamma_j \label{eq:18}\\
+%(1 - U_j) \, \Phi_{\varepsilon,j} & = 0 &\text{on }\Gamma_j \label{eq:19}
+%\end{alignat}
+%In order to obtain a single equation, we insert \eqref{eq:18} into the right-hand-side of \eqref{eq:17}, multiply \eqref{eq:19} by the factor $2\pi \, (\varepsilon+1)/(\varepsilon-1)$ and add it sidewise to \eqref{eq:17}.
+ %This yields
 \begin{multline}\label{eq:1}
-2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, \Phi_{\varepsilon,j} - U_j \bigg( {\mathcal{D}}_j \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{D}}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, U_j \, \widetilde{\Phi} - U_j \bigg( {\mathcal{D}}_j \,\Phi_{j} + \sum_{k \ne j} \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
+2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, \Phi_{\varepsilon,j} - U_j \bigg( {\mathcal{D}}_j \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{D}}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, {\Phi_j} - U_j \bigg( {\mathcal{D}}_j \,\Phi_{j} + \sum_{k \ne j} \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
 \end{multline}
 which constitutes our domain-decomposition strategy for equation \eqref{eq:ddPCM-1}. It is important to remark that, because of the summation, every subdomain $\Omega_j$ interacts with all other subdomains. We anticipate that this contrasts with the ddCOSMO strategy for equation \eqref{eq:ddPCM-2}.
 
@@ -89,50 +99,33 @@ where $N_j$ is the set of all neighboring subdomains of $\Omega_j$, $W_k$ is und
 As opposed to the local problem \eqref{eq:1} which features a global interaction of all subdomains, the ddCOSMO step \eqref{eq:2} is characterized by the interaction of subdomain $\Omega_j$ with only its neighbors. This results in a sparse, rather than dense, discrete operator.
 
 \subsection{Numerical Discretization}
-As customary, in order to obtain the ddPCM and ddCOSMO discretizations we interpret each local problem (\ref{eq:1}) and (\ref{eq:2}) in a variational setting that employs expansions of $\Phi_j$, $\Phi_{\varepsilon,j}$ and $\sigma_j$ as truncated series of spherical harmonics, as well as spherical harmonics as test functions. We briefly describe the discretization of the ddCOSMO problem \eqref{eq:2}, and refer to Appendix \ref{app:mats} for the more involved discretization of the ddPCM problem \eqref{eq:1}.
 
-We multiply equation \eqref{eq:2} by a test function $\varphi$, integrate over $\Gamma_j$, namely
+We discretize equation \eqref{eq:1} and \eqref{eq:2} by expanding $\Phi_j$, $\Phi_{\varepsilon,j}$ and $\sigma_j$ as truncated series of spherical harmonics. If $Y_\ell^m$ indicates the spherical harmonic of degree $\ell$ and order $m$ on the unit sphere $\mathbb{S}$, we approximate the surface charge $\sigma_j$ as
 \[
-\int_{\Gamma_j} \cS_j \, \sigma_j \, \varphi - \sum_{k \in N_j} \int_{\Gamma_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \, \varphi = -\int_{\Gamma_j} U_j \, \Phi_{\varepsilon,j} \, \varphi
+\sigma_j(s) = \sigma_j(x_j + r_j y) = \frac{1}{r_j}\sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [X_j]_\ell^m \, Y_\ell^m(y)
 \]
-and proceed to map quantities to the unit sphere $\mathbb{S}$. In order to do so, we employ the translation-invariant properties $(\cS_j \, \sigma_j)(s) = r_j( \cS \, \hat{\sigma}_j)(z)$ and $(\tilde{\cS}_j \, \sigma_j)(x) = r_j( \tilde{\cS} \, \hat{\sigma}_j)(u)$, where $\cS$ and $\tilde{\cS}$ are, respectively, the single layer operator and potential on the unit sphere, $y = (s - x_j)/r_j$, $u = (x - x_j)/r_j$, and $\hat{\sigma}_j(y) = \sigma_j(s)$. The workhorse for the objects $\cS \, \hat{\sigma}_j$ and $\tilde{\cS} \, \hat{\sigma}_j$ is the Addition Theorem for spherical harmonics.
-
-When we expand $\hat{\sigma}_j$ as a series of spherical harmonics $Y_\ell^m$ with (unknown!)~coefficients $X_j = [X_j]_{\ell'}^{m'}$, the orthogonality of the spherical harmonics implies
+for some unknown coefficients $X = [X_j]_\ell^m$ and a prescribed integer parameter ${L_\text{max}}$. Here $y$ is the variable on $\mathbb{S}$. {\bf (Discuss why this ansatz is legit.)} We approximate $\Phi_{\varepsilon,j}$ and $\Phi_j$ in the same fashion, namely
 \[
-(\cS \, \hat{\sigma}_j)(y) = \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, [X_j]_{\ell'}^{m'} \, Y_{\ell'}^{m'}(y)
+\Phi_{\varepsilon,j} = - \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [G_j]_\ell^m \, Y_\ell^m \qquad , \qquad \Phi_j = -\sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [F_j]_\ell^m \, Y_\ell^m
 \]
-Thus, it is natural to select as a test function a rescaled spherical harmonic, i.e., $\varphi(s) = r_j^{-3} \, Y_\ell^m(y)$, so that
-\[
-\int_{\Gamma_j} \cS_j \, \sigma_j \, \varphi =  \int_\mathbb{S} \cS \, \hat{\sigma}_j \, Y_\ell^m = \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)} \, \delta_{\ell \ell'} \delta_{m m'}\, [X_j]_{\ell'}^{m'} 
-\]
-due to the orthogonality of the spherical harmonics. A numerical discretization is obtained by truncation the expansion at $\ell'=L_\text{max}$, thus providing the discrete action $L_{jj} \, X_j$, where $L_{jj} = [L_{jj}]_{\ell \ell'}^{m m'}$ is a diagonal matrix.
-
-The discretization of $\int_{\Gamma_j} \tilde{\cS}_{jk} \, \sigma_k \, \varphi $ follows the same strategy. As a preliminary step, we manipulate the integral as
-\[
-\int_{\Gamma_j} \tilde{\cS}_{jk} \, \sigma_k \, \varphi =\int_{\Gamma_j} n_j \, \tilde{\cS}_{k} \, \sigma_k \, \varphi = \int_{\Gamma_j} U_j \,n_j \, \tilde{\cS}_{k} \, \sigma_k \, \varphi = \int_{\Gamma_j} V_j \, \tilde{\cS}_{k} \, \sigma_k \, \varphi
-\]
-where we inserted the characteristic function $U_j$ for convenience, and defined the rescaled characteristic function $V_j : \Gamma_j \to \mathbb{R}$ as $V(s) = U_j(s) \, n_j(s)$. We remark that the quantity $V_j \, \tilde{\cS}_{k} \, \sigma_k $ is indeed well defined on the whole $\Gamma_j$, so that the integral is legitimate. The reason for introducing the characteristic function is that we can modify it, e.g., replace it by a smooth counterpart, to improve robustness of the algorithm. When $x \in \Gamma_j$, i.e., $x = s = x_j + r_j y$, then $u = u(y) = (x_j + r_j y -x_k)/r_k$ and $|u| < 1$ because of the assumption $k \in N_j$. Analogously to the previous case, the Addition Theorem implies
-\[
-(\tilde{\cS} \, \hat{\sigma}_k)(u) = \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, [X_k]_{\ell'}^{m'} \, |u|^{\ell'} \, Y_{\ell'}^{m'}(u/|u|)
-\]
-so that, recalling that $\varphi(s) = r_j^{-3} \, Y_{\ell}^{m}(y)$, we obtain
-\begin{multline*}
-\int_{\Gamma_j} V_j(s) \, (\tilde{\cS}_{k} \, \sigma_k)(s) \, \varphi(s) \, ds =  r_k \int_\mathbb{S} \hat{V}_j(y) \, (\tilde{\cS} \, \hat{\sigma}_k)(u(y)) \, Y_\ell^m(y) \, dy = \\
-= r_k \, \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, [X_k]_{\ell'}^{m'} \int_\mathbb{S} \hat{V}_j(y) \, |u(y)|^{\ell'} \, Y_{\ell'}^{m'}(u(y)/|u(y)|) \, Y_\ell^m(y) \, dy
-\end{multline*}
-{\bf (check extra $r_k$ factor)} As opposed to the diagonal term, the integration has to be carried out numerically. We employ a Lebedev grid with $N_\text{grid}$ nodes $\{s_n\}$ and weights $\{ w_n \}$ to perform numerical quadrature. We obtain
-\[
-L_{jk} \, X_k = r_k \, \sum_{\ell'= 0}^{L_\text{max}}  \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, \sum_{n = 1}^{N_\text{grid}} w_n \, \hat{V}_j(s_n) \, |u(s_n)|^{\ell'} \, Y_{\ell'}^{m'}(u(s_n)/|u(y)|) \, Y_\ell^m(s_n)\, [X_k]_{\ell'}^{m'}  
-\]
-which is the final expression of the discrete action $L_{jk} \, X_k$.
-
-The PCM equation \eqref{eq:1} is discretized in a similar fashion, by expanding $\hat{\Phi}_j$ and $\hat{\Phi}_{\varepsilon,j}$ as truncated series of spherical harmonics
-\[
-\hat{\Phi}_{\varepsilon,j}(y) = - \sum_{\ell'=0}^{L_\text{max}} \sum_{m' = -\ell'}^{\ell'} [G_j]_{\ell'}^{m'} \, Y_{\ell'}^{m'}(y) \qquad , \qquad \hat{\Phi}_j(y) = -\sum_{\ell'=0}^{L_\text{max}} \sum_{m' = -\ell'}^{\ell'} [F_j]_{\ell'}^{m'} \, Y_{\ell'}^{m'}(y)
-\]
-where the minus signs have been introduced for convenience. We refer to Appendix \ref{app:mats} for the full details of the numerical discretization.
-The final discretizations of the global problems \eqref{eq:ddPCM-1} and \eqref{eq:ddPCM-2} are, respectively
+where $G = [G_j]_\ell^m$ and $F = [F_j]_\ell^m$ are the coefficients of the expansions, and the minus signs have been introduced for convenience. In the following, we shall use the condensed notation $\sum_{\ell ,m}$ to indicate the double sum. We interpret each local problem (\ref{eq:1}) and (\ref{eq:2}) in a variational setting that uses spherical harmonics as test functions, see Appendix \ref{app:mats}. We employ orthogonality conditions of the spherical harmonics, along with Lebedev grids to perform numerical quadrature to derive discretizations of the global problems \eqref{eq:ddPCM-1} and \eqref{eq:ddPCM-2}. Respectively, we obtain
 \begin{equation}\label{eq:6}
 A_\varepsilon \, G = A_\infty \, F \qquad , \qquad  L \, X = G
 \end{equation}
-where $G = [G_j]_{\ell'}^{m'}$,  $F = [F_j]_{\ell'}^{m'}$ and the expressions for the entries of the discrete operator $A_\varepsilon$ are given in \eqref{eq:ajj} and \eqref{eq:ajk}.
+and the expressions for the entries of the discrete operator $A_\varepsilon$ are given in \eqref{eq:ajj} and \eqref{eq:ajk}.
+
+
+%As customary, in order to obtain the ddPCM and ddCOSMO discretizations we interpret each local problem (\ref{eq:1}) and (\ref{eq:2}) in a variational setting that employs expansions of $\Phi_j$, $\Phi_{\varepsilon,j}$ and $\sigma_j$ as truncated series of spherical harmonics, as well as spherical harmonics as test functions. We briefly describe the discretization of the ddCOSMO problem \eqref{eq:2}, and refer to Appendix \ref{app:mats} for the more involved discretization of the ddPCM problem \eqref{eq:1}.
+%
+%
+%
+%The PCM equation \eqref{eq:1} is discretized in a similar fashion, by expanding $\hat{\Phi}_j$ and $\hat{\Phi}_{\varepsilon,j}$ as truncated series of spherical harmonics
+%\[
+%\hat{\Phi}_{\varepsilon,j}(y) = - \sum_{\ell'=0}^{L_\text{max}} \sum_{m' = -\ell'}^{\ell'} [G_j]_{\ell'}^{m'} \, Y_{\ell'}^{m'}(y) \qquad , \qquad \hat{\Phi}_j(y) = -\sum_{\ell'=0}^{L_\text{max}} \sum_{m' = -\ell'}^{\ell'} [F_j]_{\ell'}^{m'} \, Y_{\ell'}^{m'}(y)
+%\]
+%where the minus signs have been introduced for convenience. We refer to Appendix \ref{app:mats} for the full details of the numerical discretization.
+%The final discretizations of the global problems \eqref{eq:ddPCM-1} and \eqref{eq:ddPCM-2} are, respectively
+%\begin{equation}\label{eq:6}
+%A_\varepsilon \, G = A_\infty \, F \qquad , \qquad  L \, X = G
+%\end{equation}
+%where $G = [G_j]_{\ell'}^{m'}$,  $F = [F_j]_{\ell'}^{m'}$ and the expressions for the entries of the discrete operator $A_\varepsilon$ are given in \eqref{eq:ajj} and \eqref{eq:ajk}.
