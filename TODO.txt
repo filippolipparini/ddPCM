@@ -2,6 +2,10 @@ TODO list :
 
 1. main : move charge, phi, psi, sigma, s, phi_eps, fx  to module "ddcosmo"
    ----
+   ---> FL: I disagree. Keeping these quantities separated is consistent with
+            the idea of a driver + module implementation, where all the quantities
+            that either depend on the solute or are used to assemble other quantities
+            are kept external. 
          
           restructure as :  read_control_file()
                             reset_ngrid( igrid )
@@ -17,7 +21,10 @@ TODO list :
    -------
              add charge,phi,psi,sigma,s,phi_eps,fx ; add esolv ??? Discuss about it
 
-             use ngrid as over-integration flag ? Discuss about it
+   ---> FL: These two modifications, together with everything else concerning with the
+            coordinates/charges, are in contrast with what I suggest at point 1.
+
+             use ngrid as over-integration flag ? Discuss about it  ---> ???
 
              read_molecule_file() : add allocation of charge, csph, rsph ; read into charge, csph, rsph
 
@@ -25,11 +32,11 @@ TODO list :
 
              memfree() : add missing deallocations ; remove read_x,y,z,r,q
 
-             fsw : remove s,eta from head
+             fsw : remove s,eta from head   ---> sure
 
-             dfsw : remove s,eta from head
+             dfsw : remove s,eta from head  ---> sure
 
-             wghpot : why is there a minus sign ??? add comment about it
+             wghpot : why is there a minus sign ??? add comment about it --- there is a minus sign in the equations
 
              adjrhs1 : check consistency of extension with direct problem
 
@@ -41,8 +48,11 @@ TODO list :
 
 5. compute_forces/forces : remove everything from head, add a general redirecting routine, depending
    ---------------------   on iscrf flag       
+  
+   ---> FL: but for the quantities that relate to the solute or are to be used in a subsequent calculation
 
-6. matvec : lx,lstarx : why sign flip ??? add comment about it
+6. matvec : lx,lstarx : why sign flip ??? add comment about it ---> will do. it has to do with the fact that
+                        calcv assembles minus the matrix, i.e., what is to be added to the RHS in a jacobi-like iteration...
    ------
                            
 7. iefpcm : move mrkvec,(mkrvec_fmm),adjvec,mkprec,adjprec somewhere else ( ddcosmo ? ) ; eventually remove
