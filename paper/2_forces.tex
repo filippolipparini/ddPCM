@@ -1,4 +1,6 @@
 \section{Computation of the ddPCM-Forces}\label{sec:forces}
+
+\subsection{Theory}
 %In the case of a classical solute, the form of the charge density $\rho$ allows to compute 
 The solvation energy can be written as a sum of subdomain contributions, which perfectly fits the domain-decomposition paradigm. 
 
@@ -141,3 +143,5 @@ which provide a convenient way of evaluating $[\nabla_{\! k} \, A_{jk}]_{\ell \e
 [ \nabla_{\! j} \, A_{jk}]_{\ell \ell'}^{m m'} + [\nabla_{\! k} \, A_{jk}]_{\ell \ell'}^{m m'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \Big[ \nabla_{\! j} \, U_j^n + \nabla_{\! k} \, U_j^n  \Big]  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
 \]
 for $\nablai A_{jk}$. Finally, the case $i \in N_j \, , \, i \not= k$ reduces to \eqref{eq:8}.
+
+\subsection{Implementation}
