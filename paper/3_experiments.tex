@@ -1,16 +1,58 @@
 \section{Numerical Experiments}\label{sec:experiments}
 \subsection{Convergence tests}
-We first verify the implementation of the computation of the forces.
-Let us denote by $	\mathcal{F}_{i,\alpha}$ the $\alpha$-component of the force  $	\mathcal{F}_{i}$ for $\alpha=1,2,3$. Let $e_\alpha$ be the canonical unit vectors of $\mathbb R^3$.
-Then, for any atomic position $x_i$ we consider a sequence $\delta_1,\delta_2,\ldots$ and consider the approximate force obtained by finite difference
+We verified the implementation of the forces by performing a convergence test of a first order finite difference approximation. Let $e_\alpha$ be the canonical unit vectors of $\mathbb R^3$, and define the forward finite difference
 \[
-	\mathcal{F}_{i,\alpha}
-	\approx
-	\mathcal{F}_{i,\alpha}(\delta_n)
+	F_{i,\alpha}(\delta)
 	= 
-	\frac{E_s(x_1,\ldots,x_i + \delta_n e_\alpha,\ldots,x_M) - E_s(x_1,\ldots,x_i,\ldots,x_M)}{\delta_n},
+	\frac{E_s(x_1,\ldots,x_i + \delta e_\alpha,\ldots,x_M) - E_s(x_1,\ldots,x_i,\ldots,x_M)}{\delta}
 \]
-where we have made explicit the dependency of the solvation energy on the nuclear positions.
+where we have made explicit the dependency of the solvation energy on the nuclear positions $x_1 , \ldots , x_M$. It immediately follows that $\mathcal{F}_{i,\alpha} = F_{i,\alpha}(\delta) + O(\delta)$, where $\mathcal{F}_{i,\alpha}$ is the $\alpha$ component of $\mathcal{F}_i$, which implies that the relative error $\text{Err}_{i,\alpha}(\delta) = |(\mathcal{F}_{i,\alpha} - F_{i,\alpha}(\delta))/\mathcal{F}_{i,\alpha}|$ decreases as $O(\delta)$, namely with rate 1.
+
+As a first test, we investigated the rate of convergence for a molecular configuration composed of six spheres with radius 1.5 and centers at $x_{\pm \alpha} = \pm e_\alpha$, for $\alpha = 1, 2,3$. Although conceptually simple, this configuration generates a sextuple intersection which provides a challenging benchmark case. We have studied the behavior of the relative error over the range of angular momenta $\ell = 2, \ldots , 10$, and obtained numerical results that are qualitatively similar, and in excellent agreement with the predicted rate of convergence. Results for a representative case are reported in Table \ref{tab:1}.
+
+%\begin{tabular}{ l l l l}
+%\toprule
+%Expression & \ multicolumn {1}{ c }{ Value } \\ %\otoprule
+%$\pi $ & 3 ,1416 \\ \midrule
+%$\pi ^{\pi }$ & 36 ,46 \\ \midrule
+%$\pi ^{\pi ^{\pi }}$ & 80662 ,7 \\ \bottomrule
+%\end{tabular}
+
+
+\begin{center}
+\begin{tabular}{| c | c | c | c | c | }
+\hline
+$dE / dr_{+1,1}$ &	0.23529E-02 &	0.11751E-02  & 0.58717E-03   &0.29345E-03 \\
+$dE / dr_ {-1,1}$ &	0.23529E-02 &	0.11751E-02   &0.58718E-03   &0.29344E-03 \\
+$dE / dr_ {+2,2}$ &	0.23529E-02 &	0.11751E-02   &0.58692E-03   &0.29411E-03 \\
+$dE / dr_ {-2,2}$ &	0.23529E-02 &	0.11751E-02   &0.58719E-03   &0.29348E-03 \\
+$dE / dr_ {+3,3}$ &	0.23529E-02 & 	0.11751E-02   &0.58718E-03   &0.29344E-03 \\
+$dE / dr_ {-3,3}$ &	0.23529E-02 & 	0.11751E-02   &0.58720E-03   &0.29337E-03 \\
+\hline
+
+\hline
+\end{tabular}
+\end{center}
+
+% lmax =  8 , ngrid =  110 - Integration points PRESENT in the switch region
+% eta = 0.2, s = 0
+% delta = 10^-3
+% Relative error : 
+% dE / dr_ 1,1 :  0.23529E-02   0.11751E-02   0.58717E-03   0.29345E-03
+% dE / dr_ 2,1 :  0.23529E-02   0.11751E-02   0.58718E-03   0.29344E-03
+% dE / dr_ 3,2 :  0.23529E-02   0.11751E-02   0.58692E-03   0.29411E-03
+% dE / dr_ 4,2 :  0.23529E-02   0.11751E-02   0.58719E-03   0.29348E-03
+% dE / dr_ 5,3 :  0.23529E-02   0.11751E-02   0.58718E-03   0.29344E-03
+% dE / dr_ 6,3 :  0.23529E-02   0.11751E-02   0.58720E-03   0.29337E-03
+% 
+% Rate of convergence : 
+% dE / dr_ 1,1 :        0.000        -1.002        -1.001        -1.001
+% dE / dr_ 2,1 :        0.000        -1.002        -1.001        -1.001
+% dE / dr_ 3,2 :        0.000        -1.002        -1.002        -0.997
+% dE / dr_ 4,2 :        0.000        -1.002        -1.001        -1.001
+% dE / dr_ 5,3 :        0.000        -1.002        -1.001        -1.001
+% dE / dr_ 6,3 :        0.000        -1.002        -1.001        -1.001
+
 
 In table \ref{tab:}, we illustrate the RMS of the approximate forces with $\delta_n = x^{-n}$ 
 for caffeine.
