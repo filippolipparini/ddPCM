@@ -78,20 +78,28 @@ Thus, once the solution $s$ of the adjoint problem and vector $h$ have been dete
 %\,f(\varepsilon)
  \,  \langle s, h_i \rangle
 \]
-The derivatives $\nablai L $ of the ddCOSMO discretization were discussed in \cite{Lipparini_JCTC_ddCOSMO} and we now focus on the new parts due to the ddPCM-method. The quantity $\nablai F$ is \emph{a priori} nonzero since $F_j$ is the discretization of $\Phi_j = U_j \, \tilde{\Phi}$. 
-\color{red} Wouldn't it be simple to put the formula at the end of this section? \color{black}
+The derivatives $\nablai L $ of the ddCOSMO discretization were discussed in \cite{Lipparini_JCTC_ddCOSMO} and we now focus on the new parts due to the ddPCM-method. We remark that the quantity $\nablai F$ is \emph{a priori} nonzero since $F_j$ does depend upon the nuclear positions through the characteristic function $U_j$, recall \eqref{eq:25}.
 
-In the remainder of this section we discuss the derivatives of the ddPCM matrix $A_\varepsilon$.
-Let $\{ s_n\}$ be the $N_\text{grid}$ Lebedev integration points and define the following quantities
+Let $\{ s_n\}$ be the $N_\text{grid}$ Lebedev integration points with associated weights $\{ w_n \}$ and define the following quantities
 \[
 t_n^{jk} = \frac{|x_j + r_j s_n -x_k|}{r_k} \quad , \quad s_n^{jk} = \frac{x_j + r_j s_n -x_k}{|x_j + r_j s_n -x_k|}\quad , \quad U_j^n = U_j(x_j + r_j s_n)
 \]
+The entries of $F_j$ are evaluated through numerical quadrature as
+\[
+[F_j]_\ell^m = - \sum_{n = 1} ^{N_\text{grid}} w_n \, U_j^n \, \Phi(x_j + r_js_n) \, Y_\ell^m(s_n)
+\]
+so that we immediately obtain
+\[
+[\nablai F_j]_\ell^m = - \sum_{n = 1} ^{N_\text{grid}} w_n \, \nablai U_j^n \, \Phi(x_j + r_js_n) \, Y_\ell^m(s_n)
+\]
+In the remainder of this section we discuss the derivatives of the ddPCM matrix $A_\varepsilon$.
+
 The blocks $A_{jk}^\varepsilon$ of the ddPCM matrix $A_\varepsilon$, see \eqref{eq:ajj} and \eqref{eq:ajk}, have the form
 \begin{alignat*}{3}
 {[A_{jj}^\varepsilon]}_{\ell \ell'}^{mm'}& = 2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1}\, \delta_{\ell \ell'} \delta_{m m'}&& + \frac{2\pi}{2 \ell' + 1} \,\sum_{n= 1}^{N_\text{grid}} w_n \, U_j^n  \,Y_\ell^m(s_n) \,  Y_{\ell'}^{m'}(s_n) \\
 {[A_{jk}^\varepsilon]}_{\ell \ell'}^{mm'}& =&& -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n= 1}^{N_\text{grid}} w_n\, U_j^n  \, Y_\ell^m(s_n) \, \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
 \end{alignat*}
-where $\{ w_n\}$ are the weights associated to the integration points. Since the derivatives are independent of $\varepsilon$, we drop the $\varepsilon$-dependency for ease of notation.
+and, since the derivatives are independent of $\varepsilon$, we drop the $\varepsilon$-dependency for ease of notation.
 
 The case of the diagonal blocks yields
 \[
@@ -107,7 +115,7 @@ U_j(x_j + r_j y) =
 \qquad , \qquad 
 f_j(y) = \sum_{k \in N_j} \chi \bigg(\frac{|x_j + r_j y - x_k|}{r_k}\bigg)
 \]
-where $y$ varies on $\mathbb{S}^2$ and $\chi$ is a regularized characteristic function of $[0,1]$. We conclude that $\nablai U_j$ and, consequently, $\nablai A_{jj}$ are \emph{a priori} nonzero only when $i \in N_j$ or $i = j$.
+where $y$ varies on $\mathbb{S}$ and $\chi$ is a regularized characteristic function of $[0,1]$. We conclude that $\nablai U_j$ and, consequently, $\nablai A_{jj}$ are \emph{a priori} nonzero only when $i \in N_j$ or $i = j$.
 
 The case of the off-diagonal blocks, i.e., $j \not=k$, is more involved since it includes the gradient of the product of three functions, namely
 \begin{equation}\label{eq:7}
