@@ -57,7 +57,7 @@ For example, for the classical charge as illustrated above, we have
 %\]
 %where the angular brackets indicate the double scalar product over $j$ and $\ell,m$.
 
-The force acting on the $i$-th particle can be computed as
+The force acting on the $i$-th atom is then given by
 \[
 \mathcal{F}_i = -\nablai E_s = - \tfrac{1}{2} 
 %\,f(\varepsilon) 
@@ -68,11 +68,12 @@ where the gradient $\nablai$ is understood with respect to $x_i$ and $X$ denotes
 Here we used the fact that the entries of the vector $\Psi$ are independent of the atomic positions. On the other hand, since both the matrices $A_\varepsilon$, $A_\infty$ and the right-hand side $F$ depend on the nuclear positions $x_1 , \ldots, x_M$, so does the unknown $X$ of~\eqref{eq:6}, which can compactly be written as $A_\varepsilon \, L \, X = A_\infty \, F$.
 The idea adjoint differentiation is to consider the adjoint problem $(A_\varepsilon \, L)^* s = \Psi$ and compute the quantity $\langle \Psi, \nablai X \rangle = \langle s ,  A_\varepsilon \, L \, \nablai X\rangle$ by using the definition of the adjoint matrix.
 
-If combine equations \eqref{eq:6}, the fully discretized problem becomes $A_\varepsilon \, L \, X = A_\infty \, F$, and Leibnitz differentiation rule allows to move derivatives from $X$ onto the other terms, namely
+%If combine equations \eqref{eq:6}, the fully discretized problem becomes $A_\varepsilon \, L \, X = A_\infty \, F$, and 
+Applying the Leibnitz differentiation rule to $A_\varepsilon \, L \, X = A_\infty \, F$ allows to move the derivative from $X$ onto the other terms, namely
 \[
 A_\varepsilon \, L \, \nablai X = \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \, L \, X -  A_\varepsilon \, \nablai L \, X=: h_i
 \]
-Thus, once the solution $s$ of the adjoint problem and vector $h$ have been determined, the forces can be computed as
+Thus, once the solution $s$ of the adjoint problem and vector $h_i$ have been determined, the forces can be computed as
 \[
 \mathcal{F}_i =  - \tfrac{1}{2} 
 %\,f(\varepsilon)
@@ -117,7 +118,7 @@ f_j(y) = \sum_{k \in N_j} \chi \bigg(\frac{|x_j + r_j y - x_k|}{r_k}\bigg)
 \]
 where $y$ varies on $\mathbb{S}$ and $\chi$ is a regularized characteristic function of $[0,1]$. We conclude that $\nablai U_j$ and, consequently, $\nablai A_{jj}$ are \emph{a priori} nonzero only when $i \in N_j$ or $i = j$.
 
-The case of the off-diagonal blocks, i.e., $j \not=k$, is more involved since it includes the gradient of the product of three functions, namely
+The case of the off-diagonal blocks ${[ A_{jk}]}_{\ell \ell'}^{mm'}$ with $j \not=k$ is more involved since it includes the gradient of the product of three functions, namely
 \begin{equation}\label{eq:7}
 {[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nablai \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big]
 \end{equation}
@@ -125,15 +126,15 @@ The case of the off-diagonal blocks, i.e., $j \not=k$, is more involved since it
 %\end{multline*}
 However, since $t_n^{jk}$ and $s_n^{jk}$ depend only upon $x_j$ and $x_k$, if we assume $i \not=j$ and $i\not=k$, we obtain
 \begin{equation}\label{eq:8}
-{[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nabla U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
+{[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nablai U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
 \end{equation}
 %Such relation holds, in particular, for $i \in N_j$ and $i \not= k$.
-Thus, since $U_j$ depends only upon $x_i$ such that $i \in N_j$, we conclude that $\nablai A_{jk}$ vanishes whenever $i \not= j$ and $i \not=k$ and $i \not\in N_j$. In order to discuss the opposite case, i.e., $i = j$ or $i =k$ or $i \in N_j$, notice that the events $(i = j)$ and $(i = k)$ are mutually exclusive, as are $(i = j)$ and $(i \in N_j)$. We obtain the three subcases $i = j$, and $i = k$, and $i \in N_j \, , \, i \not= k$, which we address individually.
+Thus, since $U_j^n$ depends only upon $x_i$ if $i \in N_j$, we conclude that $\nablai A_{jk}$ vanishes whenever $i \not= j$ and $i \not=k$ and $i \not\in N_j$. In order to discuss the opposite case, i.e., $i = j$ or $i =k$ or $i \in N_j$, notice that the events $(i = j)$ and $(i = k)$ are mutually exclusive, as are $(i = j)$ and $(i \in N_j)$. We obtain the three subcases $i = j$, and $i = k$, and $i \in N_j \, , \, i \not= k$, which will be addressed individually.
 
 Standard differentiation implies that
 \begin{multline}\label{eq:9}
-\nablai \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] = \nablai U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) - \\
-+ U_j^n  \, (\ell' + 1)  \big( t_n^{jk}\big)^{-(\ell'+2)} \, \nablai t_n^{jk} \, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \big( \Di\, s_n^{ji} \big)^T\, \nablai Y_{\ell'}^{m'} (s_n^{jk})
+\nablai \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] = \nablai U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \\
+- U_j^n  \, (\ell' + 1)  \big( t_n^{jk}\big)^{-(\ell'+2)} \, \nablai t_n^{jk} \, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \big( \Di\, s_n^{ji} \big)^T\, \nablai Y_{\ell'}^{m'} (s_n^{jk})
 \end{multline}
 where $\Di$ emphasizes that the gradient of the vector quantity $s_j^{jk}$ is indeed its Jacobian matrix and where the extra subscripts refer to the variables with respect to which differentiation is taken. We proceed to evaluate $\nablai t_n^{jk}$ and $ \Di \, s_n^{jk}$. When $i = j$, differentiation implies
 \[
@@ -153,3 +154,18 @@ which provide a convenient way of evaluating $[\nabla_{\! k} \, A_{jk}]_{\ell \e
 for $\nablai A_{jk}$. Finally, the case $i \in N_j \, , \, i \not= k$ reduces to \eqref{eq:8}.
 
 \subsection{Implementation}
+1. Use that $\nablai A_\infty=\nablai A_\varepsilon$ and that $L \, X=G$:
+\begin{alignat*}{1}
+h_i &= \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \, L \, X -  A_\varepsilon \, \nablai L \, X\\
+&= \nablai A \, (F-  G) +  A_\infty \, \nablai F  -  A_\varepsilon \, \nablai L \, X
+\end{alignat*}
+
+2. Explain how to do the following operations efficiently:
+\begin{alignat*}{3}
+\langle s, \nablai A \, (F-  G) \rangle &= \langle (\nablai A)^* \, s,  F-  G \rangle ? \\
+\langle s, A_\infty \, \nablai F \rangle &= \langle A_\infty \,^* \, s,  F \rangle \\
+\langle s, A_\varepsilon \, \nablai L \, X \rangle &= \langle (A_\varepsilon\, \nablai L)^* \, s,  X \rangle ?
+\end{alignat*}
+I don't see how the first and third term are efficiently done in practice?
+
+3. Use the skew-symmetric relationship from above.
