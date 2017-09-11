@@ -55,10 +55,6 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     initialize
       f(:,:) = zero
 !
-!     initialize the timer
-      call system_clock( count_rate = cr )
-      call system_clock( count = c1 )
-!      
 !
 !     STEP 1 : solve adjoint problem (A_eps L)^T s = Psi
 !     --------------------------------------------------
@@ -75,6 +71,10 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
 !     STEP 2 : compute f = - < s , A' ( Phi - Phi_eps ) >
 !     ---------------------------------------------------
+!
+!     initialize the timer
+      call system_clock( count_rate = cr )
+      call system_clock( count = c1 )
 !
 !     weight potential
       call wghpot( Phi, g )
@@ -228,6 +228,17 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
         enddo
       enddo
 !
+!     time computation of forces
+      call system_clock( count = c2 )
+!
+!     printing
+      if ( iprint.gt.0 ) then
+!              
+        write(*,1010) dble(c2-c1)/dble(cr)
+ 1010   format(' computation time of ddPCM forces = ',f8.3,' secs.')
+! 
+      endif
+!
 !
 ! =========================  M O D I F Y    H E R E  =========================
 !
@@ -272,18 +283,6 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
 !     scale the forces the cosmo factor
       f = 0.5d0*(eps-1.d0)/eps * f
-!
-!
-!     time computation of forces
-      call system_clock( count = c2 )
-!
-!     printing
-      if ( iprint.gt.0 ) then
-!              
-        write(*,1010) dble(c2-c1)/dble(cr)
- 1010   format(' computation of ddPCM forces : ',f8.3,' sec')
-! 
-      endif
 !
 !     energy
       e0 = 0.5d0 * sprod( nbasis*nsph, sigma, psi )

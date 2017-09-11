@@ -1,16 +1,64 @@
 \section{Numerical Experiments}\label{sec:experiments}
 \subsection{Convergence tests}
-We first verify the implementation of the computation of the forces.
-Let us denote by $	\mathcal{F}_{i,\alpha}$ the $\alpha$-component of the force  $	\mathcal{F}_{i}$ for $\alpha=1,2,3$. Let $e_\alpha$ be the canonical unit vectors of $\mathbb R^3$.
-Then, for any atomic position $x_i$ we consider a sequence $\delta_1,\delta_2,\ldots$ and consider the approximate force obtained by finite difference
+We verified the implementation of the forces by performing a convergence test of a first order finite difference approximation. Let $e_\alpha$, $\alpha=1,2,3$, be the canonical unit vectors of $\mathbb R^3$, and define the forward finite difference
 \[
-	\mathcal{F}_{i,\alpha}
-	\approx
-	\mathcal{F}_{i,\alpha}(\delta_n)
+	F_{i,\alpha}(\delta)
 	= 
-	\frac{E_s(x_1,\ldots,x_i + \delta_n e_\alpha,\ldots,x_M) - E_s(x_1,\ldots,x_i,\ldots,x_M)}{\delta_n},
+	\frac{E_s(x_1,\ldots,x_i + \delta e_\alpha,\ldots,x_M) - E_s(x_1,\ldots,x_i,\ldots,x_M)}{\delta}
 \]
-where we have made explicit the dependency of the solvation energy on the nuclear positions.
+where we have made explicit the dependency of the solvation energy on the nuclear positions $x_1 , \ldots , x_M$. It immediately follows that $\mathcal{F}_{i,\alpha} = F_{i,\alpha}(\delta) + O(\delta)$, where $\mathcal{F}_{i,\alpha}$ is the $\alpha$ component of $\mathcal{F}_i$, which implies that the relative error $\text{Err}_{i,\alpha}(\delta) = |(\mathcal{F}_{i,\alpha} - F_{i,\alpha}(\delta))/\mathcal{F}_{i,\alpha}|$ decreases as $O(\delta)$, namely with rate 1.
+
+As a first test, we investigated the rate of convergence for a molecular configuration composed of six spheres with radius 1.5 and centers at $x_{\pm \alpha} = \pm e_\alpha$, for $\alpha = 1, 2,3$. Although conceptually simple, this configuration generates a sextuple intersection which provides a challenging benchmark case. We have studied the behavior of the relative error over the range of angular momenta $\ell = 2, \ldots , 10$, and obtained numerical results that are qualitatively similar, and in excellent agreement with the predicted rate of convergence. Results for a representative case are reported in Table \ref{tab:1}.
+
+%\begin{tabular}{ l l l l}
+%\toprule
+%Expression & \ multicolumn {1}{ c }{ Value } \\ %\otoprule
+%$\pi $ & 3 ,1416 \\ \midrule
+%$\pi ^{\pi }$ & 36 ,46 \\ \midrule
+%$\pi ^{\pi ^{\pi }}$ & 80662 ,7 \\ \bottomrule
+%\end{tabular}
+
+\begin{table}[t]
+\footnotesize
+\begin{center}
+	\begin{tabular}{ @{}cccc  cccc  cccc @{} }
+\toprule[0.1em] 
+\multirow{2}{*}{\bf Derivative} & $\phantom{abs}$ &  \multicolumn{1}{c}{$\delta = \delta_0$}& $\phantom{abs}$  & \multicolumn{2}{c}{$\delta = \delta_0/2$}& $\phantom{abs}$  & \multicolumn{2}{c}{$\delta = \delta_0/4$}& $\phantom{abs}$  & \multicolumn{2}{c}{$\delta = \delta_0/8$} \\
+		         \cmidrule[0.05em]{3-3}  \cmidrule[0.05em](lr){5-6}  \cmidrule[0.05em]{8-9}   \cmidrule[0.05em]{11-12}
+&	& {\sl Error}	&& {\sl Error}	& {\sl Rate} && {\sl Error}	& {\sl Rate}&& {\sl Error}	& {\sl Rate} \\
+%			 & $\delta = \delta_0/2$& $\delta = \delta_0/4$& $\delta = \delta_0/8$ \\
+\midrule[0.05em]
+$x_{+1,1}$ &  &  0.23529E-02  &  &    0.11751E-02  &  -1.002  &&  0.58717E-03  &  -1.001  &&  0.29345E-03  &  -1.001  \\
+$x_ {-1,1}$  &&  0.23529E-02  &   &  0.11751E-02  &  -1.002  &&  0.58718E-03  &  -1.001  &&  0.29344E-03  &  -1.001  \\
+$x_ {+2,2}$  &&  0.23529E-02  &   & 0.11751E-02  &  -1.002  &&  0.58692E-03  &  -1.002  &&  0.29411E-03  &  -0.997  \\
+$x_ {-2,2}$  &&  0.23529E-02  &    &0.11751E-02  &  -1.002  &&  0.58719E-03  &  -1.001  &&  0.29348E-03  &  -1.001  \\
+$x_ {+3,3}$  &&  0.23529E-02  &  &  0.11751E-02  &  -1.002  &&  0.58718E-03  &  -1.001  &&  0.29344E-03  &  -1.001  \\
+$x_ {-3,3}$  &&  0.23529E-02  &   &  0.11751E-02  &  -1.002  &&  0.58720E-03  &  -1.001  &&  0.29337E-03  &  -1.001  \\
+\bottomrule[0.1em]
+\end{tabular}
+\caption{Relative error and converge rate, as a function of $1/\delta$, for a configuration of 6 spheres with radii equal to 1.5, and centers $x_{\pm \alpha} =  \pm e_\alpha$ for $\alpha = 1, 2,3$.  Results where obtained with an angular momentum $L_\text{max} =  8$, and an integration grid with $N_\text{grid} = 110$ nodes. Each atomic position coordinate $x_{\pm\alpha,\beta}$, where $\beta = 1,2,3$, was perturbed as $(1 + \delta)x_{\pm\alpha , \beta}$, thus generating only six nonzero variations, starting from an initial value $\delta_0 = 10^{-3}$.}\label{tab:1}
+\end{center}
+\end{table}
+
+% lmax =  8 , ngrid =  110 - Integration points PRESENT in the switch region
+% eta = 0.2, s = 0
+% delta = 10^-3
+% Relative error : 
+% dE / dr_ 1,1 :  0.23529E-02   0.11751E-02   0.58717E-03   0.29345E-03
+% dE / dr_ 2,1 :  0.23529E-02   0.11751E-02   0.58718E-03   0.29344E-03
+% dE / dr_ 3,2 :  0.23529E-02   0.11751E-02   0.58692E-03   0.29411E-03
+% dE / dr_ 4,2 :  0.23529E-02   0.11751E-02   0.58719E-03   0.29348E-03
+% dE / dr_ 5,3 :  0.23529E-02   0.11751E-02   0.58718E-03   0.29344E-03
+% dE / dr_ 6,3 :  0.23529E-02   0.11751E-02   0.58720E-03   0.29337E-03
+% 
+% Rate of convergence : 
+% dE / dr_ 1,1 :        0.000        -1.002        -1.001        -1.001
+% dE / dr_ 2,1 :        0.000        -1.002        -1.001        -1.001
+% dE / dr_ 3,2 :        0.000        -1.002        -1.002        -0.997
+% dE / dr_ 4,2 :        0.000        -1.002        -1.001        -1.001
+% dE / dr_ 5,3 :        0.000        -1.002        -1.001        -1.001
+% dE / dr_ 6,3 :        0.000        -1.002        -1.001        -1.001
+
 
 In table \ref{tab:}, we illustrate the RMS of the approximate forces with $\delta_n = x^{-n}$ 
 for caffeine.

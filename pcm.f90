@@ -371,12 +371,19 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
       if ( iprint.gt.0 ) then
 !
         write(iout,*)
-        if (star) then
-          write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
- 1010     format(' the solution to the ddPCM ',a,'R_\eps equations took ',f8.3,' seconds.')
+!        
+!       adjoint
+        if ( star ) then
+          write(iout,1010) dble(c2-c1)/dble(cr)
+ 1010     format(' solution time of ddPCM adjoint equations  A_\eps^* \Phi_\eps = ',f8.3,' secs.')
+!
+!       direct
         else
-          write(iout,1010) '', dble(c2-c1)/dble(cr)
+          write(iout,1011) dble(c2-c1)/dble(cr)
+ 1011     format(' solution time of ddPCM direct equations  A_\eps \Phi_\eps = ',f8.3,' secs.')
+!
         endif
+!        
         write(iout,*)
 !
       endif

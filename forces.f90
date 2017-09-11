@@ -279,7 +279,7 @@ subroutine forces( n, charge, phi, sigma, s, fx )
       if ( iprint.gt.0 ) then
 !              
         write(iout,1010) dble(c2-c1)/dble(cr)
- 1010   format(' the computation of the ddCOSMO part of the forces took ',f8.3,' seconds.')
+ 1010   format(' computation time of the ddCOSMO forces = ',f8.3,' secs.')
 ! 
       endif
 !

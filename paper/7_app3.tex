@@ -1,7 +1,7 @@
-\section{ddCOSMO discretization (Paolo)\label{app:mats}}
+\section{ddCOSMO discretization \label{app:mats}}
 We multiply equation \eqref{eq:2} by a test function $\varphi$, integrate over $\Gamma_j$, namely
 \begin{equation}\label{eq:50}
-\int_{\Gamma_j} \cS_j \, \sigma_j \, \varphi - \sum_{k \in N_j} \int_{\Gamma_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \, \varphi = -\int_{\Gamma_j} U_j \, \Phi_{\varepsilon,j} \, \varphi
+\int_{\Gamma_j} \cS_j \, \sigma_j \, \varphi - \sum_{k \in N_j} \int_{\Gamma_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \, \varphi = -\int_{\Gamma_j}  \Phi_{\varepsilon,j} \, \varphi
 \end{equation}
 and proceed to map quantities to the unit sphere $\mathbb{S}$. In order to do so, we employ the translation-invariant properties $(\cS_j \, \sigma_j)(s) = r_j( \cS \, \hat{\sigma}_j)(z)$ and $(\tilde{\cS}_j \, \sigma_j)(x) = r_j( \tilde{\cS} \, \hat{\sigma}_j)(u)$, where $\cS$ and $\tilde{\cS}$ are, respectively, the single layer operator and potential on the unit sphere, $y = (s - x_j)/r_j$, $u = (x - x_j)/r_j$, and $\hat{\sigma}_j(y) = \sigma_j(s)$. The workhorse for the objects $\cS \, \hat{\sigma}_j$ and $\tilde{\cS} \, \hat{\sigma}_j$ is the Addition Theorem for spherical harmonics.
 
@@ -17,7 +17,7 @@ Thus, it is natural to select as a test functions the spherical harmonics, so th
 \begin{equation}\label{eq:51}
 \int_{\Gamma_j} \cS_j \, \sigma_j \, \varphi =  r_j^3 \int_\mathbb{S} \cS \, \hat{\sigma}_j \, Y_\ell^m = r_j^2 \, \sum_{\ell'= 0}^{\infty} \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)} \, \delta_{\ell \ell'} \delta_{m m'}\, [X_j]_{\ell'}^{m'} 
 \end{equation}
-due to the orthogonality of the spherical harmonics. A numerical discretization is obtained by truncation the expansion at $\ell'=L_\text{max}$, thus providing the discrete action $L_{jj} \, X_j$, where $L_{jj} = [L_{jj}]_{\ell \ell'}^{m m'}$ is a diagonal matrix.
+due to the orthogonality of the spherical harmonics. A numerical discretization is obtained by truncation of the expansion at $\ell'=L_\text{max}$, thus providing the discrete action $L_{jj} \, X_j$, where $L_{jj} = [L_{jj}]_{\ell \ell'}^{m m'}$ is a diagonal matrix.
 
 The discretization of $\int_{\Gamma_j} \tilde{\cS}_{jk} \, \sigma_k \, \varphi $ follows the same strategy. As a preliminary step, we manipulate the integral as
 \[
@@ -37,8 +37,8 @@ As opposed to the diagonal term, the integration has to be carried out numerical
 L_{jk} \, X_k = r_j^2 \, \sum_{\ell'= 0}^{L_\text{max}}  \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, \sum_{n = 1}^{N_\text{grid}} w_n \, \hat{V}_j(s_n) \, |u(s_n)|^{\ell'} \, Y_{\ell'}^{m'}(u(s_n)/|u(y)|) \, Y_\ell^m(s_n)\, [X_k]_{\ell'}^{m'}  
 \end{equation}
 
-Finally, we discuss the right-hand-side of \eqref{eq:50} when $\Phi_{\varepsilon,j}$ is provided by the ddPCM step as a truncated series of spherical harmonics with coefficients $-[G_j]_{\ell'}^{m'}$. Indeed, we obtain
+Finally, we discuss the right-hand-side of \eqref{eq:50} when $\Phi_{\varepsilon,j}$ is provided by the ddPCM step as a truncated series of spherical harmonics with coefficients $-[G_j]_{\ell'}^{m'}$. The orthogonality implies
 \begin{equation}\label{eq:53}
--\int_{\Gamma_j} U_j \, \Phi_{\varepsilon,j} \, \varphi =  - r_j^2 \int_\mathbb{S} \hat{U}_j \, \hat{\Phi}_{\varepsilon,j} \, Y_\ell^m = r_j^2 \,  \sum_{\ell'= 0}^{L_\text{max}} \sum_{m' = -\ell'}^{\ell'} \, [G_j]_{\ell'}^{m'} \,  \int_{\mathbb{S}} \hat{U}_j \, Y_{\ell'}^{m'} \, Y_\ell^m 
+-\int_{\Gamma_j} \Phi_{\varepsilon,j} \, \varphi =  - r_j^2 \int_\mathbb{S} \hat{\Phi}_{\varepsilon,j} \, Y_\ell^m = r_j^2 \,  \sum_{\ell'= 0}^{L_\text{max}} \sum_{m' = -\ell'}^{\ell'} \, [G_j]_{\ell'}^{m'} \,  \int_{\mathbb{S}}  Y_{\ell'}^{m'} \, Y_\ell^m = r_j^2 \, [G_j]_\ell^m
 \end{equation}
-and we have to resort to numerical quadrature to evaluate the integral.  Notice that the factor $r_j^2$ appears in \eqref{eq:51}, \eqref{eq:52} and \eqref{eq:53}, so that we can effectively cross it out.
+Notice that the factor $r_j^2$ appears in \eqref{eq:51}, \eqref{eq:52} and \eqref{eq:53}, so that we can effectively cross it out.
