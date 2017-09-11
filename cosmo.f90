@@ -281,12 +281,19 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
       if (iprint.gt.0) then
 !              
         write(iout,*)
-        if (star) then
-          write(iout,1010) 'adjoint ', dble(c2-c1)/dble(cr)
- 1010     format(' the solution to the ddCOSMO ',a,'equations took ',f8.3,' seconds.')
+!        
+!       adjoint
+        if ( star ) then
+          write(iout,1010) dble(c2-c1)/dble(cr)
+ 1010     format(' solution time of ddCOSMO adjoint equations L^* \sigma = ',f8.3,' secs.')
+!
+!       direct
         else
-          write(iout,1010) '', dble(c2-c1)/dble(cr)
-        end if
+          write(iout,1011) dble(c2-c1)/dble(cr)
+ 1011     format(' solution time of ddCOSMO direct equations L \sigma = ',f8.3,' secs.')
+! 
+        endif
+!        
         write(iout,*)
 ! 
       endif
