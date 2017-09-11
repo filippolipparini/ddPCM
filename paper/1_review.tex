@@ -1,32 +1,40 @@
 \section{A Brief Review of the ddPCM Strategy}\label{sec:review}
 
-The foundation of Polarizable Continuum Solvation Models (PCSM's) is the assumption that a solute can be treated as a molecular cavity $\Omega$ embedded into either a dielectric, or a conducting continuum medium. We follow the customary approach of taking the cavity to be the so-called Van der Waals cavity\cite{ReviewPCM_2005}, i.e., the union of spheres centered at each atom with radii coinciding with the van der Waals radii. The solute-solvent interaction is modeled as the electrostatic interaction energy $E_s = \tfrac{1}{2}\, f(\varepsilon)\,\int_\Omega \rho(x) W(x) \, dx$, where $f(\varepsilon)$ is an empirical scaling that depends on the dielectric constant of the solvent, $\rho$ is the charge density of the solute, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to, respectively, as the reaction potential and the reaction field. 
+%\subsection{The Polarizable Continuum Model}
+The foundation of Polarizable Continuum Solvation Models (PCSM's) is the assumption that the solvent in a solute-solvent system can be treated as either a dielectric, or a conducting continuum medium on the outside of the molecular cavity $\Omega$ of the solute. We follow the customary approach of taking the cavity to be the so-called Van der Waals cavity\cite{ReviewPCM_2005}, i.e., the union of spheres centered at each atom with radii coinciding with the van der Waals radii.
+Within this approach, the topologically similar Solvent Accessible Surface (SAS) cavity can be treated as well. 
+Models based on the Solvent Excluded Surface (SES) have also been proposed\cite{Quan_DDPCM_SES,C5CP03410H,Harbrecht2011,JCC:JCC21431}, but will not be considered here.
 
-The reaction potential is defined as $W = \varphi - \Phi$, where $\varphi$ is the total electrostatic potential of the solute-solvent system and $\Phi$ is the potential of the solute \emph{in vacuo}. In the case of the PCM, the total potential $\varphi$ satisfies a (generalized) Poisson equation with suitable boundary conditions\cite{Mennucci_JCP_IEF1,Mennucci_JMC_IEF2}. Indeed, if $\varepsilon_s$ is the macroscopic, zero-frequency dielectric permittivity of the solvent, and define $\varepsilon(x) = 1$ when $x \in \Omega$ and $\varepsilon(x) = \varepsilon_s$ otherwise, the reaction potential fulfils 
+The electrostatic part of the solute-solvent interaction is given by $E_s = \tfrac{1}{2}\, f(\varepsilon)\,\int_\Omega \rho(x) W(x) \, dx$, where $f(\varepsilon)$ is an empirical scaling that depends on the dielectric constant of the solvent (and which is only applied in the case of the COSMO), $\rho$ is the charge density of the solute, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to, respectively, as the reaction potential and the electrostatic contribution to the solvation energy. 
+
+The reaction potential is defined as $W = \varphi - \Phi$, where $\varphi$ is the total electrostatic potential of the solute-solvent system and $\Phi$ is the potential of the solute \emph{in vacuo}. In the case of the PCM, the total potential $\varphi$ satisfies a (generalized) Poisson equation with suitable interface conditions\cite{Mennucci_JCP_IEF1,Mennucci_JMC_IEF2}. Indeed, if $\varepsilon_s$ is the macroscopic, zero-frequency relative dielectric permittivity of the solvent, and define $\varepsilon(x) = 1$ when $x \in \Omega$ and $\varepsilon(x) = \varepsilon_s$ otherwise, the reaction potential fulfills 
 \begin{equation} 
 \label{eq:pcmpde}
 \left \{ 
-\begin{alignedat}
- \Delta W &= 0  &&\mbox{in } \sR^3\setminus \Gamma  \\
+\begin{alignedat}{4}
+\Delta  W &= 0  &&\mbox{in } \sR^3\setminus \Gamma  \\
  \ [W] &= 0  &&\mbox{on } \Gamma\\
 \  [\varepsilon \, \partial_\nu W] &= (\varepsilon_s-1) \partial_\nu \Phi &\qquad& \mbox{on } \Gamma
 \end{alignedat} 
 \right.
 \end{equation}
-Here $\Gamma$ is the boundary of the cavity, $\partial_\nu$ is the normal derivative on $\Gamma$, and $[\,\cdot\,]$ is the jump operator (inside minus outside) on $\Gamma$.
+Here $\Gamma=\partial\Omega$ is the boundary of the cavity, $\partial_\nu$ is the normal derivative on $\Gamma$, and $[\,\cdot\,]$ is the jump operator (inside minus outside) on $\Gamma$.
 
-Recalling potential theory, $W$ can be represented as $W(x) = (\tilde{\mathcal{S}}\sigma)(x)$ when $x \in \sR^3 \setminus \Gamma$, or $W(s) = (\mathcal{S}\sigma)(s)$ when $s \in \Gamma$, where $\tilde{\cS}$ is the single layer potential, $\cS$ is the single layer operator,  which is invertible \cite{Calderon}, and $\sigma$ is a so-called apparent surface charge defined on $\Gamma$.
-It can be shown that $\sigma$ satisfies the equation $\sigma = 1/4\pi \, [ \partial_\nu W]$, so that it is possible to recast the PCM problem \eqref{eq:pcmpde} as a single integral equation for $\sigma$. In fact, if we define operators 
+Recalling potential theory, $W$ can be represented as $W(x) = (\tilde{\mathcal{S}}\sigma)(x)$ when $x \in \sR^3 \setminus \Gamma$, or $W(s) = (\mathcal{S}\sigma)(s)$ when $s \in \Gamma$. 
+The surface density $\sigma$ defined on $\Gamma$ is the so-called apparent surface charge,  $\tilde{\cS}$ is the single layer potential and $\cS$ is the single layer operator,  which is invertible \cite{Calderon}. 
+Note that both $\tilde{\cS}$ and $\cS$ are based on the surface $\Gamma$.
+It can be shown that $\sigma$ satisfies the equation $\sigma = 1/4\pi \, [ \partial_\nu W]$, so that it is possible to recast the PCM problem \eqref{eq:pcmpde} as a single integral equation for $\sigma$. In fact, if we define the operators 
 \begin{equation}
  \label{eq:Reps}
  \cR_\varepsilon = 2\pi \frac{\varepsilon+1}{\varepsilon-1} \, \cI - \cD \qquad, \qquad \cR_\infty = 2\pi \, \cI - \cD
 \end{equation}
-where $\cI$ is the indentity and $\cD$ is the double layer potential, it can be shown that the apparent surface charge satisfies
+where $\cI$ is the identity and $\cD$ is the double layer boundary operator (also based on $\Gamma$).
+It can be shown\cite{ReviewPCM_2005} that the apparent surface charge satisfies
 \begin{equation}
 \label{eq:IEFPCM}
 \cR_\varepsilon \, \cS \, \sigma = - \cR_\infty \, \Phi \qquad \text{on }\Gamma
 \end{equation}
-which is known as the IEF-PCM equation. It involves operators $\cR_\infty$ and $\cR_\varepsilon$, which are both invertible. Furthermore, when the dielectric constant $\varepsilon_s$ approaches infinity, the IEF-PCM equation simplifies to $\cS \, \sigma = - \Phi$ on $\Gamma$, which is the Conductor-like Screening Model\cite{Lipparini_JCP_VPCM}.
+which is known as the IEF-PCM equation. It involves operators $\cR_\infty$ and $\cR_\varepsilon$, which are both invertible. Furthermore, when the dielectric constant $\varepsilon_s$ approaches infinity, the IEF-PCM equation simplifies to $\cS \, \sigma = - \Phi$ on $\Gamma$, which is the Integral Equation Formulation of the Conductor-like Screening Model (COSMO)\cite{Lipparini_JCP_VPCM}.
 
 %\subsection{A domain decomposition approach}
 %\label{ssec:AddApproach}
@@ -152,14 +160,20 @@ which is known as the IEF-PCM equation. It involves operators $\cR_\infty$ and $
 
 %A straightforward application of Schwarz's domain decomposition to the PCM problem is, unfortunately, not possible. A qualitative argument to understand why this is the case is the following: as the PCM problem is defined in the whole space, and not only inside the cavity, the domain would decompose in the spheres that make the cavity plus the space occupied by the dielectric. The latter subdomain, which is not present in the COSMO, touches all the spheres which are exposed to the solvent, coupling them and destroying the sparsity of the resulting system of equations, making the overall strategy not effective. However, 
 
-Let us recall how to solve equation \eqref{eq:IEFPCM} within the ddCOSMO paradigm. The first step is to write the IEF-PCM integral equation as a system of two integral equations, one of which is equivalent to the COSMO equation\cite{Cances_Librone_PCM}. Indeed, if we define $\Phi_\varepsilon = \cS \, \sigma$, equation \eqref{eq:IEFPCM} becomes
+%\subsection{The ddPCM-method}
+
+
+Let us recall how to solve equation \eqref{eq:IEFPCM} within the domain-decomposition paradigm. The first step is to write the IEF-PCM integral equation \eqref{eq:IEFPCM} as a succession of two integral equations, one of which is equivalent to the COSMO equation\cite{Cances_Librone_PCM}. Indeed, if we define $\Phi_\varepsilon = \cS \, \sigma$, equation \eqref{eq:IEFPCM} becomes
 \begin{alignat}{3}
 \cR_\varepsilon \, \Phi_\varepsilon & = \cR_\infty \, \Phi \qquad && \text{on }\Gamma  \label{eq:ddPCM-1} \\
 \cS \, \sigma & = -\Phi_\varepsilon  && \text{on }\Gamma \label{eq:ddPCM-2} 
 \end{alignat}
-The ddPCM strategy is an extension of ddCOSMO in the following sense: first, equation \eqref{eq:ddPCM-1} is solved in order to compute the right-hand side $-\Phi_\varepsilon$ of equation \eqref{eq:ddPCM-2}; secondly, ddCOSMO is employed to solve equation \eqref{eq:ddPCM-2} with the modified potential $-\Phi_\varepsilon$, and compute the solvation energy $E_s$. Both steps are carried out through a domain-decomposition approach.
+The ddPCM strategy is an extension of ddCOSMO in the following sense: first, equation \eqref{eq:ddPCM-1} is solved in order to compute the right-hand side $-\Phi_\varepsilon$ of equation \eqref{eq:ddPCM-2}; secondly, ddCOSMO is employed to solve equation \eqref{eq:ddPCM-2} with the modified potential $-\Phi_\varepsilon$, and compute the solvation energy $E_s$.
 
-Let the cavity $\Omega$ be the union of $M$ spheres $\Omega_j = B(x_j, r_j)$ with boundaries $\Gamma_j$. Let $U_j: \Gamma_j \to \mathbb{R}$ be the characteristic function of $\Gamma_j^\text{ext}:= \Gamma_j \cap \Gamma$, and define extensions $\Phi_j , \Phi_{\varepsilon,j} : \Gamma_j \to \mathbb{R}$ as  $\Phi_j (s)= U_j(s) \, \widetilde{\Phi}(s)$ and $\Phi_{\varepsilon,j}(s)= U_j(s) \, \widetilde{\Phi}_{\varepsilon}(s)$ for $s \in \Gamma_j$, where $\tilde{(\cdot)}$ indicates the trivial extension to $\overline{\Omega}$.
+In order to discuss the domain-decomposition approach employed for both steps, let us introduce some notation. As anticipated, we take the cavity $\Omega$ be the union of $M$ spheres $\Omega_j = B(x_j, r_j)$ with boundaries $\Gamma_j$. Let $U_j: \Gamma_j \to \mathbb{R}$ be the characteristic function of $\Gamma_j^\text{ext}:= \Gamma_j \cap \Gamma$, and define extensions $\Phi_j , \Phi_{\varepsilon,j} : \Gamma_j \to \mathbb{R}$ as  $\Phi_j (s)= U_j(s) \, \widetilde{\Phi}(s)$ and $\Phi_{\varepsilon,j}(s)= U_j(s) \, \widetilde{\Phi}_{\varepsilon}(s)$ for $s \in \Gamma_j$, where $\tilde{(\cdot)}$ indicates the trivial extension to $\overline{\Omega}$.
+
+
+{\bf Step 1.} 
 %\[
 %\Phi_j =
 %\begin{cases}
@@ -174,53 +188,79 @@ Let the cavity $\Omega$ be the union of $M$ spheres $\Omega_j = B(x_j, r_j)$ wit
 %\end{cases}
 %\]
 % Let $\chi_k$ be the characteristic function of $\Omega_k$, and define coefficients $\omega_{jk}(s) = \chi_k(s) / |N_j(s)|$, where $N_j(s)$ is the set of all subdomains that contain $s \in \overline{\Omega}_j$, and $|N_j(s)|$ is its cardinality. Notice that $\sum_{k \in N_j(\,\cdot\,)} \omega_{jk}(\,\cdot\,)$ is the characteristic function of $\Gamma_j^\text{int} := \Gamma_j \setminus \Gamma_j^\text{ext}$, while $U_j(\,\cdot\,) = 1 - \sum_{k \in N_j(\,\cdot\,)} \omega_{jk}(\,\cdot\,)$ is the characteristic function of $ \Gamma_j^\text{ext}$. Thus, the extensions can be compactly defined as 
-The domain-decomposition approach rests on the observation that, when $s$ belongs to $\Gamma_j^\text{ext}$, the double layer potential $\cD$ can be decomposed as
+We enforce the integral equation \eqref{eq:ddPCM-1} on $\Gamma_j^\text{ext}$
+%, i.e.
+%\[
+%	\cR_\varepsilon \, \Phi_\varepsilon  = \cR_\infty \, \Phi \qquad  \text{on }\Gamma_j^\text{ext}
+%\]
+along with the condition $\Phi_{\varepsilon,j}=0$ on $\Gamma_j^\text{int}$ combined within one equation
+\begin{equation}
+	\label{eq:ddPCM_aux1}
+	\alpha(1 - U_j)\,\Phi_{\varepsilon,j} + U_j \, {\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon} = U_j \, {\mathcal{R}}_{\infty} \, \Phi \qquad \text{on }\Gamma_j
+\end{equation}
+where $\alpha$ is an arbitrary nonzero scalar, and ${\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon}$ and $ {\mathcal{R}}_{\infty} \, \Phi$ should be understood as their trivial extensions to $\Gamma_j$. Employing the extensions $\Phi_j , \Phi_{\varepsilon,j}$, the double layer operator $\cD$ can be decomposed as
 \[
-(\mathcal{D} \, \Phi ) (s) = ( \mathcal{D}_j \, \Phi_j )(s) + \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_k )(s) 
+(\mathcal{D} \, \Phi ) (s) = ( \mathcal{D}_j \, \Phi_j )(s) + \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_k )(s) \qquad ; \qquad s \in \Gamma_j^\text{ext} \quad, \quad  j = 1 , \ldots , M
 \]
-where $\cD_j$ and $\tilde{\cD}_j$ are, respectively, the double layer potential and the double layer operator on $\Gamma_j$. Thus, we can ``localize'' equation \eqref{eq:ddPCM-1} to $\Gamma_j^\text{ext}$ as
-\begin{equation}\label{eq:PCMloc}
-{\mathcal{R}}_{\varepsilon,j} \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{R}}_{\varepsilon,k} \, \Phi_{\varepsilon,k} = {\mathcal{R}}_{\infty,j} \, \Phi_{j} + \sum_{k \ne j} \tilde{\mathcal{R}}_{\infty,k} \, \Phi_{k} \qquad \text{on }\Gamma_j^\text{ext}
+where $\cD_j$ and $\tilde{\cD}_j$ are, respectively, the local double layer operator and the local double layer potential on $\Gamma_j$. 
+We refer to\cite{Stamm_JCP_DDPCM} for concise details for these operators.
+Thus, we can also decompose ${\mathcal{R}}_{\varepsilon}$ in \eqref{eq:ddPCM_aux1} as
+\begin{equation}\label{eq:PCM_aux2}
+({\mathcal{R}}_{\varepsilon} \, \Phi_{\varepsilon})(s)
+=
+({\mathcal{R}}_{\varepsilon,j} \, \Phi_{\varepsilon,j})(s) + \sum_{k \ne j} (\tilde{\mathcal{R}}_{\varepsilon,k} \, \Phi_{\varepsilon,k})(s)
+%= {\mathcal{R}}_{\infty,j} \, \Phi_{j} + \sum_{k \ne j} \tilde{\mathcal{R}}_{\infty,k} \, \Phi_{k} 
+ \qquad ; \qquad s \in \Gamma_j^\text{ext} \quad, \quad  j = 1 , \ldots , M
 \end{equation}
 %\[
 %2 \pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, \Phi_{\varepsilon,j}(s) - ( \mathcal{D}_j \, \Phi_{\varepsilon,j} )(s) - \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_{\varepsilon,k})(s) 
 %= 2 \pi  \, \Phi_j(s) -  (\mathcal{D}_j \, \Phi_j)(s) - \sum_{k \ne j} (\tilde{\mathcal{D}}_k \, \Phi_k)(s)
 %\]
-where the operators ${\mathcal{R}}_{\varepsilon,j}$ and $\tilde{\mathcal{R}}_{\varepsilon,j}$ are defined as
+where the local operators ${\mathcal{R}}_{\varepsilon,j}$ and $\tilde{\mathcal{R}}_{\varepsilon,j}$ are defined as
 \[
-{\mathcal{R}}_{\varepsilon,j} = 2 \pi \frac{\varepsilon + 1}{\varepsilon - 1} \, \cI - {\mathcal{D}}_j \qquad , \qquad
+{\mathcal{R}}_{\varepsilon,j} = 2 \pi \frac{\varepsilon + 1}{\varepsilon - 1} \, \cI - {\mathcal{D}}_j  \qquad, \qquad
 \tilde{\mathcal{R}}_{\varepsilon,j} =  - \tilde{\mathcal{D}}_j
 \]
-with the obvious extension to the case $\varepsilon = \infty$. The integral equation \eqref{eq:PCMloc}, together with the homogenous condition $\Phi_{\varepsilon,j} = 0$ on $\Gamma_j^\text{int}$, constitute the local problem for $\Phi_{\varepsilon,j}$.
-
-An integral equation defined on the whole $\Gamma_j$, as opposed to $\Gamma_j^\text{ext}$, is obtained by means of the characteristic function of $\Gamma_j^\text{int}$, namely $1 - U_j$ as
-\[
-\alpha(1 - U_j)\Phi_{\varepsilon,j} + U_j \bigg( {\mathcal{R}}_{\varepsilon,j} \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{R}}_{\varepsilon,k} \, \Phi_{\varepsilon,k}\bigg) = U_j \bigg( {\mathcal{R}}_{\infty,j} \, \Phi_{j} - \sum_{k \ne j} \tilde{\mathcal{R}}_{\infty,k} \, \Phi_{k} \bigg)\qquad \text{on }\Gamma_j
-\]
-where $\alpha$ in an arbitrary scalar. The choice $\alpha = 2\pi(\varepsilon + 1)/(\varepsilon - 1)$ yields a convenient form in terms of the local double layer potentials and double layer operators:
+with the obvious extension to the case $\varepsilon = \infty$. 
+%The integral equation \eqref{eq:PCMloc}, together with the homogenous condition $\Phi_{\varepsilon,j} = 0$ on $\Gamma_j^\text{int}$, constitute the local problem for $\Phi_{\varepsilon,j}$.
+%
+%An integral equation defined on the whole $\Gamma_j$, as opposed to $\Gamma_j^\text{ext}$, is obtained by means of the characteristic function of $\Gamma_j^\text{int}$, namely $1 - U_j$ as
+%\[
+%\alpha(1 - U_j)\Phi_{\varepsilon,j} + U_j \bigg( {\mathcal{R}}_{\varepsilon,j} \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{R}}_{\varepsilon,k} \, \Phi_{\varepsilon,k}\bigg) = U_j \bigg( {\mathcal{R}}_{\infty,j} \, \Phi_{j} - \sum_{k \ne j} \tilde{\mathcal{R}}_{\infty,k} \, \Phi_{k} \bigg)\qquad \text{on }\Gamma_j
+%\]
+%where $\alpha$ in an arbitrary scalar. 
+If we insert \eqref{eq:PCM_aux2} into \eqref{eq:ddPCM_aux1} and select $\alpha = 2\pi(\varepsilon + 1)/(\varepsilon - 1)$, we obtain a convenient form in terms of the local double layer potentials and double layer operators:
 \begin{multline}\label{eq:1}
 2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, \Phi_{\varepsilon,j} - U_j \bigg( {\mathcal{D}}_j \Phi_{\varepsilon,j} + \sum_{k \ne j} \tilde{\mathcal{D}}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, U_j \Phi_j - U_j \bigg( {\mathcal{D}}_j \Phi_{j} + \sum_{k \ne j} \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
 \end{multline}
 This constitutes our domain-decomposition strategy for equation \eqref{eq:ddPCM-1}. It is important to remark that, because of the summation, every subdomain $\Omega_j$ interacts with all other subdomains. We anticipate that this contrasts with the ddCOSMO strategy for equation \eqref{eq:ddPCM-2}.
 
-Local problems for equation \eqref{eq:ddPCM-2} arise from the fact that each restriction $W_j := W |_{\overline{\Omega}_j}$ is harmonic over subdomain $\Omega_j$. Thus, it can be represented as 
+{\bf Step 2.} The restriction $W_j := W |_{\overline{\Omega}_j}$ is harmonic over the subdomain $\Omega_j$, thus it can be represented as 
 \begin{equation}\label{eq:COSMOloc}
 W_j(x) = (\tilde{\mathcal{S}}_j \,  \sigma_j) (x) \quad , \quad x \in \Omega_j \qquad ; \qquad
 W_j(s) = (\mathcal{S}_j \,  \sigma_j) (s) \quad , \quad s \in \Gamma_j
 \end{equation}
 where $\sigma_j$ is an unknown surface charge, and $\cS_j$ and $\tilde{\cS}_j$ are, respectively, the single layer potential and the single layer operator on $\Gamma_j$. The local problems \eqref{eq:COSMOloc}, are coupled together by decomposing $W_j$ as
 \begin{equation}\label{eq:5}
-W_j(s) = - \Phi_{\varepsilon,j}(s) +  n_j(s) \, \sum_{k \in N_j} {W}_k(s) \qquad s \in \Gamma_j
+W_j(s) = - U_j(s) \, \Phi_{\varepsilon,j}(s) +  \big (1 - U_j(s)\big ) \, n_j(s) \, \sum_{k \in N_j} {W}_k(s) \qquad s \in \Gamma_j
+\end{equation}
+{\bf (replace by following, since characteristic functions are redundant)}
+\begin{equation}
+W_j(s) = - \Phi_{\varepsilon,j}(s) +  n_j(s) \, \sum_{k \in N_j} {W}_k(s) \qquad ; \qquad s \in \Gamma_j \quad , \quad j = 1, \ldots , M
 \end{equation}
 where $N_j$ is the set of all neighboring subdomains of $\Omega_j$, $W_k$ is understood as its trivial extension to $\Omega$, and $n_j$ is a normalization factor. If $s$ does not belong to any neighbor of $\Omega_j$, then $n_j(s)$ vanishes. Otherwise, $n_j(s)$ is the reciprocal of the number of neighbors. When we substitute the local problems \eqref{eq:COSMOloc} into the decomposition \eqref{eq:5}, and define $(\tilde{\cS}_{jk} \, \sigma_k) (s) = n_j(s) \, (\tilde{\cS}_k \, \sigma_k)(s)$, we obtain
 \begin{equation}\label{eq:2}
-\mathcal{S}_j \, \sigma_j  = -\Phi_{\varepsilon,j} +  \sum_{k \in N_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \qquad \text{on } \Gamma_j
+\mathcal{S}_j \, \sigma_j  = -U_j \, \Phi_{\varepsilon,j} + \big (1 - U_j(s)\big ) \, \sum_{k \in N_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \qquad \text{on } \Gamma_j
+\end{equation}
+{\bf (replace by following, since characteristic functions are redundant)}
+\begin{equation}\label{eq:2}
+\mathcal{S}_j \, \sigma_j  = - \Phi_{\varepsilon,j} +  \sum_{k \in N_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k \qquad \text{on } \Gamma_j
 \end{equation}
 As opposed to the local problem \eqref{eq:1} which features a global interaction of all subdomains, the ddCOSMO step \eqref{eq:2} is characterized by the interaction of subdomain $\Omega_j$ with only its neighbors. This results in a sparse, rather than dense, discrete operator.
 
 We discretize equation \eqref{eq:1} and \eqref{eq:2} by expanding $\Phi_j$, $\Phi_{\varepsilon,j}$ and $\sigma_j$ as truncated series of spherical harmonics. If $Y_\ell^m$ indicates the spherical harmonic of degree $\ell$ and order $m$ on the unit sphere $\mathbb{S}$, we approximate the surface charge $\sigma_j$ as
 \[
-\sigma_j(s) = \sigma_j(x_j + r_j y) = \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [X_j]_\ell^m \, Y_\ell^m(y)
+\sigma_j(s) = \sigma_j(x_j + r_j y) = \frac{1}{r_j}\sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [X_j]_\ell^m \, Y_\ell^m(y)
 \]
 for some unknown coefficients $X = [X_j]_\ell^m$ and a prescribed integer parameter ${L_\text{max}}$. Here $y$ is the variable on $\mathbb{S}$. We approximate $\Phi_{\varepsilon,j}$ and $\Phi_j$ in the same fashion, namely
 \[

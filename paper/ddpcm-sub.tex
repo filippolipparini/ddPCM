@@ -11,6 +11,8 @@
 \usepackage{array}
 %\usepackage{subfigure}
 \usepackage{epsfig,subfig,graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
 
 \newcommand{\two}{0.475\textwidth}
 \newcommand{\three}{0.31\textwidth}
@@ -47,12 +49,16 @@
 \newcommand{\GAppZ}{{\widehat{\Phi}^0}}
 \newcommand{\red}{\color{red}}
 \newcommand{\black}{\color{black}}
+\newcommand{\nablai}{\nabla_{\!i}\,}
+\newcommand{\Di}{D_i}
+\newcommand{\nablaj}{\nabla_{\!j}\,}
+\newcommand{\Dj}{D_j}
 
 \newcommand{\Best}[1]{\color{red}{\tt #1}\color{black}}
 %opening
 
 \begin{document}
-\title{Computation of Forces arising from the Polarizable Continuum Model within a Novel Domain-Decomposition Paradigm}
+\title{Computation of Forces arising from the Polarizable Continuum Model within the Domain-Decomposition Paradigm}
 
 \author{Paolo Gatto}
 \affiliation{}
@@ -64,7 +70,11 @@
 \affiliation{}
 
 
+
 \begin{abstract}
+Within implicit solvation models, the domain-decomposition strategy for the computation of the electrostatic energy due to the solvent based on the Polarizable Continuum Model (PCM) has recently been developed. 
+The methodological development started with the so-called ddCOSMO method and has recently be generalized to the PCM equation resulting in the ddPCM-method [Stamm {\it et al.}, J. Chem. Phys. 144, 054101 (2016)] for which derive the forces within this article. 
+We show the derivation of the forces and derive an efficient implementation followed by numerical tests.
 %In our previous work we developed a Schwarz's domain decomposition method for the Polarizable Continuum Model (PCM) equation. The discretization is systematically improvable and fully consistent with the Conductor-like Screening Model (COSMO), in the sense that it reduces to COSMO for large dielectric constants. In this work, we build on top of this framework and introduce the computation of analytical forces.
 
 \end{abstract}
@@ -72,17 +82,22 @@
 \maketitle
 
 \input{0_intro.tex}
-\input{1_review.tex}
+%\newpage
+%\input{1_review.tex}
+%\newpage
+\input{1_review_paolo.tex}
 \input{2_forces.tex}
 \input{3_experiments.tex}
 \input{4_conclusions.tex}
 
 
 \section*{Acknowledgments}
-
+P.G. and B.S. acknowledge funding from the German Academic Exchange Service (DAAD) from funds of the ``Bundesministeriums f\"ur Bildung und Forschung'' (BMBF) for the project Aa-Par-T (Project-ID 57317909).
 \appendix
 
 \input{5_app1.tex}
+%\input{6_app2.tex}
+\input{7_app3.tex}
 
 
 \bibliography{newbiblio}
