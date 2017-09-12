@@ -174,18 +174,18 @@ Notice that, when $\varepsilon = \infty$, then $G = F$ and ${A_\infty}^* \, s =y
 \]
 which is the expression of the force for COSMO. Because of the sparsity of $L$, the computation of the action $\nablai L \, X$ is of complexity $O(N_\text{grid})$, with a prefactor that depends, al least, upon $N_i$ and $L_\text{max}$. Since the contraction product $\langle \cdot \, , \cdot \rangle$ also has complexity $O(M)$, with a prefactor that depends on $L_\text{max}$, we conclude that the cost is $O(N_\text{gird} \times M)$. In the case of PCM, the bottleneck is the action $ \nablai  A ( F - G)$...
 
-1. Use that $\nablai A_\infty=\nablai A_\varepsilon$ and that $L \, X=G$:
-\begin{alignat*}{1}
-h_i &= \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \, L \, X -  A_\varepsilon \, \nablai L \, X\\
-&= \nablai A \, (F-  G) +  A_\infty \, \nablai F  -  A_\varepsilon \, \nablai L \, X
-\end{alignat*}
-
-2. Explain how to do the following operations efficiently:
-\begin{alignat*}{3}
-\langle s, \nablai A \, (F-  G) \rangle &= \langle (\nablai A)^* \, s,  F-  G \rangle ? \\
-\langle s, A_\infty \, \nablai F \rangle &= \langle A_\infty \,^* \, s,  \nablai F \rangle \\
-\langle s, A_\varepsilon \, \nablai L \, X \rangle &= \langle (A_\varepsilon\, \nablai L)^* \, s,  X \rangle ? \\
-\end{alignat*}
-I don't see how the first and third term are efficiently done in practice?
-
-3. Use the skew-symmetric relationship from above.
+%1. Use that $\nablai A_\infty=\nablai A_\varepsilon$ and that $L \, X=G$:
+%\begin{alignat*}{1}
+%h_i &= \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \, L \, X -  A_\varepsilon \, \nablai L \, X\\
+%&= \nablai A \, (F-  G) +  A_\infty \, \nablai F  -  A_\varepsilon \, \nablai L \, X
+%\end{alignat*}
+%
+%2. Explain how to do the following operations efficiently:
+%\begin{alignat*}{3}
+%\langle s, \nablai A \, (F-  G) \rangle &= \langle (\nablai A)^* \, s,  F-  G \rangle ? \\
+%\langle s, A_\infty \, \nablai F \rangle &= \langle A_\infty \,^* \, s,  \nablai F \rangle \\
+%\langle s, A_\varepsilon \, \nablai L \, X \rangle &= \langle (A_\varepsilon\, \nablai L)^* \, s,  X \rangle ? \\
+%\end{alignat*}
+%I don't see how the first and third term are efficiently done in practice?
+%
+%3. Use the skew-symmetric relationship from above.
