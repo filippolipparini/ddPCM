@@ -154,6 +154,25 @@ which provide a convenient way of evaluating $[\nabla_{\! k} \, A_{jk}]_{\ell \e
 for $\nablai A_{jk}$. Finally, the case $i \in N_j \, , \, i \not= k$ reduces to \eqref{eq:8}.
 
 \subsection{Implementation}
+We solve the adjoint problem $(A_\varepsilon \, L )^* s = \Psi$ through the two steps ${L}^* \, y = \Psi$ and ${A_\varepsilon}^* \, s = y$, and apply Leibnitz differentiation rule to the PCM problem \eqref{eq:6}, so that
+\[
+\nablai A_\varepsilon \, G + A_\varepsilon \, \nablai G = \nablai A_\infty \, F + A_\infty \, \nablai F  \qquad , \qquad \nablai L \, X + L \, \nablai X = \nablai G
+\]
+Since $\nablai A_\infty=\nablai A_\varepsilon =: \nablai A$, we obtain
+\begin{align*}
+\langle \Psi , \nablai X\rangle &  = \langle s ,  A_\varepsilon \, L \, \nablai X\rangle \\
+&  = \langle s ,  A_\varepsilon \,( \nablai G - \nablai L \,  X ) \rangle \\ 
+& = \langle s ,  A_\varepsilon \, \nablai G \rangle - \langle s , A_\varepsilon \, \nablai L \,  X \rangle \\
+& = \langle s , \nablai  A ( G - F) + A_\infty \, \nablai F \rangle - \langle s , A_\varepsilon \, \nablai L \,  X \rangle \\
+& = \langle s , \nablai  A ( G - F) \rangle + \langle {A_\infty}^* \, s , \nablai F \rangle - \langle {A_\varepsilon}^* \, s , \nablai L \,  X \rangle \\
+& = \langle s , \nablai  A ( G - F) \rangle + \langle {A_\infty}^* \, s , \nablai F \rangle - \langle y , \nablai L \,  X \rangle
+\end{align*}
+Notice that, when $\varepsilon = \infty$, then $G = F$ and ${A_\infty}^* \, s =y$, so that we recover
+\[
+\langle \Psi , \nablai X\rangle =  \langle y , \nablai F \rangle - \langle y , \nablai L \,  X \rangle
+\]
+which is the expression of the force for COSMO. Because of the sparsity of $L$, the computation of the action $\nablai L \, X$ is of complexity $O(N_\text{grid} \times M)$, with a prefactor that depends, al least, upon $N_i$ and $L_\text{max}$. Since the contraction product $\langle \cdot \, , \cdot \rangle$ also has complexity $O(M)$, with a prefactor that depends on $L_\text{max}$, we conclude that the cost is $O(N_\text{gird} \times M)$. In the case of PCM, the bottleneck is the action $ \nablai  A ( G - F)$...
+
 1. Use that $\nablai A_\infty=\nablai A_\varepsilon$ and that $L \, X=G$:
 \begin{alignat*}{1}
 h_i &= \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \, L \, X -  A_\varepsilon \, \nablai L \, X\\
@@ -163,7 +182,7 @@ h_i &= \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \,
 2. Explain how to do the following operations efficiently:
 \begin{alignat*}{3}
 \langle s, \nablai A \, (F-  G) \rangle &= \langle (\nablai A)^* \, s,  F-  G \rangle ? \\
-\langle s, A_\infty \, \nablai F \rangle &= \langle A_\infty \,^* \, s,  F \rangle \\
+\langle s, A_\infty \, \nablai F \rangle &= \langle A_\infty \,^* \, s,  \nablai F \rangle \\
 \langle s, A_\varepsilon \, \nablai L \, X \rangle &= \langle (A_\varepsilon\, \nablai L)^* \, s,  X \rangle ?
 \end{alignat*}
 I don't see how the first and third term are efficiently done in practice?
