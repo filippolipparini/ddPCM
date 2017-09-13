@@ -34,7 +34,7 @@ so that we obtain
 \end{multline*}
 As opposed to the diagonal term, the integration has to be carried out numerically. We employ a Lebedev grid with $N_\text{grid}$ nodes $\{s_n\}$ and weights $\{ w_n \}$ to perform numerical quadrature, so that
 \begin{equation}\label{eq:52}
-L_{jk} \, X_k = r_j^2 \, \sum_{\ell'= 0}^{L_\text{max}}  \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, \sum_{n = 1}^{N_\text{grid}} w_n \, \hat{V}_j(s_n) \, |u(s_n)|^{\ell'} \, Y_{\ell'}^{m'}(u(s_n)/|u(y)|) \, Y_\ell^m(s_n)\, [X_k]_{\ell'}^{m'}  
+L_{jk} \, X_k = r_j^2 \, \sum_{\ell'= 0}^{L_\text{max}}  \sum_{m' = -\ell'}^{\ell'} \, \frac{4\pi}{(2\ell' + 1)}\, \sum_{n = 1}^{N_\text{grid}} w_n \, \hat{V}_j(s_n) \, |u(s_n)|^{\ell'} \, Y_{\ell'}^{m'}(u(s_n)/|u(s_n)|) \, Y_\ell^m(s_n)\, [X_k]_{\ell'}^{m'}  
 \end{equation}
 
 Finally, we discuss the right-hand-side of \eqref{eq:50} when $\Phi_{\varepsilon,j}$ is provided by the ddPCM step as a truncated series of spherical harmonics with coefficients $-[G_j]_{\ell'}^{m'}$. The orthogonality implies
