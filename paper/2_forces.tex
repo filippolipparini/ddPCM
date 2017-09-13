@@ -129,7 +129,7 @@ However, since $t_n^{jk}$ and $s_n^{jk}$ depend only upon $x_j$ and $x_k$, if we
 {[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nablai U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
 \end{equation}
 %Such relation holds, in particular, for $i \in N_j$ and $i \not= k$.
-Thus, since $U_j^n$ depends only upon $x_i$ if $i \in N_j$, we conclude that $\nablai A_{jk}$ vanishes whenever $i \not= j$ and $i \not=k$ and $i \not\in N_j$. In order to discuss the opposite case, i.e., $i = j$ or $i =k$ or $i \in N_j$, notice that the events $(i = j)$ and $(i = k)$ are mutually exclusive, as are $(i = j)$ and $(i \in N_j)$. We obtain the three subcases $i = j$, and $i = k$, and $i \in N_j \, , \, i \not= k$, which will be addressed individually.
+Thus, since $U_j^n$ depends only upon $x_i$ if $i \in N_j$ or $i=j$, we conclude that $\nablai A_{jk}$ vanishes whenever $i \not= j$ and $i \not=k$ and $i \not\in N_j$. In order to discuss the opposite case, i.e., $i = j$ or $i =k$ or $i \in N_j$, notice that the events $(i = j)$ and $(i = k)$ are mutually exclusive, as are $(i = j)$ and $(i \in N_j)$. We obtain the three subcases $i = j$, and $i = k$, and $i \in N_j \, , \, i \not= k$, which will be addressed individually.
 
 Standard differentiation implies that
 \begin{multline}\label{eq:9}
@@ -153,6 +153,77 @@ which provide a convenient way of evaluating $[\nabla_{\! k} \, A_{jk}]_{\ell \e
 \]
 for $\nablai A_{jk}$. Finally, the case $i \in N_j \, , \, i \not= k$ reduces to \eqref{eq:8}.
 
+\bigskip
+
+\noindent
+{\bf A quick overview of sparsity of $\nablai A_{jk}$}: There is nothing new, but should clarify a bit the computational complexity of computing the forces.
+\begin{itemize}
+\item {\bf Diagonal terms: $j=k$:}
+	\begin{itemize}
+		\item If $i\in N_j=N_k$ or $i=j=k$, then $[ \nablai A_{jj}]_{\ell \ell'}^{m m'} \neq 0$. 
+		\item If $i\not \in N_j=N_k$ and  $i\neq j=k$, then $[ \nablai A_{jk}]_{\ell \ell'}^{m m'} = 0$.
+	\end{itemize}
+\item {\bf Off-diagonal terms: $j\neq k$:}
+	\begin{itemize}
+		\item If $i=k$, then $[ \nablai A_{jk}]_{\ell \ell'}^{m m'} \neq 0$.
+		\item If $i=j$, then $[ \nablai A_{jk}]_{\ell \ell'}^{m m'} \neq 0$.
+		\item If $i\neq j$ and $i\neq k$
+		\begin{itemize}
+			\item If $i\in N_j$ and $i\neq k$, then $[ \nablai A_{jk}]_{\ell \ell'}^{m m'} \neq 0$.
+			\item If $i\not\in N_j$ and $i\neq k$, then $[ \nablai A_{jk}]_{\ell \ell'}^{m m'} =0 0$.
+		\end{itemize}
+	\end{itemize}
+\end{itemize}
+From a different perspective, we want now to analyse the complexity of the matrix-vector product $\nablai A f$ for some vector $f$.
+%
+
+We see that 
+\begin{align*}
+	[(\nablai A f)_j]_\ell^m 
+	&= \sum_k \sum_{\ell',m'} [\nablai A_{jk}]_{\ell \ell'}^{m m'} [f_k]_{\ell'}^{m'} \\
+	&= \sum_{\ell',m'} [\nablai A_{jj}]_{\ell \ell'}^{m m'} [f_j]_{\ell'}^{m'} 
+	+ \sum_{k\neq j} \sum_{\ell',m'} [\nablai A_{jk}]_{\ell \ell'}^{m m'} [f_k]_{\ell'}^{m'} 
+\end{align*}
+so that we split $\nablai A$ into the block-diagonal part $\nablai A_d$ and the off-diagonal part $\nablai A_o$.
+\begin{align*}
+	[(\nablai A_d f)_j]_\ell^m 
+	&= \sum_{\ell',m'} [\nablai A_{jj}]_{\ell \ell'}^{m m'} [f_j]_{\ell'}^{m'} \\
+	[(\nablai A_o f)_j]_\ell^m 
+	&= \sum_{k\neq j} \sum_{\ell',m'} [\nablai A_{jk}]_{\ell \ell'}^{m m'} [f_k]_{\ell'}^{m'} 
+\end{align*}
+For the diagonal part, we have that
+\[
+	[(\nablai A_d f)_j]_\ell^m = 0
+\]
+if $i\not\in N_j$ and $i\neq j$. For a fixed $i$, the number of non-zero contributions (indexed by $j$) from the diagonal is independent of $M$. $\mathcal O(1)$
+
+For the off-diagonal part, we distinguish three cases.
+
+Case 1 ($i=j$ and necessarily $i\neq N_j$):
+\[
+	[(\nablai A_o f)_i]_\ell^m 
+	= 	\sum_{k\neq i} \sum_{\ell',m'} [\nablai A_{ik}]_{\ell \ell'}^{m m'} [f_k]_{\ell'}^{m'} 
+\]
+Here, all terms $k\neq i$ must be considered. This operation is $\mathcal O(M)$ but this case happens for one $j$ only.
+
+Case 2 ($i\neq j$ and $i\in N_j$):
+\[
+	[(\nablai A_o f)_j]_\ell^m 
+	= \sum_{\ell',m'} [\nablai A_{ji}]_{\ell \ell'}^{m m'} [f_i]_{\ell'}^{m'} 
+	+ \sum_{k\neq j, k\neq i} \sum_{\ell',m'} [\nablai A_{jk}]_{\ell \ell'}^{m m'} [f_k]_{\ell'}^{m'} 
+\]
+This operation is $\mathcal O(M)$, but this case happens for $\mathcal O(1)$ values of $j$ only.
+
+Case 3 ($i\neq j$ and $i\not \in N_j$):
+\[
+	[(\nablai A_o f)_j]_\ell^m 
+	= \sum_{\ell',m'} [\nablai A_{ji}]_{\ell \ell'}^{m m'} [f_i]_{\ell'}^{m'} 
+\]
+This operation is $\mathcal O(1)$ and this needs to be done for $\mathcal O(M)$ values of $j$.
+
+Therefore, we see that computing all coefficients of the matrix-vector product $[(\nablai A f)_j]_\ell^m $ for one fixed $i$ requires $\mathcal O(M)$ of operations. 
+Now, this needs to be done for each $i=1,\ldots,M$ such that the overall complexity to compute all coefficients $[(\nablai A f)_j]_\ell^m $ for all $i$ and $j$ is $\mathcal O(M^2)$.
+
 \subsection{Implementation}
 We solve the adjoint problem $(A_\varepsilon \, L )^* s = \Psi$ through the two steps ${L}^* \, y = \Psi$ and ${A_\varepsilon}^* \, s = y$, and apply Leibnitz differentiation rule to the PCM problem \eqref{eq:6}, so that
 \[
@@ -163,28 +234,29 @@ Since $\nablai A_\infty=\nablai A_\varepsilon =: \nablai A$, we obtain
 \langle \Psi , \nablai X\rangle &  = \langle s ,  A_\varepsilon \, L \, \nablai X\rangle \\
 &  = \langle s ,  A_\varepsilon \,( \nablai G - \nablai L \,  X ) \rangle \\ 
 & = \langle s ,  A_\varepsilon \, \nablai G \rangle - \langle s , A_\varepsilon \, \nablai L \,  X \rangle \\
-& = \langle s , \nablai  A ( G - F) + A_\infty \, \nablai F \rangle - \langle s , A_\varepsilon \, \nablai L \,  X \rangle \\
-& = \langle s , \nablai  A ( G - F) \rangle + \langle {A_\infty}^* \, s , \nablai F \rangle - \langle {A_\varepsilon}^* \, s , \nablai L \,  X \rangle \\
-& = \langle s , \nablai  A ( G - F) \rangle + \langle {A_\infty}^* \, s , \nablai F \rangle - \langle y , \nablai L \,  X \rangle
+& = \langle s , \nablai  A ( F - G ) + A_\infty \, \nablai F \rangle - \langle s , A_\varepsilon \, \nablai L \,  X \rangle \\
+& = \langle s , \nablai  A ( F - G ) \rangle + \langle {A_\infty}^* \, s , \nablai F \rangle - \langle {A_\varepsilon}^* \, s , \nablai L \,  X \rangle \\
+& = \langle s , \nablai  A ( F - G ) \rangle + \langle {A_\infty}^* \, s , \nablai F \rangle - \langle y , \nablai L \,  X \rangle\\
+& = \langle s , \nablai  A ( F - G ) \rangle + \langle ({A_\infty}^*-{A_\varepsilon}^*) \, s , \nablai F \rangle + \langle y, \nablai F-\nablai L \,  X \rangle 
 \end{align*}
 Notice that, when $\varepsilon = \infty$, then $G = F$ and ${A_\infty}^* \, s =y$, so that we recover
 \[
 \langle \Psi , \nablai X\rangle =  \langle y , \nablai F \rangle - \langle y , \nablai L \,  X \rangle
 \]
-which is the expression of the force for COSMO. Because of the sparsity of $L$, the computation of the action $\nablai L \, X$ is of complexity $O(N_\text{grid} \times M)$, with a prefactor that depends, al least, upon $N_i$ and $L_\text{max}$. Since the contraction product $\langle \cdot \, , \cdot \rangle$ also has complexity $O(M)$, with a prefactor that depends on $L_\text{max}$, we conclude that the cost is $O(N_\text{gird} \times M)$. In the case of PCM, the bottleneck is the action $ \nablai  A ( G - F)$...
+which is the expression of the force for COSMO. Because of the sparsity of $L$, the computation of the action $\nablai L \, X$ is of complexity $O(N_\text{grid})$, with a prefactor that depends, al least, upon $N_i$ and $L_\text{max}$. Since the contraction product $\langle \cdot \, , \cdot \rangle$ also has complexity $O(M)$, with a prefactor that depends on $L_\text{max}$, we conclude that the cost is $O(N_\text{gird} \times M)$. In the case of PCM, the bottleneck is the action $ \nablai  A ( F - G)$...
 
-1. Use that $\nablai A_\infty=\nablai A_\varepsilon$ and that $L \, X=G$:
-\begin{alignat*}{1}
-h_i &= \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \, L \, X -  A_\varepsilon \, \nablai L \, X\\
-&= \nablai A \, (F-  G) +  A_\infty \, \nablai F  -  A_\varepsilon \, \nablai L \, X
-\end{alignat*}
-
-2. Explain how to do the following operations efficiently:
-\begin{alignat*}{3}
-\langle s, \nablai A \, (F-  G) \rangle &= \langle (\nablai A)^* \, s,  F-  G \rangle ? \\
-\langle s, A_\infty \, \nablai F \rangle &= \langle A_\infty \,^* \, s,  \nablai F \rangle \\
-\langle s, A_\varepsilon \, \nablai L \, X \rangle &= \langle (A_\varepsilon\, \nablai L)^* \, s,  X \rangle ? \\
-\end{alignat*}
-I don't see how the first and third term are efficiently done in practice?
-
-3. Use the skew-symmetric relationship from above.
+%1. Use that $\nablai A_\infty=\nablai A_\varepsilon$ and that $L \, X=G$:
+%\begin{alignat*}{1}
+%h_i &= \nablai A_\infty \, F +  A_\infty \, \nablai F - \nablai A_\varepsilon \, L \, X -  A_\varepsilon \, \nablai L \, X\\
+%&= \nablai A \, (F-  G) +  A_\infty \, \nablai F  -  A_\varepsilon \, \nablai L \, X
+%\end{alignat*}
+%
+%2. Explain how to do the following operations efficiently:
+%\begin{alignat*}{3}
+%\langle s, \nablai A \, (F-  G) \rangle &= \langle (\nablai A)^* \, s,  F-  G \rangle ? \\
+%\langle s, A_\infty \, \nablai F \rangle &= \langle A_\infty \,^* \, s,  \nablai F \rangle \\
+%\langle s, A_\varepsilon \, \nablai L \, X \rangle &= \langle (A_\varepsilon\, \nablai L)^* \, s,  X \rangle ? \\
+%\end{alignat*}
+%I don't see how the first and third term are efficiently done in practice?
+%
+%3. Use the skew-symmetric relationship from above.
