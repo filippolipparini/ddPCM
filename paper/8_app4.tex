@@ -1,0 +1,71 @@
+Let $\{ s_n\}$ be the $N_\text{grid}$ Lebedev integration points with associated weights $\{ w_n \}$ and define the following quantities
+\[
+t_n^{jk} = \frac{|x_j + r_j s_n -x_k|}{r_k} \quad , \quad s_n^{jk} = \frac{x_j + r_j s_n -x_k}{|x_j + r_j s_n -x_k|}\quad , \quad U_j^n = U_j(x_j + r_j s_n)
+\]
+The entries of $F_j$ are evaluated through numerical quadrature as
+\[
+[F_j]_\ell^m = - \sum_{n = 1} ^{N_\text{grid}} w_n \, U_j^n \, \Phi(x_j + r_js_n) \, Y_\ell^m(s_n)
+\]
+so that we immediately obtain
+\[
+[\nablai F_j]_\ell^m = - \sum_{n = 1} ^{N_\text{grid}} w_n \, \nablai U_j^n \, \Phi(x_j + r_js_n) \, Y_\ell^m(s_n)
+\]
+In the remainder of this section we discuss the derivatives of the ddPCM matrix $A_\varepsilon$.
+
+The blocks $A_{jk}^\varepsilon$ of the ddPCM matrix $A_\varepsilon$, see \eqref{eq:ajj} and \eqref{eq:ajk}, have the form
+\begin{alignat*}{3}
+{[A_{jj}^\varepsilon]}_{\ell \ell'}^{mm'}& = 2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1}\, \delta_{\ell \ell'} \delta_{m m'}&& + \frac{2\pi}{2 \ell' + 1} \,\sum_{n= 1}^{N_\text{grid}} w_n \, U_j^n  \,Y_\ell^m(s_n) \,  Y_{\ell'}^{m'}(s_n) \\
+{[A_{jk}^\varepsilon]}_{\ell \ell'}^{mm'}& =&& -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n= 1}^{N_\text{grid}} w_n\, U_j^n  \, Y_\ell^m(s_n) \, \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
+\end{alignat*}
+and, since the derivatives are independent of $\varepsilon$, we drop the $\varepsilon$-dependency for ease of notation.
+
+The case of the diagonal blocks yields
+\[
+{[\nablai A_{jj}]}_{\ell \ell'}^{mm'} = \frac{2\pi}{2 \ell' + 1} \,\sum_{n} w_n \, \nablai U_j^n  \,Y_\ell^m(s_n) \,  Y_{\ell'}^{m'}(s_n)
+\]
+so that it only requires the derivatives of the characteristic function. The function $U_j$ is, in practice, a smoothed version of the (discontinuous!)~characteristic function, and is defined as 
+\[
+U_j(x_j + r_j y) =
+\begin{cases}
+1 - f_j(y) 	&\quad f_j(y) \le 1\\
+0		&\quad \text{otherwise}
+\end{cases}
+\qquad , \qquad 
+f_j(y) = \sum_{k \in N_j} \chi \bigg(\frac{|x_j + r_j y - x_k|}{r_k}\bigg)
+\]
+where $y$ varies on $\mathbb{S}$ and $\chi$ is a regularized characteristic function of $[0,1]$. We conclude that $\nablai U_j$ and, consequently, $\nablai A_{jj}$ are \emph{a priori} nonzero only when $i \in N_j$ or $i = j$.
+
+The case of the off-diagonal blocks ${[ A_{jk}]}_{\ell \ell'}^{mm'}$ with $j \not=k$ is more involved since it includes the gradient of the product of three functions, namely
+\begin{equation}\label{eq:7}
+{[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nablai \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big]
+\end{equation}
+%\cdots\Big[ \nabla U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \, \nabla \Big( \big( t_n^{jk}\big)^{-(\ell'+1)} \Big)\, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \nabla Y_{\ell'}^{m'} (s_n^{jk}) \Big]
+%\end{multline*}
+However, since $t_n^{jk}$ and $s_n^{jk}$ depend only upon $x_j$ and $x_k$, if we assume $i \not=j$ and $i\not=k$, we obtain
+\begin{equation}\label{eq:8}
+{[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \,\nablai U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
+\end{equation}
+%Such relation holds, in particular, for $i \in N_j$ and $i \not= k$.
+Thus, since $U_j^n$ depends only upon $x_i$ if $i \in N_j$ or $i=j$, we conclude that $\nablai A_{jk}$ vanishes whenever $i \not= j$ and $i \not=k$ and $i \not\in N_j$. In order to discuss the opposite case, i.e., $i = j$ or $i =k$ or $i \in N_j$, notice that the events $(i = j)$ and $(i = k)$ are mutually exclusive, as are $(i = j)$ and $(i \in N_j)$. We obtain the three subcases $i = j$, and $i = k$, and $i \in N_j \, , \, i \not= k$, which will be addressed individually.
+
+Standard differentiation implies that
+\begin{multline}\label{eq:9}
+\nablai \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] = \nablai U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \\
+- U_j^n  \, (\ell' + 1)  \big( t_n^{jk}\big)^{-(\ell'+2)} \, \nablai t_n^{jk} \, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \big( \Di\, s_n^{ji} \big)^T\, \nablai Y_{\ell'}^{m'} (s_n^{jk})
+\end{multline}
+where $\Di$ emphasizes that the gradient of the vector quantity $s_j^{jk}$ is indeed its Jacobian matrix and where the extra subscripts refer to the variables with respect to which differentiation is taken. We proceed to evaluate $\nablai t_n^{jk}$ and $ \Di \, s_n^{jk}$. When $i = j$, differentiation implies
+\[
+\nablaj t_n^{jk} = \frac{s_n^{jk}}{r_k} \qquad , \qquad \Dj \, s_n^{jk} = \frac{I - s_n^{jk} \otimes s_n^{jk} }{|x_j + r_j s_n - x_k|^3}
+\]
+where $I$ is the identity matrix and $\otimes$ indicates the outer product. We remark that the Jacobian matrix $\Dj \, s_n^{jk}$ is symmetric, so that the transpose in \eqref{eq:9} is redundant. 
+Due to the particular relation between $x_j$ and $x_k$, we obtain $\nabla_{\! j} \, t_n^{jk} = - \nabla_{\! k} \, t_n^{jk}$ and $D_j \, s_n^{jk} = - D_k \, s_n^{jk}$.
+We can therefore analogously derive the case $i = k$ and those relationships imply
+\begin{multline*}
+\nabla_{\! j} \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] + \nabla_{\! k} \Big[ U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] = \\
+  \Big[ \nabla_{\! j} \, U_j^n + \nabla_{\! k} \, U_j^n  \Big]  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
+\end{multline*}
+which provide a convenient way of evaluating $[\nabla_{\! k} \, A_{jk}]_{\ell \ell'}^{m m'}$ from $[\nabla_{\! j} \, A_{jk}]_{\ell \ell'}^{m m'}$. In fact, we obtain the quasi-skew-symmetric relation
+\[
+[ \nabla_{\! j} \, A_{jk}]_{\ell \ell'}^{m m'} + [\nabla_{\! k} \, A_{jk}]_{\ell \ell'}^{m m'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n} w_n\, Y_\ell^m(s_n) \Big[ \nabla_{\! j} \, U_j^n + \nabla_{\! k} \, U_j^n  \Big]  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
+\]
+for $\nablai A_{jk}$. Finally, the case $i \in N_j \, , \, i \not= k$ reduces to \eqref{eq:8}.
