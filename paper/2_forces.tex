@@ -79,11 +79,11 @@ Secondly, to deal with the term $A_\varepsilon \, \nablai G$, which involves the
 \[
 \nablai A_\varepsilon \, G + A_\varepsilon \, \nablai G = \nablai A_\infty \, F + A_\infty \, \nablai F
 \]
-The quantity $\nablai F$ is \emph{a priori} nonzero since $F = F_j$ does depend upon the nuclear positions through the characteristic function $U_j$, recall \eqref{eq:25}. After noticing that $\nablai A_\infty=\nablai A_\varepsilon =: \nablai A$, we obtain
+The quantity $\nablai F$ is \emph{a priori} nonzero since $F$ does depend upon the nuclear positions through the characteristic functions, recall \eqref{eq:25}. Since the derivative of $A_\varepsilon$ is independent of $\varepsilon$, we just write $\nablai A$ and obtain
 \[
 \langle \Psi , \nablai X\rangle = \langle s , \nablai  A ( F - G ) \rangle + \langle  s ,{A_\infty}\, \nablai F \rangle - \langle  s , {A_\varepsilon}\, \nablai L \,  X \rangle
 \]
-Since the adjoint problem $(A_\varepsilon \, L )^* s = \Psi$ requires the two steps ${L}^* \, y = \Psi$ and ${A_\varepsilon}^* \, s = y$, we can simplify the last term on the right hand side, and obtain
+The solution of the adjoint problem $(A_\varepsilon \, L )^* s = \Psi$ requires two steps, namely ${L}^* \, y = \Psi$ and ${A_\varepsilon}^* \, s = y$, so that we can simplify the last term on the right-hand-side, and obtain
 \[
 \langle \Psi , \nablai X\rangle = \langle s , \nablai  A ( F - G ) \rangle + \langle {A_\infty}^*\, s , \nablai F \rangle - \langle  y , \nablai L \,  X \rangle
 \]
@@ -95,7 +95,7 @@ We remark that this derivation is consistent with that of the COSMO-forces prese
 \[
 \langle \Psi , \nablai X\rangle =  \langle y , \nablai F \rangle - \langle y , \nablai L \,  X \rangle
 \]
-which coincides with the expression of the COSMO force. We recall that, because of the sparsity of $L$, and, consequently, its derivative, the action $\nablai L \, X$ can be computed within a complexity that depends upon $L_\text{max}$, $N_\text{grid}$ and the number of neighbors $N_i$, but is independent of $M$. In other words, it is $O(1)$ with respect to the number of atoms. Furthermore, the action is itself sparse, since $(\nablai L \, X)_j$ is \emph{a priori} nonzero only when $j = i$, or $j$ is such that $i \in N_j$. Thus, the computation of a single contraction $\langle y , \nablai L \,  X \rangle$ is also $O(1)$. A similar analysis holds for the contraction $\langle y , \nablai F \rangle$ {\bf (add comment, maybe...)}. We conclude that the computation of the $M$ forces acting on each atom in a operation of complexity $O(M)$, with a prefactor that depends at least upon $L_\text{max}$, $N_\text{grid}$, and the average number of neighbors of each atom.
+which coincides with the expression of the COSMO force. We recall that, because of the sparsity of $L$, and, consequently, its derivative, the action $\nablai L \, X$ can be computed within a complexity that depends upon $L_\text{max}$, $N_\text{grid}$ and the number of neighbors $N_i$, but is independent of $M$. In other words, it is $O(1)$ with respect to the number of atoms. Furthermore, the action is itself sparse, since $(\nablai L \, X)_j$ is \emph{a priori} nonzero only when $j = i$, or $j$ is such that $i \in N_j$. Thus, the computation of a single contraction $\langle y , \nablai L \,  X \rangle$ is also $O(1)$. A similar analysis holds for the contraction $\langle y , \nablai F \rangle$ {\bf (add comment, maybe...)}. We conclude that the computation of the $M$ forces acting on each atom is an operation of complexity $O(M)$, with a prefactor that depends at least upon $L_\text{max}$, $N_\text{grid}$, and the average number of neighbors of each atom.
 
 \subsection{Efficient Implementation}
 
