@@ -109,7 +109,7 @@ where $N_j$ is the set of all neighboring subdomains of $\Omega_j$, $W_k$ is und
 \begin{equation}\label{eq:2}
 \mathcal{S}_j \, \sigma_j  -  \sum_{k \in N_j} \tilde{\mathcal{S}}_{jk} \, \sigma_k = -  \Phi_{\varepsilon,j} \qquad \text{on } \Gamma_j
 \end{equation}
-As opposed to the local problem \eqref{eq:1} which features a global interaction of all subdomains, the ddCOSMO step \eqref{eq:2} is characterized by the interaction of subdomain $\Omega_j$ with only its neighbors. This results in a sparse, rather than dense, discrete operator. We anticipate that this is the key feature that allows to compute the forces relative to ddCOSMO with linear complexity with respect to the number of atoms. Mode details are provided in Section \ref{}.
+As opposed to the local problem \eqref{eq:1} which features a global interaction of all subdomains, the ddCOSMO step \eqref{eq:2} is characterized by the interaction of subdomain $\Omega_j$ with only its neighbors. This results in a sparse, rather than dense, discrete operator. We anticipate that this is the key feature that allows to compute the ddCOSMO forces within linear complexity with respect to the number of atoms. More details are provided in Section \ref{}.
 
 \subsection{Numerical Discretization}
 
@@ -120,14 +120,13 @@ We discretize equation \eqref{eq:1} and \eqref{eq:2} by expanding $\Phi_j$, $\Ph
 for some unknown coefficients $X = [X_j]_\ell^m$ and a prescribed integer parameter ${L_\text{max}}$. Here $y$ is the variable on $\mathbb{S}$. %{\bf (Discuss why this ansatz is legit.)} 
 We approximate $\Phi_{\varepsilon,j}$ and $\Phi_j$ in a similar fashion, namely
 \[
-\Phi_{\varepsilon,j} = - \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [G_j]_\ell^m \, Y_\ell^m \qquad , \qquad \Phi_j = -\sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [F_j]_\ell^m \, Y_\ell^m
+\Phi_{\varepsilon,j}(s) = - \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [G_j]_\ell^m \, Y_\ell^m(y) \qquad , \qquad \Phi_j(s) = -\sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell [F_j]_\ell^m \, Y_\ell^m(y)
 \]
 where $G = [G_j]_\ell^m$ and $F = [F_j]_\ell^m$ are the coefficients of the expansions, and the minus signs have been introduced for convenience. In the following, we shall use the condensed notation $\sum_{\ell ,m}$ to indicate the double sum. The coefficients $[F_j]_\ell^m$ are related to the potential as
 \begin{equation}\label{eq:25}
-[F_j]_\ell^m = - \int_{\Gamma_j} \Phi_j(s) \, Y_\ell^m(y_j(s)) \,ds = - \int_{\Gamma_j} U_j(s) \, \Phi(s) \, Y_\ell^m(y_j(s)) \,ds,
+[F_j]_\ell^m = - \int_{\mathbb{S}} \Phi_j(s(y)) \, Y_\ell^m(y) \,dy = - \int_{\mathbb{S}} U_j(s(y)) \, \Phi(s(y)) \, Y_\ell^m(y) \,dy
 \end{equation}
-with $y_j(s)=\tfrac{s-x_j}{r_j}$, 
-and are evaluated through numerical quadrature. We remark that $F$ does depend on the characteristic functions and, thus, upon the nuclear position of the neighboring spheres. We interpret each local problem (\ref{eq:1}) and (\ref{eq:2}) in a variational setting that uses spherical harmonics as test functions, see Appendix \ref{app:mats}. We employ orthogonality conditions of the spherical harmonics, along with Lebedev grids to perform numerical quadrature to derive discretizations of the global problems \eqref{eq:ddPCM-1} and \eqref{eq:ddPCM-2}. Respectively, we obtain
+and are evaluated through numerical quadrature. We remark that $F$ does depend on the characteristic functions and, thus, upon the nuclear positions of the neighboring spheres. We interpret each local problem (\ref{eq:1}) and (\ref{eq:2}) in a variational setting that uses spherical harmonics as test functions, see Appendix \ref{app:pcm} and \ref{app:cosmo}. We employ orthogonality conditions of the spherical harmonics, along with Lebedev grids to perform numerical quadrature to derive discretizations of the global problems \eqref{eq:ddPCM-1} and \eqref{eq:ddPCM-2}. Respectively, we obtain
 \begin{equation}\label{eq:6}
 A_\varepsilon \, G = A_\infty \, F \qquad , \qquad  L \, X = G
 \end{equation}
