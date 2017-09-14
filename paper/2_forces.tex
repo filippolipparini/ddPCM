@@ -1,6 +1,6 @@
 \section{Computation of the ddPCM-Forces}\label{sec:forces}
 
-\subsection{Theory}
+\subsection{Theoretical Derivation}
 %In the case of a classical solute, the form of the charge density $\rho$ allows to compute 
 The solvation energy can be written as a sum of subdomain contributions, which perfectly fits the domain-decomposition paradigm. 
 
@@ -93,9 +93,23 @@ We remark that this derivation is consistent with that of the COSMO-forces prese
 \]
 which coincides with the expression of the COSMO force. We recall that, because of the sparsity of $L$, and, consequently, its derivative, the action $\nablai L \, X$ can be computed within a complexity that depends upon $L_\text{max}$, $N_\text{grid}$ and the number of neighbors $N_i$, but is independent of $M$. In other words, it is $O(1)$ with respect to the number of atoms. Furthermore, the action is itself sparse, since $(\nablai L \, X)_j$ is \emph{a priori} nonzero only when $j = i$, or $j$ is such that $i \in N_j$. Thus, the computation of a single contraction $\langle y , \nablai L \,  X \rangle$ is also $O(1)$. A similar analysis holds for the contraction $\langle y , \nablai F \rangle$ {\bf (add comment, maybe...)}. We conclude that the computation of the $M$ forces acting on each atom in a operation of complexity $O(M)$, with a prefactor that depends at least upon $L_\text{max}$, $N_\text{grid}$, and the average number of neighbors of each atom.
 
-\subsection{Implementation}
+\subsection{Efficient Implementation}
 
+The implementation of the PCM forces is analogous to that of the COSMO forces, apart from an the additional term that involves the action of $\nablai A$, namely $\langle s , \nablai  A ( F - G ) \rangle$. We proceed to analyze the complexity of computing the action $\nablai A \, X$, where $X$ is an arbitrary vector.
 
+The definition \eqref{eq:ajj} of the diagonal blocks implies that $A_{jj}$ depends upon the nuclear positions $x_j$ and $x_i$ such that $i \in N_j$. Similarly, if we recall \eqref{eq:ajk}, the off-diagonal block $A_{jk}$ depends upon $x_j$, $x_k$, and $x_i$ such that $i \in N_j$. This implies that $\nablai A_{jj}$ is \emph{a priori} nonzero only when $i = j$, or $i \in N_j$. Analogously, $\nablai A_{jk}$ is \emph{a priori} nonzero only when $i = j$, or $i = k$, or $i \in N_j$.
+
+In order to estimate the computational cost of $( \nablai A \, X)_j$ for fixed $i$, we isolate the diagonal block as
+\begin{equation}\label{eq:70}
+( \nablai A \, X)_j = \nablai A_{jj} \, X_j + \sum_{k\not=j} \,\nablai A_{jk} \, X_k
+\end{equation}
+The straightforward cost of this operation is $O(M)$, with a prefactor that depends upon $L_\text{max}$ and $N_\text{grid}$. We proceed to vary the index $j$. The choice $j = i$ does not yield any simplification in \eqref{eq:70}, as is also the case for the choice $j$ such that $i \in N_j$. On the other hand, the complementary case, i.e., $j \not=i$ and such that $i \not\in N_j$, yields the simplified expression
+\[
+( \nablai A \, X)_j = \nablai A_{ji} \, X_i
+\]
+whose computational cost is $O(1)$, again with a prefactor that depends upon $L_\text{max}$ and $N_\text{grid}$.
+
+The less favorable case of computation complexity $O(M)$ occurs for a number of entries of the order of the average number of neighbors. On the other hand, the case the more favorable case $O(1)$ occurs for roughly $M$ entries. The total computational complexity of computing the action is $O(M)$. Nevertheless, $\nablai A \, X$ is fully populated, as opposed to $\nablai L \, X$ which is sparse. This implies that a single contraction product $\langle s , \nablai L \, X \rangle$ has computational complexity $O(M)$, so that the computation of the forces has complexity $O(M^2)$, with a prefactor that depends at least upon $L_\text{max}$, $N_\text{grid}$, and the average number of neighbors of each atom.
 
 \noindent
 {\bf A quick overview of sparsity of $\nablai A_{jk}$}: There is nothing new, but should clarify a bit the computational complexity of computing the forces.
