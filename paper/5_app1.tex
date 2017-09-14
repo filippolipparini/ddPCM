@@ -11,10 +11,10 @@ As customary, in order to obtain a numerical discretization of \eqref{eq:1}, we 
 = \int_{\Gamma_j}\big( 2 \pi \, {\Phi_j} - U_j \, {\mathcal{D}}_j \,\Phi_{j} \big) \varphi + \sum_{k \ne j} \,\int_{\Gamma_j } U_j \,  \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \, \varphi
 \end{multline*}
 Here we set $f_\varepsilon = (\varepsilon + 1)/(\varepsilon - 1)$ for brevity, and isolated the diagonal terms for convenience.  Through the change of variable $y = (s- x_j)/r_j$, we obtain integrals over $\mathbb{S}$ which involve the hatted quantities, namely
-\begin{multline*}
+\begin{multline}\label{eq:73}
  \int_{\mathbb{S}}\big( 2\pi \, f_\varepsilon \, \hat{\Phi}_{\varepsilon,j} - \hat{U}_j \, {\mathcal{D}} \, \hat{\Phi}_{\varepsilon,j} \big) \hat{\varphi} + \sum_{k \ne j} \,\int_{\mathbb{S}}  \hat{U}_j \, \tilde{\mathcal{D}} \, \hat{\Phi}_{\varepsilon,k} \, \hat{\varphi}  = \\ 
 = \int_{\mathbb{S}}\big( 2 \pi \, \hat{\Phi}_j - \hat{U}_j \, {\mathcal{D}} \,\hat{\Phi}_j \big) \hat{\varphi} + \sum_{k \ne j} \, \int_{\mathbb{S}}  \hat{U}_j \, \tilde{\mathcal{D}} \, \hat{\Phi}_{k}  \, \hat{\varphi}
-\end{multline*}
+\end{multline}
 where we divided through by the Jacobian factor $r_j^2$.
 
 In order to discretize the left-hand-side of the previous equation, we expand $\hat{\Phi}_{\varepsilon,j}$ as a series of spherical harmonics with coefficients $-[G_j]_{\ell'}^{m'}$, and select as a test function $\hat{\varphi}$  the spherical harmonic $Y_{\ell}^{m}$. For the diagonal term, the orthogonality of the spherical harmonics, together with the fact that they are eigenfunctions of the double layer potential, yield
@@ -48,4 +48,8 @@ After truncation the series expansion and performing numerical integration we ob
 which is the final result.
 
 
-The discretization of the right-hand-side of the ddPCM equation yields $A_\infty \, F$, where $A_\infty$ is almost the same as $A_\varepsilon$. In fact, the term $f_\varepsilon$ appearing in the diagonal term \eqref{eq:ajj} is replaced by $f_\infty = 1$. This justifies the fact that we can divide through by the $r_j^2$ factor.
+The discretization of the right-hand-side of the ddPCM equation \eqref{eq:73} is entirely analogous. As a first step, we expand $\Phi_j$ as a series of spherical harmonics, recall \eqref{eq:71}, so that the orthogonality condition yields the following expression
+\[
+[F_j]_\ell^m = - \int_{\mathbb{S}} \hat{\Phi}_j \, Y_\ell^m= - \int_{\mathbb{S}} \hat{U}_j \, \hat{\Phi} \, Y_\ell^m(y)
+\]
+which is evaluated through numerical quadrature. The derivation of the discrete operator $A_\infty$ arising from the right-hand-side is entirely analogous to the one described for the left-hand-side. In fact, it coincides with $A_\varepsilon$ with the natural extension $f_\infty = 1$.

@@ -116,9 +116,9 @@ The first step to discretize equation \eqref{eq:1} and \eqref{eq:2} is to expand
 \sigma_j(s) = \sigma_j(x_j + r_j y) = \frac{1}{r_j} \, \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell \, [X_j]_\ell^m \, Y_\ell^m(y)
 \]
 for some unknown coefficients $X = [X_j]_\ell^m$. The scaling factor has been introduced for convenience, see the derivation in Appendix \ref{app:cosmo}. {\color{red} (comment why this ansatz is legit)} We approximate $\Phi_{\varepsilon,j}$ and $\Phi_j$ in the same fashion, namely
-\[
+\begin{equation}\label{eq:71}
 \Phi_{\varepsilon,j}(s) = - \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell \, [G_j]_\ell^m \, Y_\ell^m(y) \qquad , \qquad \Phi_j(s) = -\sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell \, [F_j]_\ell^m \, Y_\ell^m(y)
-\]
+\end{equation}
 where $G = [G_j]_\ell^m$ and $F = [F_j]_\ell^m$ are the coefficients of the expansions. The reason for introducing the minus signs is to eliminate the negative sign in the discretization of the right-hand-side of the ddCOSMO step \eqref{eq:2}. 
 
 
@@ -128,11 +128,11 @@ A_\varepsilon \, G = A_\infty \, F \qquad , \qquad  L \, X = G
 \end{equation}
 where the entries of $A_\varepsilon$ and $A_\infty$ are given in closed form in \eqref{eq:ajj} and \eqref{eq:ajk}, and those of $L$ are given in \eqref{eq:61} and \eqref{eq:62}.
 
-The operators $A_\varepsilon$, $A_\infty$, and $L$ clearly depend upon the nuclear positions. Although more subtle, the load vector $F$ depends on the nuclear positions as well. Indeed, as discussed in details in Appendix \ref{app:pcm}, the coefficients $[F_j]_\ell^m$ are related to the potential as
+The operators $A_\varepsilon$, $A_\infty$, and $L$ clearly depend upon the nuclear positions. Although more subtle, the load vector $F$ depends on the nuclear positions as well. Indeed, the second one of the expansions \eqref{eq:71} and the fact that $\Phi_j$ is the trivial extension of $\Phi$, i.e., $\Phi_j = U_j \, \Phi$ imply
 \begin{equation}\label{eq:25}
 [F_j]_\ell^m = - \int_{\mathbb{S}} \Phi_j(s(y)) \, Y_\ell^m(y) \,dy = - \int_{\mathbb{S}} U_j(s(y)) \, \Phi(s(y)) \, Y_\ell^m(y) \,dy
 \end{equation}
-and are evaluated through numerical quadrature. Since the characteristic function $U_j$ depends upon $x_j$ and $x_i$ such that $i \in N_j$, so does $F_j = [F_j]_\ell^m$. Those dependencies upon the nuclear positions are need in the computation of the ddPCM-forces, discussed in the following Section.
+Since the characteristic function $U_j$ depends upon $x_j$ and $x_i$ such that $i \in N_j$, so does $F_j = [F_j]_\ell^m$. Those dependencies upon the nuclear positions are needed in the computation of the ddPCM-forces, discussed in the following Section.
 
 
 %As customary, in order to obtain the ddPCM and ddCOSMO discretizations we interpret each local problem (\ref{eq:1}) and (\ref{eq:2}) in a variational setting that employs expansions of $\Phi_j$, $\Phi_{\varepsilon,j}$ and $\sigma_j$ as truncated series of spherical harmonics, as well as spherical harmonics as test functions. We briefly describe the discretization of the ddCOSMO problem \eqref{eq:2}, and refer to Appendix \ref{app:mats} for the more involved discretization of the ddPCM problem \eqref{eq:1}.
