@@ -1,29 +1,39 @@
 \section{ddPCM discretization\label{app:pcm}}
-The derivation ddPCM discrete operator $A^\varepsilon_{jk}$ rests upon the fact that the spherical harmonics $Y_\ell^m$ are eigenfunctions of the double layer operator on $\mathbb{S}$, i.e., $\cD \, Y_\ell^m =  -2\pi/ (2\ell+1) \,  Y_\ell^m$, along with the following jump relation for the double layer potential
+The derivation of the ddPCM discretization employs the fact that the spherical harmonics $Y_\ell^m$ are eigenfunctions of the double layer operator $\cD$ on the unit sphere $\mathbb{S}$, i.e., $\cD \, Y_\ell^m =  -2\pi/ (2\ell+1) \,  Y_\ell^m$, along with the following jump relation for the double layer potential
 \begin{equation}\label{eq:jump}
 	\lim_{\delta \to + 0} \big(\tilde{\cD} \, Y_\ell^m\big)(y \pm \delta \nu) =  \pm 2\pi \, Y_\ell^m(y)+ ( \cD \, Y_\ell^m )(y)
 \end{equation}
-where $\nu$ denotes the outward normal at $y \in \mathbb{S}$. We shall employ the invariance by translation and scaling $(\mathcal{D}_j \, \Phi_{\varepsilon,j})(s) = (\mathcal{D} \, \hat{\Phi}_{\varepsilon,j})(y)$, where $y = (s - x_j)/r_j$ and $\hat{\Phi}_{\varepsilon,j}$ is defined on $\mathbb{S}$ through the push-forward-like transformation $\hat{\Phi}_{\varepsilon,j}(y) = \Phi_{\varepsilon,j}(s)$. We begin by discussing the diagonal term $2\pi f_\varepsilon \, \Phi_{\varepsilon,j} - U_j \, \cD_j \, \Phi_{\varepsilon,j}$ of \eqref{eq:1} where, for brevity, we set $f_\varepsilon = (\varepsilon + 1)/(\varepsilon - 1)$. As customary, in order to obtain a numerical discretization, we multiply by a test function $\varphi$ and integrate over $\Gamma_j$.  The change of variable $y = (s- x_j)/r_j$, yields an integral over $\mathbb{S}$ which involves the hatted quantities, namely
-\[
-\int_{\Gamma_j} \big(2\pi f_\varepsilon \, \Phi_{\varepsilon,j}  - U_j \, \cD_j \, \Phi_{\varepsilon,j} \big) \, \varphi = 2 \pi  \, f_\varepsilon \, r_j^2 \,\int_\mathbb{S} \hat{\Phi}_{\varepsilon,j}  \, \hat{\varphi} - r_j^2 \, \int_\mathbb{S} \hat{U}_j \, \cD \, \hat{\Phi}_{\varepsilon,j}  \, \hat{\varphi}
-\]
-We proceed to expand $\hat{\Phi}_{\varepsilon,j}$ as a series of spherical harmonics with coefficients $-[G_j]_{\ell'}^{m'}$, and select as a test function $\hat{\varphi}$  the spherical harmonic $Y_{\ell}^{m}$. The orthogonality of the spherical harmonics, together with the fact that they are eigenfunctions of the double layer potential, yield
+where $\nu$ denotes the outward normal at $y \in \mathbb{S}$. We shall also rely on the invariance by translation and scaling of the double layer operator, namely  $(\mathcal{D}_j \, \Phi_{\varepsilon,j})(s) = (\mathcal{D} \, \hat{\Phi}_{\varepsilon,j})(y)$, where $y = (s - x_j)/r_j$ and $\hat{\Phi}_{\varepsilon,j}$ is defined on $\mathbb{S}$ through the push-forward-like transformation $\hat{\Phi}_{\varepsilon,j}(y) = \Phi_{\varepsilon,j}(s)$. An analogous result holds for the double layer potential, namely $(\tilde{\cD}_k \, \Phi_{\varepsilon,k} )(x) = (\tilde{\cD} \, \hat{\Phi}_{\varepsilon,j})(u)$ where $x \in \mathbb{R}^3 \setminus \overline{\Omega}_k$, $u = (x -x_j)/ r_j$, and $\tilde{\cD}$ is the double layer potential on $\mathbb{S}$.
+
+As customary, in order to obtain a numerical discretization of \eqref{eq:1}, we multiply by a test function $\varphi$ and integrate over $\Gamma_j$
 \begin{multline*}
-\int_{\Gamma_j} \big(2\pi f_\varepsilon \, \Phi_{\varepsilon,j}  - U_j \, \cD_j \, \Phi_{\varepsilon,j} \big) \, \varphi = \\
-= - 2 \pi  \, f_\varepsilon \, r_j^2 \,\sum_{\ell',m'}  \, [G_j]_{\ell'}^{m'} \, \delta_{\ell \ell'} \delta_{mm'}  - r_j^2 \, \sum_{\ell',m'} \, [G_j]_{\ell'}^{m'} \, \frac{2\pi}{2\ell'+1} \int_{\mathbb{S}} \hat{U}_j \,  Y_{\ell'}^{m'}\, Y_\ell^m
+\int_{\Gamma_j}\big( 2\pi \, f_\varepsilon \, \Phi_{\varepsilon,j} - U_j \, {\mathcal{D}}_j \, \Phi_{\varepsilon,j} \big) \varphi +  \sum_{k \ne j} \, \int_{\Gamma_j} U_j \, \tilde{\mathcal{D}}_{k} \, \Phi_{\varepsilon,k} \, \varphi  = \\ 
+= \int_{\Gamma_j}\big( 2 \pi \, {\Phi_j} - U_j \, {\mathcal{D}}_j \,\Phi_{j} \big) \varphi + \sum_{k \ne j} \,\int_{\Gamma_j } U_j \,  \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \, \varphi
 \end{multline*}
-The last step to obtain the diagonal block $A_{jj}^\varepsilon$ is to approximate the integral through a suitable quadrature formula with weights $\{w_n\}$ and nodes $\{ s_n\}$. Once the numerical quadrature is carried out and the spherical harmonics expansion is truncated at $\ell' = L_\text{max}$, we derive the final expression
+Here we set $f_\varepsilon = (\varepsilon + 1)/(\varepsilon - 1)$ for brevity, and isolated the diagonal terms for convenience.  Through the change of variable $y = (s- x_j)/r_j$, we obtain integrals over $\mathbb{S}$ which involve the hatted quantities, namely
+\begin{multline*}
+ \int_{\mathbb{S}}\big( 2\pi \, f_\varepsilon \, \hat{\Phi}_{\varepsilon,j} - \hat{U}_j \, {\mathcal{D}} \, \hat{\Phi}_{\varepsilon,j} \big) \hat{\varphi} + \sum_{k \ne j} \,\int_{\mathbb{S}}  \hat{U}_j \, \tilde{\mathcal{D}} \, \hat{\Phi}_{\varepsilon,k} \, \hat{\varphi}  = \\ 
+= \int_{\mathbb{S}}\big( 2 \pi \, \hat{\Phi}_j - \hat{U}_j \, {\mathcal{D}} \,\hat{\Phi}_j \big) \hat{\varphi} + \sum_{k \ne j} \, \int_{\mathbb{S}}  \hat{U}_j \, \tilde{\mathcal{D}} \, \hat{\Phi}_{k}  \, \hat{\varphi}
+\end{multline*}
+where we divided through by the Jacobian factor $r_j^2$.
+
+In order to discretize the left-hand-side of the previous equation, we expand $\hat{\Phi}_{\varepsilon,j}$ as a series of spherical harmonics with coefficients $-[G_j]_{\ell'}^{m'}$, and select as a test function $\hat{\varphi}$  the spherical harmonic $Y_{\ell}^{m}$. For the diagonal term, the orthogonality of the spherical harmonics, together with the fact that they are eigenfunctions of the double layer potential, yield
+\begin{multline*}
+ \int_{\mathbb{S}}\big( 2\pi \, f_\varepsilon \, \hat{\Phi}_{\varepsilon,j} - \hat{U}_j \, {\mathcal{D}} \, \hat{\Phi}_{\varepsilon,j} \big) Y_\ell^m = \\
+= - 2 \pi  \, f_\varepsilon \, \sum_{\ell',m'}  \, [G_j]_{\ell'}^{m'} \, \delta_{\ell \ell'} \delta_{mm'}  - \sum_{\ell',m'} \, [G_j]_{\ell'}^{m'} \, \frac{2\pi}{2\ell'+1} \int_{\mathbb{S}} \hat{U}_j \,  Y_{\ell'}^{m'}\, Y_\ell^m
+\end{multline*}
+The last step to obtain the diagonal block $A_{jj}^\varepsilon$ is to approximate the integral through a suitable quadrature formula with weights $\{w_n\}$ and nodes $\{ s_n\}$. Once the numerical quadrature is carried out and the spherical harmonics expansion is truncated at $\ell' = L_\text{max}$, we derive
 \begin{equation}\label{eq:ajj}
 [A_{jj}^\varepsilon]_{\ell \ell'}^{mm'} = 2\pi \, f_\varepsilon %\frac{\varepsilon+1}{\varepsilon-1}
  \,  \delta_{\ell \ell'} \delta_{mm'} + \frac{2\pi}{2\ell'+1} \sum_{n=1}^{N_\text{grid}} \, w_n \, \hat{U}_j(s_n)  \, Y_{\ell'}^{m'}(s_n)\,  Y_\ell^m(s_n)
 \end{equation}
-where we have divided by a factor $r_j^2$, since we anticipate that we can do the same on the remaining terms. The computation of the off-diagonal term $-U_j \, \tilde{\cD}_k \, \Phi_{\varepsilon,k}$ employs again the fact that the double layer operator is invariant under translation and scaling, i.e., $(\tilde{\cD}_k \, \Phi_{\varepsilon,k} )(x) = (\tilde{\cD} \, \hat{\Phi}_{\varepsilon,k})(u)$ where $x \in \mathbb{R}^3 \setminus \overline{\Omega}_k$ and $u = (x -x_k)/ r_k$. In particular, when $x \in \Gamma_j$, i.e., $x = s = x_j + r_j y$ for some $y \in \mathbb{S}$, then $u = u(y) = (x_j + r_j y -x_k)/r_k$. As the quantity $U_j \, \tilde{\cD}_k \, \Phi_{\varepsilon,k}$ in indeed well-defined on the whole $\Gamma_j$, we can proceed as before and obtain
-\begin{multline*}
-\int_{\Gamma_j}U_j(s) \, (\tilde{\cD}_k \, \Phi_{\varepsilon,k})(s) \, \varphi(s) \, ds
- = r_j^2  \int_{\mathbb{S}} \hat{U}_j(y) \, (\tilde{\cD} \, \hat{\Phi}_{\varepsilon,k})(u(y)) \, Y_{\ell}^{m}(y) \, dy = \\ %= -\sum_{\ell ,m} \, [G_j]_\ell^m \,  \int_\mathbb{S} \hat{U}_j \, \tilde{\cD} \, \hat{\Phi}_{\varepsilon,k} \, Y_{\ell'}^{m'}  %\simeq \sum_{n=1}^{N_\text{grid}} \, w_n \, \hat{U}_j(s_n) \,   \big( \tilde{\cD}_k \, \hat{\Phi}_{\varepsilon,k}\big)(s_n) \, Y_{\ell'}^{m'}(s_n)
-= - r_j^2 \, \sum_{\ell',m'} \, [G_k]_{\ell'}^{m'} \,  \int_{\mathbb{S}} \hat{U}_j(y) \, (\tilde{\cD} \, Y_{\ell'}^{m'})(u(y)) \, Y_{\ell}^{m}(y) \, dy 
-\end{multline*}
-where $-[G_k]_{\ell'}^{m'}$ are the coefficients of the expansion of $ \hat{\Phi}_{\varepsilon,k}$ as a series of spherical harmonics. The function $\tilde{\cD} \, Y_{\ell'}^{m'}$ is harmonic on $\mathbb{R}^3 \setminus \overline{B(0,1)}$, so that is has to coincide with the unique harmonic extension of its boundary value. The jump relation \eqref{eq:jump}, along with the eigenfunction property, provide the boundary value
+which is the final expression of the diagonal block.
+
+In order to discuss the off-diagonal blocks, let us write
+\[
+ \int_{\mathbb{S}} \hat{U}_j(y) \, (\tilde{\cD} \, \hat{\Phi}_{\varepsilon,k})(u(y)) \, Y_{\ell}^{m}(y) \, dy = - \sum_{\ell',m'} \, [G_k]_{\ell'}^{m'} \,  \int_{\mathbb{S}} \hat{U}_j(y) \, (\tilde{\cD} \, Y_{\ell'}^{m'})(u(y)) \, Y_{\ell}^{m}(y) \, dy 
+\]
+where we have explicitly indicated the variable of integration. We recall that, when $x \in \Gamma_j$, i.e., $x = s = x_j + r_j y$ for some $y \in \mathbb{S}$, then $u = u(y) = (x_j + r_j y -x_k)/r_k$. The function $\tilde{\cD} \, Y_{\ell'}^{m'}$ is harmonic on $\mathbb{R}^3 \setminus \overline{B(0,1)}$, so that is has to coincide with the unique harmonic extension of its boundary value. The jump relation \eqref{eq:jump}, along with the eigenfunction property, provide the boundary value
 \[
 \lim_{\delta \; \to \; + 0} \big(\tilde{\cD} \, Y_{\ell'}^{m'}\big)(y + \delta \nu) =  2\pi \,Y_{\ell'}^{m'}(y)+ \big( \cD \, Y_{\ell'}^{m'} \big)(y) = \frac{4 \pi \ell'}{2 \ell +' 1} \, Y_{\ell'}^{m'}(y)
 \]
@@ -31,8 +41,11 @@ and, by elementary notions on harmonic functions, we conclude
 \[
 (\tilde{\cD} \, Y_{\ell'}^{m'})(u) = \frac{4 \pi \ell'}{2 \ell' + 1} \, \frac{1}{|u|^{\ell' + 1}} \,  Y_{\ell'}^{m'}(u/|u|)
 \]
-After truncation the series expansion and performing numerical integration we obtain the final result
+After truncation the series expansion and performing numerical integration we obtain
 \begin{equation}\label{eq:ajk}
-[A_{jk}]_{\ell \ell'}^{m m'} =-  \frac{4 \pi \ell'}{2 \ell' + 1}  \sum_{n=1}^{N_\text{grid}} \, w_n  \,  \hat{U}_j(s_n) \, \frac{1}{|u(s_n)|^{\ell' + 1}} \, Y_{\ell'}^{m'}\left(\frac{u(s_n)}{|u(s_n)|}\right) \, Y_{\ell}^{m}(s_n)
+[A_{jk}]_{\ell \ell'}^{m m'} =-  \frac{4 \pi \ell'}{2 \ell' + 1}  \sum_{n=1}^{N_\text{grid}} \, w_n  \,  \hat{U}_j(s_n) \, \frac{1}{|u(s_n)|^{\ell' + 1}} \, Y_{\ell'}^{m'}(u(s_n) / |u(s_n)|) \, Y_{\ell}^{m}(s_n)
 \end{equation}
-where again we have divided by factor $r_j^2$. The discretization of the right-hand-side of the ddPCM equation yields $A_\infty \, F$, where $A_\infty$ is almost the same as $A_\varepsilon$. In fact, the term $f_\varepsilon$ appearing in the diagonal term \eqref{eq:ajj} is replaced by $f_\infty = 1$. This justifies the fact that we can divide through by the $r_j^2$ factor.
+which is the final result.
+
+
+The discretization of the right-hand-side of the ddPCM equation yields $A_\infty \, F$, where $A_\infty$ is almost the same as $A_\varepsilon$. In fact, the term $f_\varepsilon$ appearing in the diagonal term \eqref{eq:ajj} is replaced by $f_\infty = 1$. This justifies the fact that we can divide through by the $r_j^2$ factor.
