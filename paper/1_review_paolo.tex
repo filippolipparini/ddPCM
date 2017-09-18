@@ -6,9 +6,9 @@ Models based on the Solvent Excluded Surface (SES) have recently been proposed~\
 
 The electrostatic part of the solute/solvent interaction is given by
 \[
-E_s = \tfrac{1}{2}\, f(\varepsilon)\,\int_\Omega \rho(x) W(x) \, dx
+E_s = \tfrac{1}{2}\, f(\varepsilon_s)\,\int_\Omega \rho(x) W(x) \, dx
 \]
-where $f(\varepsilon)$ {\color{red}(shouldn't this be $\varepsilon_s$ rather than $\varepsilon$?)~}is an empirical scaling that depends on the dielectric constant of the solvent (and which is only applied in the case of the COSMO {\color{red}(needs to be clarified)}), $\rho$ is the charge density of the solute, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to, respectively, as the reaction potential and the electrostatic contribution to the solvation energy. 
+where $f(\varepsilon_s)$ is an empirical scaling that depends on the dielectric constant $\varepsilon_s$ of the solvent, e.g., $f(\varepsilon_s) = (\varepsilon_s - 1)/\varepsilon_s$ for COSMO and $f(\varepsilon_s) = 1$ for PCM, $\rho$ is the charge density of the solute, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to, respectively, as the reaction potential and the electrostatic contribution to the solvation energy. 
 
 The reaction potential is defined as $W = \varphi - \Phi$, where $\varphi$ is the total electrostatic potential of the solute/solvent system and $\Phi$ is the potential of the solute \emph{in vacuo}. In the case of the PCM, the total potential $\varphi$ satisfies a (generalized) Poisson equation with suitable interface conditions\cite{Mennucci_JCP_IEF1,Mennucci_JMC_IEF2}. Indeed, if $\varepsilon_s$ is the macroscopic, zero-frequency relative dielectric permittivity of the solvent, and define $\varepsilon(x) = 1$ when $x \in \Omega$ and $\varepsilon(x) = \varepsilon_s$ otherwise, the reaction potential fulfills 
 \begin{equation} 
@@ -28,13 +28,14 @@ The surface density $\sigma$ defined on $\Gamma$ is the so-called apparent surfa
 It can be shown that $\sigma$ satisfies the equation $\sigma = 1/4\pi \, [\![ \partial_\nu W]\!]$, so that it is possible to recast the PCM problem \eqref{eq:pcmpde} as a single integral equation for $\sigma$. In fact, if we define the operators 
 \begin{equation}
  \label{eq:Reps}
- \cR_\varepsilon = 2\pi \, \frac{\varepsilon+1}{\varepsilon-1} \, \cI - \cD \qquad, \qquad \cR_\infty = 2\pi \, \cI - \cD
+ \cR_\varepsilon = 2\pi \, \frac{\varepsilon_s+1}{\varepsilon_s-1} \, \cI - \cD \qquad, \qquad \cR_\infty = 2\pi \, \cI - \cD
 \end{equation}
-{\color{red} (shouldn't this be $\varepsilon_s$ rather then $\varepsilon$ in the rhs?)~}{\color{red} (wouldn't it be cleaner to introduce a factor $f_{\varepsilon_s}$ rather than carrying the fraction along?)~}where $\cI$ is the identity and $\cD$ is the double layer operator, also relative to $\Gamma$, it can be shown\cite{ReviewPCM_2005} that the apparent surface charge satisfies
+where $\cI$ is the identity and $\cD$ is the double layer operator, also relative to $\Gamma$, it can be shown\cite{ReviewPCM_2005} that the apparent surface charge satisfies
 \begin{equation}
 \label{eq:IEFPCM}
 \cR_\varepsilon \, \cS \, \sigma = - \cR_\infty \, \Phi \qquad \text{on }\Gamma
 \end{equation}
+Henceforth, for ease of notation, we set $g(\varepsilon_s) = (\varepsilon_s+1)/(\varepsilon_s-1)$.
 This is known as the IEF-PCM equation, and it involves operators $\cR_\infty$ and $\cR_\varepsilon$, which are both invertible. When the dielectric constant $\varepsilon_s$ approaches infinity, the IEF-PCM equation simplifies to $\cS \, \sigma = - \Phi$ on $\Gamma$, which is the Integral Equation Formulation of the Conductor-like Screening Model (COSMO)\cite{Lipparini_JCP_VPCM}.
 
 
@@ -59,7 +60,7 @@ where $\cD_j$ and $\tilde{\cD}_j$ are, respectively, the local double layer oper
 {\bf Step 1.} 
 We localize the integral equation \eqref{eq:ddPCM-1} to $\Gamma_j$ through the characteristic function $U_j$ as
 \begin{equation}\label{eq:20}
-2 \pi \, \frac{\varepsilon + 1}{\varepsilon + 1} \, U_j \, \Phi_{\varepsilon} - U_j \, {\mathcal{D} \, \Phi}_\varepsilon = 2 \pi \, U_j \, \Phi - U_j \, {\mathcal{D} \, \Phi} \qquad \text{on }\Gamma_j
+2 \pi \, g(\varepsilon_s) \, U_j \, \Phi_{\varepsilon} - U_j \, {\mathcal{D} \, \Phi}_\varepsilon = 2 \pi \, U_j \, \Phi - U_j \, {\mathcal{D} \, \Phi} \qquad \text{on }\Gamma_j
 \end{equation}
 for each $j=1,\ldots,M$. 
 %We define $\Phi_j : \Gamma_j \to \mathbb{R}$ as $\Phi_j = U_j\,\Phi$ and, w
@@ -71,7 +72,7 @@ We ensure that $\Phi_{\varepsilon,j}$ indeed vanishes on $\Gamma_j^\text{int}$ b
 \end{equation}
 In order to obtain a single equation, we multiply \eqref{eq:19} by the factor $2\pi \, (\varepsilon+1)/(\varepsilon-1)$, and add it sidewise to \eqref{eq:20}, so that
 \begin{equation}\label{eq:21}
-2 \pi \, \frac{\varepsilon + 1}{\varepsilon + 1} \, \Phi_{\varepsilon,j} - U_j \, {\mathcal{D} \, \Phi}_\varepsilon = 2 \pi \, \Phi_j - U_j \, {\mathcal{D} \, \Phi} \qquad \text{on }\Gamma_j
+2 \pi \, g(\varepsilon_s) \, \Phi_{\varepsilon,j} - U_j \, {\mathcal{D} \, \Phi}_\varepsilon = 2 \pi \, \Phi_j - U_j \, {\mathcal{D} \, \Phi} \qquad \text{on }\Gamma_j
 \end{equation}
 When $s$ belongs to $\Gamma_j^\text{int}$, we recover $\Phi_{\varepsilon,j}(s) = 0$, so that we have effectively built the constraint \eqref{eq:19} into the previous equation. Thus, recalling that $\Phi_j$ vanishes on $\Gamma_j^\text{int}$ by definition, we proceed to apply the decomposition \eqref{eq:16} to both sides of \eqref{eq:21}, and obtain
 %As a next step, we employ the decomposition \eqref{eq:16}, under the hypotheses that $\Phi_{\varepsilon,j}$ and $\Phi_j$ vanish on $\Gamma_j^\text{int}$, which we impose as additional explicit constraints. We obtain the integral equation 
@@ -86,7 +87,7 @@ When $s$ belongs to $\Gamma_j^\text{int}$, we recover $\Phi_{\varepsilon,j}(s) =
 %In order to obtain a single equation, we insert \eqref{eq:18} into the right-hand-side of \eqref{eq:17}, multiply \eqref{eq:19} by the factor $2\pi \, (\varepsilon+1)/(\varepsilon-1)$ and add it sidewise to \eqref{eq:17}.
  %This yields
 \begin{multline}\label{eq:1}
-2\pi \, \frac{\varepsilon + 1}{\varepsilon - 1} \, \Phi_{\varepsilon,j} - U_j \bigg( {\mathcal{D}}_j \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \, \tilde{\mathcal{D}}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, {\Phi_j} - U_j \bigg( {\mathcal{D}}_j \,\Phi_{j} + \sum_{k \ne j} \, \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
+2\pi \, g(\varepsilon_s) \, \Phi_{\varepsilon,j} - U_j \bigg( {\mathcal{D}}_j \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \, \tilde{\mathcal{D}}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, {\Phi_j} - U_j \bigg( {\mathcal{D}}_j \,\Phi_{j} + \sum_{k \ne j} \, \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
 \end{multline}
 which constitutes our domain-decomposition strategy for equation \eqref{eq:ddPCM-1}. The summation implies that every subdomain $\Omega_j$ interacts with all other subdomains. We anticipate that this contrasts with the ddCOSMO strategy for equation \eqref{eq:ddPCM-2}, which only involves neighbor-to-neighbor interactions.
 

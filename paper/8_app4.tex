@@ -26,7 +26,7 @@ where $I$ is the identity matrix and $\otimes$ indicates the outer product. We r
 
 If we employ this notation and recall \eqref{eq:ajj} and \eqref{eq:ajk}, the blocks of the ddPCM operator can be written as
 \begin{alignat*}{3}
-{[A_{jj}^\varepsilon]}_{\ell \ell'}^{mm'}& = 2\pi \, f_\varepsilon \, \delta_{\ell \ell'} \delta_{m m'}&& + \frac{2\pi}{2 \ell' + 1} \,\sum_{n= 1}^{N_\text{grid}} w_n \, \hat{U}_j(s_n)  \,Y_\ell^m(s_n) \,  Y_{\ell'}^{m'}(s_n) \\
+{[A_{jj}^\varepsilon]}_{\ell \ell'}^{mm'}& = 2\pi \, g(\varepsilon_s) \, \delta_{\ell \ell'} \delta_{m m'}&& + \frac{2\pi}{2 \ell' + 1} \,\sum_{n= 1}^{N_\text{grid}} w_n \, \hat{U}_j(s_n)  \,Y_\ell^m(s_n) \,  Y_{\ell'}^{m'}(s_n) \\
 {[A_{jk}^\varepsilon]}_{\ell \ell'}^{mm'}& =&& -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n= 1}^{N_\text{grid}} w_n\, \hat{U}_j(s_n) \, Y_\ell^m(s_n) \, \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
 \end{alignat*}
 The dependency of the diagonal block $A_{jj}^\varepsilon$ upon the nuclear positions occurs only through the characteristic function $U_j$. On the other hand, the off-diagonal block $A_{jk}^\varepsilon$ interacts with the nuclear positions through the characteristic function $U_j$, as well as $t_n^{jk}$ and $s_n^{jk}$. This implies that $\nablai A_{jj}$ is \emph{a priori} nonzero only when $i = j$ or $i \in N_j$. Similarly, $\nablai A_{jk}$ is \emph{a priori} nonzero only when $i = j$ or $i = k$ or $i \in N_j$.
