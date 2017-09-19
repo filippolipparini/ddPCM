@@ -1,0 +1,6 @@
+#!/bin/bash
+
+./main.exe \
+    ./files/control.txt \
+    ./files/48sph.txt
+

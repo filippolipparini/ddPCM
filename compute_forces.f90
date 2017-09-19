@@ -52,6 +52,10 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !
 !-------------------------------------------------------------------------------------
 !
+
+!!!      call forces_pcm( Phi, Charge, Psi, Sigma, Phi_eps, F )
+!!!      return
+
 !     initialize
       f(:,:) = zero
 !
@@ -115,7 +119,8 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     contract
       do isph = 1,nsph 
 !      
-        call service_routine1_new( s, w_lm , isph, f(1:3,isph) )
+!!!        call service_routine1_new( s, w_lm , isph, f(1:3,isph) )
+        call contract_dA( s, w_lm , isph, f(1:3,isph) )
 !
       enddo
 !
@@ -314,6 +319,162 @@ endsubroutine compute_forces
 !------------------------------------------------------------------------------      
 !
 !
+!
+!------------------------------------------------------------------------------      
+! Adjoint problem :
+!
+!        L^* y = Psi
+!   A_eps ^* s = y
+!
+! PCM problem :
+!
+!   A_eps G = A_oo F
+!       L X = G
+!
+! Contract :
+!
+!  < Psi , X' > = < s , A'(F-G) > + 2pi (1 - f_eps) < s , F' > + COSMO
+!
+! Forces :
+!
+!   f = -1/2 < Psi , X' >
+!
+!------------------------------------------------------------------------------      
+!
+subroutine forces_pcm( Phi, Charge, Psi, Sigma, Flm, F )
+!
+      use ddcosmo , only : zero, pi, ngrid, nsph, nbasis, lmax, intrhs, basis, &
+                           iprint, ncav, fdoga, eps, wghpot, sprod
+!      
+      implicit none
+      real*8, dimension(ncav),        intent(in)  :: Phi
+      real*8, dimension(       nsph), intent(in)  :: Charge
+      real*8, dimension(nbasis,nsph), intent(in)  :: Psi
+      real*8, dimension(nbasis,nsph), intent(in)  :: Sigma
+      real*8, dimension(nbasis,nsph), intent(in)  :: Flm
+      real*8, dimension(3,nsph),      intent(out) :: F
+!
+      real*8, dimension(ngrid,nsph) :: phiexp, xi
+      real*8, dimension(nbasis,nsph) :: glm, s, y
+      real*8 :: rvoid, e0, xx(1), f_eps
+!
+      integer :: isph, n, c1, c2, cr
+      real*8, parameter :: tokcal=627.509469d0
+!
+!-------------------------------------------------------------------------------------
+!
+!     COSMO factor
+      f_eps = 0.5d0*(eps-1.d0)/eps
+!      
+!     initialize the timer
+      call system_clock( count_rate = cr )
+      call system_clock( count = c1 )
+!
+!
+!     0. Adjoint solves
+!     -----------------
+!   
+!     L^* y = Psi     
+      call cosmo( .true., .false., xx, xx, Psi, y, rvoid )
+!
+!     A_eps^* s = y
+      call pcm( .true., .false., .true., xx, y, s )
+!
+!
+!     1. COSMO contribution
+!     ---------------------
+!
+      F = zero
+      call forces( nsph, Charge, Phi, Sigma, y, F )
+!
+!     remove COSMO factor, flip sign
+      F = -F/f_eps
+!
+!
+!     2. < , > = < , > + < s , A'(F-G) >
+!     ----------------------------------
+!
+!     expand Phi
+      call wghpot( Phi, phiexp )
+!      
+!     compute Glm
+      do isph = 1,nsph
+!      
+        call intrhs( isph, phiexp(:,isph), glm(:,isph) )
+!        
+      enddo
+!      
+!     contract
+      do isph = 1,nsph 
+!      
+        call contract_dA( s, (Flm-glm) , isph, F(:,isph) )
+!
+      enddo
+!
+!     3. < , > = < , > - 4pi/(eps-1) < s , F' >
+!     ------------------------------------------------
+!
+!     expand s, rescale, flip sign
+      do isph = 1, nsph
+        do n = 1, ngrid
+!        
+          xi(n,isph) = 4.d0*pi/(eps-1.d0) * dot_product( s(:,isph), basis(:,n) )
+!          
+        enddo
+      enddo
+!
+!     < xi , F' >
+      do isph = 1,nsph 
+!
+        call fdoga( isph, xi, phiexp, F(:,isph) ) 
+!      
+      enddo
+!
+!
+!     time computation of forces
+      call system_clock( count = c2 )
+!
+!     printing
+      if ( iprint.gt.0 ) then
+!              
+        write(*,1010) dble(c2-c1)/dble(cr)
+ 1010   format(' computation time of ddPCM forces = ',f8.3,' secs.')
+! 
+      endif
+!
+!
+!     4. Scale the forces the eps factor, and flip sign
+!     -------------------------------------------------
+      F = -f_eps * F
+!
+!     energy
+      e0 = 0.5d0 * sprod( nbasis*nsph, Sigma, Psi )
+!
+!     printing
+      if ( iprint.ge.2 ) then
+!              
+        write(*,*)'----------------------------------------------'
+        write(*,*)'ddPCM forces (atomic units):'
+        write(*,*)''
+        write(*,1004)
+ 1004   format(' atom',13x,'x',13x,'y',13x,'z' )
+        do isph = 1,nsph
+!
+          write(*,1005) isph, f(:,isph)
+ 1005     format( 1x,i4,3(2x,e12.5) )       
+! 
+        enddo
+        write(*,*)''
+        write(*,1006) e0*tokcal
+ 1006   format(' energy = ',e12.5)     
+        write(*,*)'----------------------------------------------'
+        write(*,*)''
+!        
+      endif
+!
+!
+endsubroutine forces_pcm
+!------------------------------------------------------------------------------      
 !
 !
 !
@@ -652,3 +813,301 @@ subroutine compute_grad( isph, jsph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !
 !
 endsubroutine compute_grad
+!------------------------------------------------------------------------------      
+!
+!
+!
+!------------------------------------------------------------------------------      
+subroutine contract_dA( s, x, isph, f )
+!
+      use ddcosmo , only : ui, nsph, nbasis, zero, ngrid, w, one, basis, csph, &
+                           rsph, grid, zi, lmax, dbasis, du, pi, two, intrhs, &
+                           inl, nl
+!
+      implicit none 
+      real*8, dimension(nbasis,nsph), intent(in)    :: s
+      real*8, dimension(nbasis,nsph), intent(in)    :: x
+      integer,                        intent(in)    :: isph
+      real*8, dimension(3),           intent(inout) :: f
+!
+      real*8,  dimension(nbasis) :: basloc, vplm
+      real*8,  dimension(3,nbasis) :: dbsloc
+      real*8,  dimension(lmax+1) :: vcos, vsin
+      real*8, dimension(3) :: f4,vij,s_ijn,dt_ijn,f2
+      real*8, dimension(3,3) :: ds_ijn
+      real*8 :: vvij,t_ijn,f3!!,err
+      integer :: n,icomp,jcomp,jsph,ksph,ivoid,ind,l,m,i
+      real*8 :: fgrid(3,ngrid), flm(3,nbasis),fac,ss
+!      
+!------------------------------------------------------------------------------      
+!
+!
+!!!!     s_i ( sum grad_i A_ik * x_k )
+!!!!            k
+!!!!
+!!!      do n = 1,ngrid
+!!!!
+!!!        w(n)*basis(:,n)
+!!!
+!!!        do ksph = 1,nsph
+!!!
+!!!        enddo
+!!!      enddo
+!!!!
+!!!!
+!!!!     x_i (   sum   s_j * grad_i A_ji )
+!!!!           j \ne i
+!!!!
+!!!      do jsph = 1,nsph
+!!!!
+!!!        if ( jsph.eq.isph )  cycle
+!!!
+!!!      enddo
+!!!
+!!!!       sum   x_k (    sum    s_j * grad_i A_jk )
+!!!!     k \ne i       j \in N_i
+!!!!
+!!!      do ksph = 1,nsph
+!!!!      
+!!!        if ( ksph.eq.isph )  cycle
+!!!
+!!!        do i = inl(isph),inl(isph+1)-1
+!!!
+!!!          jsph = nl(i)
+!!!
+!!!        enddo
+!!!      enddo
+
+!
+      f=zero
+!
+!     diagonal term
+!     =============
+!
+!     1st loop over spheres
+      do jsph = 1,nsph
+!
+!       loop over integration points
+        do n = 1,ngrid
+!
+!         initialize
+          ss = zero
+!
+!         contract over l'
+          do l = 0,lmax
+!
+!           build factor : 2pi / (2l+1)
+            fac = two*pi/(two*dble(l)+one)
+!
+!           compute 1st index
+            ind = l*l + l + 1
+!
+!           contract over m'
+            do m = -l,l
+!
+              ss = ss + fac * basis(ind+m,n) * x(ind+m,jsph)          
+!
+            enddo
+          enddo
+!
+!         multiply by d_i U_j^n
+          fgrid(:,n) = du(:,isph,n,jsph)*ss
+!
+        enddo
+!
+!       loop over components
+        do icomp = 1,3
+!
+!         integrate against SH
+          call intrhs( ivoid, fgrid(icomp,:), flm(icomp,:) )
+!
+!         contract over l,m
+          f(icomp) = f(icomp) + dot_product( flm(icomp,:), s(:,jsph) )
+
+        enddo
+      enddo
+!
+!
+!     non-diagonal terms
+!     ==================
+!
+!     loop over integration points
+      do n = 1,ngrid
+!
+!       initialize
+        f4 = zero  
+!              
+!       1nd loop over spheres
+        do ksph = 1,nsph
+!
+!
+!         2nd loop over (proper!) neighbors
+          do i = inl(isph),inl(isph+1)-1
+!
+            jsph = nl(i)
+!
+!           skip diagonal term
+            if ( ksph.eq.jsph )  cycle
+!
+!           contract over l,m
+            f3 = dot_product( basis(:,n), s(:,jsph) )
+!
+!           compute s_ijn, t_ijn
+            vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,ksph)
+            vvij     = sqrt( dot_product( vij(:), vij(:) ) )
+            t_ijn    = rsph(ksph)/vvij 
+            s_ijn(:) =     vij(:)/vvij
+!
+!           derivatives of s, t
+            if ( isph.eq.jsph ) then
+!
+!             compute derivatives \grad_i t_ijn
+              dt_ijn(1:3) = -rsph(ksph) * vij(1:3) / vvij**3
+!
+!             compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+              do icomp = 1,3
+                do jcomp = 1,3
+!
+                  ds_ijn(icomp,jcomp) = -vij(icomp)*vij(jcomp) / vvij**3
+!
+                  if ( icomp.eq.jcomp ) then
+!
+                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) + one / vvij
+!
+                  endif
+!                  
+                enddo
+              enddo
+!              
+            elseif ( isph.eq.ksph ) then
+!
+!             compute derivatives \grad_i t_ijn
+              dt_ijn(1:3) = rsph(ksph) * vij(1:3) / vvij**3
+!              
+!             compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
+              do icomp = 1,3
+                do jcomp = 1,3
+!
+                  ds_ijn(icomp,jcomp) = vij(icomp)*vij(jcomp) / vvij**3
+!
+                  if ( icomp.eq.jcomp ) then
+!
+                    ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) - one / vvij
+!
+                  endif
+!                  
+                enddo
+              enddo
+!
+            else
+!                    
+!             compute derivatives \grad_i t_ijn
+              dt_ijn(1:3) = zero
+!              
+!             compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+              ds_ijn(1:3,1:3) = zero
+!              
+            endif
+!             
+!           compute Y_l'^m'(s_ijn) , d_i Y_l'^m' ( ... )
+            call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
+!
+!           compute f2(j,n)
+!           ---------------
+            call compute_grad( isph, jsph, n, t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,ksph), f2(1:3) )
+!                    
+!           accumulate for f4(n)
+!           --------------------
+            f4(1:3) = f4(1:3) - f3 * f2(1:3)
+
+          enddo
+!
+!
+!         case j = i
+          jsph = isph
+!
+!         skip diagonal term
+          if ( ksph.eq.jsph )  cycle
+!
+!         contract over l,m
+          f3 = dot_product( basis(:,n), s(:,jsph) )
+!
+!         compute s_ijn, t_ijn
+          vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,ksph)
+          vvij     = sqrt( dot_product( vij(:), vij(:) ) )
+          t_ijn    = rsph(ksph)/vvij 
+          s_ijn(:) =     vij(:)/vvij
+!
+!         derivatives of s, t
+          if ( isph.eq.jsph ) then
+!
+!           compute derivatives \grad_i t_ijn
+            dt_ijn(1:3) = -rsph(ksph) * vij(1:3) / vvij**3
+!
+!           compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+            do icomp = 1,3
+              do jcomp = 1,3
+!
+                ds_ijn(icomp,jcomp) = -vij(icomp)*vij(jcomp) / vvij**3
+!
+                if ( icomp.eq.jcomp ) then
+!
+                  ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) + one / vvij
+!
+                endif
+!                
+              enddo
+            enddo
+!            
+          elseif ( isph.eq.ksph ) then
+!
+!           compute derivatives \grad_i t_ijn
+            dt_ijn(1:3) = rsph(ksph) * vij(1:3) / vvij**3
+!            
+!           compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
+            do icomp = 1,3
+              do jcomp = 1,3
+!
+                ds_ijn(icomp,jcomp) = vij(icomp)*vij(jcomp) / vvij**3
+!
+                if ( icomp.eq.jcomp ) then
+!
+                  ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) - one / vvij
+!
+                endif
+!                
+              enddo
+            enddo
+!
+          else
+!                  
+!           compute derivatives \grad_i t_ijn
+            dt_ijn(1:3) = zero
+!            
+!           compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+            ds_ijn(1:3,1:3) = zero
+!            
+          endif
+!           
+!         compute Y_l'^m'(s_ijn) , d_i Y_l'^m' ( ... )
+          call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
+!
+!         compute f2(j,n)
+!         ---------------
+          call compute_grad( isph, jsph, n, t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,ksph), f2(1:3) )
+!                  
+!         accumulate for f4(n)
+!         --------------------
+          f4(1:3) = f4(1:3) - f3 * f2(1:3)
+
+
+
+        enddo
+!
+!       accumulate over n
+        f(1:3) = f(1:3) + w(n) * f4(1:3)
+!
+      enddo
+!                      
+!
+endsubroutine contract_dA
