@@ -126,13 +126,13 @@ We interpret the local problems (\ref{eq:1}) and (\ref{eq:2}) in a variational s
 \begin{equation}\label{eq:6}
 A_\varepsilon \, G = A_\infty \, F \qquad , \qquad  L \, X = G
 \end{equation}
-where the discrete operators $A_\varepsilon$ and $L$ are known in closed form, see \eqref{eq:ajj}, \eqref{eq:ajk}, and \eqref{eq:61}, \eqref{eq:62}. We remark that $A_\varepsilon$ is a dense operator, while $L$ is a sparse operator. In fact, for a fixed index $j$, the block $L_{jk}$ is \emph{a priori} nonzero only when $k = j$ or $k \in N_j$. Since $\Omega_j$ is a neighbor of $\Omega_k$ iff $\Omega_k$ is a neighbor of $\Omega_j$, then $L_{jk}$ is \emph{a priori} nonzero iff $L_{kj}$ is. We conclude that $L$ has a symmetric block-structure, although, in general, $L$ is non symmetric.
+where the discrete operators $A_\varepsilon$ and $L$ are known in closed form, see \eqref{eq:ajj}, \eqref{eq:ajk}, and \eqref{eq:61}, \eqref{eq:62}. We remark that $A_\varepsilon$ is a dense operator, while $L$ is a sparse operator. In fact, for a fixed index $j$, the block $L_{jk}$ is \emph{a priori} nonzero only when $k = j$ or $k \in N_j$. Since $\Omega_j$ is a neighbor of $\Omega_k$ if and only if $\Omega_k$ is a neighbor of $\Omega_j$, then $L_{jk}$ is \emph{a priori} nonzero if and only if $L_{kj}$ is. We conclude that $L$ has a symmetric block-structure, although, in general, $L$ is non symmetric.
 
 The dependency of operators $A_\varepsilon$ and $L$ upon the nuclear positions is evident. Although more subtle, the load vector $F$ depends on the nuclear positions as well. Indeed, the second one of the expansions \eqref{eq:71} and the fact that $\Phi_j$ is the trivial extension of $\Phi$, i.e., $\Phi_j = U_j \, \Phi$ imply
 \begin{equation}\label{eq:25}
 [F_j]_\ell^m = - \int_{\mathbb{S}} \Phi_j(s(y)) \, Y_\ell^m(y) \,dy = - \int_{\mathbb{S}} U_j(s(y)) \, \Phi(s(y)) \, Y_\ell^m(y) \,dy
 \end{equation}
-Since the characteristic function $U_j$ depends upon $x_j$ and $x_i$ such that $i \in N_j$, see Appendix \ref{app:pcm_der}, so does $[F_j]_\ell^m$. Those dependencies upon the nuclear positions are needed in the computation of the ddPCM-forces, discussed in the following Section.
+Since the characteristic function $U_j$ depends upon $x_j$ and $x_i$ such that $i \in N_j$, see Appendix \ref{app:pcm_der}, so does $[F_j]_\ell^m$. {\color{red}(Paolo: should also comment on $\nabla \Phi = - \boldsymbol{E} $...)} Those dependencies upon the nuclear positions are needed in the computation of the ddPCM-forces, discussed in the following Section.
 
 
 %As customary, in order to obtain the ddPCM and ddCOSMO discretizations we interpret each local problem (\ref{eq:1}) and (\ref{eq:2}) in a variational setting that employs expansions of $\Phi_j$, $\Phi_{\varepsilon,j}$ and $\sigma_j$ as truncated series of spherical harmonics, as well as spherical harmonics as test functions. We briefly describe the discretization of the ddCOSMO problem \eqref{eq:2}, and refer to Appendix \ref{app:mats} for the more involved discretization of the ddPCM problem \eqref{eq:1}.
