@@ -2,13 +2,13 @@
 
 \subsection{The Polarizable Continuum Model}
 The foundation of Polarizable Continuum Solvation Models (PCSM's) is the assumption that in a solute/solvent system the solvent on the outside of the molecular cavity $\Omega$ occupied by the solute can be treated as either a dielectric, or a conducting continuum medium. We follow the customary approach of taking the cavity to be the so-called Van der Waals cavity\cite{ReviewPCM_2005}, i.e., the union of spheres centered at each atom with radii coinciding with the van der Waals radii. We mention that the, topologically similar, Solvent Accessible Surface (SAS) cavity can be treated through this approach as well.
-Models based on the Solvent Excluded Surface (SES) have recently been proposed~\cite{Harbrecht2011,quan2017polarizable,C5CP03410H,JCC:JCC21431}, however are not considered here.
+Models based on the Solvent Excluded Surface (SES) have more recently been proposed~\cite{Harbrecht2011,quan2017polarizable,C5CP03410H,JCC:JCC21431}, however are not considered here.
 
-The electrostatic part of the solute/solvent interaction is given by
+The electrostatic part of the solute/solvent interaction energy is given by
 \[
 E_s = \tfrac{1}{2}\, f(\varepsilon_s)\,\int_\Omega \rho(x) W(x) \, dx
 \]
-where $f(\varepsilon_s)$ is an empirical scaling that depends on the dielectric constant $\varepsilon_s$ of the solvent, e.g., $f(\varepsilon_s) = (\varepsilon_s - 1)/\varepsilon_s$ for COSMO and $f(\varepsilon_s) = 1$ for PCM, $\rho$ is the charge density of the solute, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to, respectively, as the reaction potential and the electrostatic contribution to the solvation energy. 
+where $f(\varepsilon_s)$ is an empirical scaling that depends on the dielectric constant $\varepsilon_s$ of the solvent, e.g., typically $f(\varepsilon_s) = (\varepsilon_s - 1)/\varepsilon_s$ for COSMO and $f(\varepsilon_s) = 1$ for PCM, $\rho$ is the charge density of the solute, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to, respectively, as the reaction potential and the electrostatic contribution to the solvation energy. 
 
 The reaction potential is defined as $W = \varphi - \Phi$, where $\varphi$ is the total electrostatic potential of the solute/solvent system and $\Phi$ is the potential of the solute \emph{in vacuo}. In the case of the PCM, the total potential $\varphi$ satisfies a (generalized) Poisson equation with suitable interface conditions\cite{Mennucci_JCP_IEF1,Mennucci_JMC_IEF2}. Indeed, if $\varepsilon_s$ is the macroscopic, zero-frequency relative dielectric permittivity of the solvent, and define $\varepsilon(x) = 1$ when $x \in \Omega$ and $\varepsilon(x) = \varepsilon_s$ otherwise, the reaction potential fulfills 
 \begin{equation} 
@@ -21,21 +21,20 @@ The reaction potential is defined as $W = \varphi - \Phi$, where $\varphi$ is th
 \end{alignedat} 
 \right.
 \end{equation}
-Here $\Gamma=\partial\Omega$ is the boundary of the cavity, $\partial_\nu$ is the normal derivative on $\Gamma$, and $[\![\,\cdot\,]\!]$ is the jump operator (inside minus outside) on $\Gamma$.
+Here $\Gamma=\partial\Omega$ is the boundary of the cavity, $\partial_\nu$ is the derivative with respect to the outer normal on $\Gamma$, and $[\![\,\cdot\,]\!]$ is the jump operator (inside minus outside) on $\Gamma$.
 
 Recalling potential theory, see, e.g., \cite{sauter2010boundary}, $W$ can be represented as $W(x) = (\tilde{\mathcal{S}}\sigma)(x)$ when $x \in \sR^3 \setminus \Gamma$, or $W(s) = (\mathcal{S}\sigma)(s)$ when $s \in \Gamma$. 
 The surface density $\sigma$ defined on $\Gamma$ is the so-called apparent surface charge,  $\tilde{\cS}$ is the single layer potential, and $\cS$ is the single layer operator,  which is invertible \cite{Calderon}. Both $\tilde{\cS}$ and $\cS$ are understood as relative to $\Gamma$.
 It can be shown that $\sigma$ satisfies the equation $\sigma = 1/4\pi \, [\![ \partial_\nu W]\!]$, so that it is possible to recast the PCM problem \eqref{eq:pcmpde} as a single integral equation for $\sigma$. In fact, if we define the operators 
 \begin{equation}
  \label{eq:Reps}
- \cR_\varepsilon = 2\pi \, \frac{\varepsilon_s+1}{\varepsilon_s-1} \, \cI - \cD \qquad, \qquad \cR_\infty = 2\pi \, \cI - \cD
+ \cR_\varepsilon = 2\pi \, g(\varepsilon_s) \, \cI - \cD \qquad, \qquad \cR_\infty = 2\pi \, \cI - \cD
 \end{equation}
-where $\cI$ is the identity and $\cD$ is the double layer operator, also relative to $\Gamma$, it can be shown\cite{ReviewPCM_2005} that the apparent surface charge satisfies
+where $g(\varepsilon_s) = (\varepsilon_s+1)/(\varepsilon_s-1)$, $\cI$ is the identity and $\cD$ is the double layer operator, also relative to $\Gamma$, it can be shown\cite{ReviewPCM_2005} that the apparent surface charge satisfies
 \begin{equation}
 \label{eq:IEFPCM}
 \cR_\varepsilon \, \cS \, \sigma = - \cR_\infty \, \Phi \qquad \text{on }\Gamma
 \end{equation}
-Henceforth, for ease of notation, we set $g(\varepsilon_s) = (\varepsilon_s+1)/(\varepsilon_s-1)$.
 This is known as the IEF-PCM equation, and it involves operators $\cR_\infty$ and $\cR_\varepsilon$, which are both invertible. When the dielectric constant $\varepsilon_s$ approaches infinity, the IEF-PCM equation simplifies to $\cS \, \sigma = - \Phi$ on $\Gamma$, which is the Integral Equation Formulation of the Conductor-like Screening Model (COSMO)\cite{Lipparini_JCP_VPCM}.
 
 
@@ -47,7 +46,7 @@ We recall how to solve the IEF-PCM boundary integral equation \eqref{eq:IEFPCM} 
 \cR_\varepsilon \, \Phi_\varepsilon & = \cR_\infty \, \Phi \qquad && \text{on }\Gamma  \label{eq:ddPCM-1} \\
 \cS \, \sigma & = -\Phi_\varepsilon  && \text{on }\Gamma \label{eq:ddPCM-2} 
 \end{alignat}
-Indeed, \eqref{eq:ddPCM-2} is a COSMO equation with the modified potential $\Phi_\varepsilon$ in place of the potential $\Phi$. This allows to develop the ddPCM strategy as an extension of the ddCOSMO approach. First, equation \eqref{eq:ddPCM-1} is solved in order to compute the right-hand-side $-\Phi_\varepsilon$ of equation \eqref{eq:ddPCM-2}; secondly, ddCOSMO is employed to solve equation \eqref{eq:ddPCM-2} with the modified potential $-\Phi_\varepsilon$, and compute the solvation energy $E_s$.
+Indeed, \eqref{eq:ddPCM-2} is a COSMO-type equation with the modified potential $\Phi_\varepsilon$ in place of the potential $\Phi$. This allows to develop the ddPCM strategy as an extension of the ddCOSMO approach. First, equation \eqref{eq:ddPCM-1} is solved in order to compute the right-hand-side $-\Phi_\varepsilon$ of equation \eqref{eq:ddPCM-2}; secondly, ddCOSMO is employed to solve equation \eqref{eq:ddPCM-2} with the modified potential $-\Phi_\varepsilon$, and compute the solvation energy $E_s$.
 
 
 In order to discuss the domain-decomposition approach employed for both steps, let us introduce some notation. As anticipated, we take the cavity $\Omega$ be the union of $M$ spheres $\Omega_j = B(x_j, r_j)$ with boundaries $\Gamma_j$. We define $\Gamma_j^\text{ext}:= \Gamma_j \cap \Gamma$ and $\Gamma_j^\text{int} := \Gamma_j \cap \Omega$, and let $U_j: \Gamma_j \to \mathbb{R}$ be the characteristic function of $\Gamma_j^\text{ext}$. Let $\Phi_j : \Gamma_j \to \mathbb{R}$ and $\Phi_{\varepsilon,j} : \Gamma_j \to \mathbb{R}$ be, respectively, the local \emph{trivial} extensions of $\Phi$ and $\Phi_\varepsilon$ to $\Gamma_j$.
@@ -70,7 +69,7 @@ We ensure that $\Phi_{\varepsilon,j}$ indeed vanishes on $\Gamma_j^\text{int}$ b
 \begin{equation}\label{eq:19}
 (1 - U_j) \, \Phi_{\varepsilon,j}  = 0\qquad \text{on }\Gamma_j 
 \end{equation}
-In order to obtain a single equation, we multiply \eqref{eq:19} by the factor $2\pi \, (\varepsilon+1)/(\varepsilon-1)$, and add it sidewise to \eqref{eq:20}, so that
+In order to obtain a single equation, we multiply \eqref{eq:19} by the factor $g(\varepsilon_s)$, and add it sidewise to \eqref{eq:20}, so that
 \begin{equation}\label{eq:21}
 2 \pi \, g(\varepsilon_s) \, \Phi_{\varepsilon,j} - U_j \, {\mathcal{D} \, \Phi}_\varepsilon = 2 \pi \, \Phi_j - U_j \, {\mathcal{D} \, \Phi} \qquad \text{on }\Gamma_j
 \end{equation}
@@ -89,10 +88,10 @@ When $s$ belongs to $\Gamma_j^\text{int}$, we recover $\Phi_{\varepsilon,j}(s) =
 \begin{multline}\label{eq:1}
 2\pi \, g(\varepsilon_s) \, \Phi_{\varepsilon,j} - U_j \bigg( {\mathcal{D}}_j \, \Phi_{\varepsilon,j} + \sum_{k \ne j} \, \tilde{\mathcal{D}}_{k} \, \Phi_{\varepsilon,k}  \bigg) = \\ 2 \pi \, {\Phi_j} - U_j \bigg( {\mathcal{D}}_j \,\Phi_{j} + \sum_{k \ne j} \, \tilde{\mathcal{D}}_{k} \, \Phi_{k}  \bigg) \qquad \text{on }\Gamma_j
 \end{multline}
-which constitutes our domain-decomposition strategy for equation \eqref{eq:ddPCM-1}. The summation implies that every subdomain $\Omega_j$ interacts with all other subdomains. We anticipate that this contrasts with the ddCOSMO strategy for equation \eqref{eq:ddPCM-2}, which only involves neighbor-to-neighbor interactions.
+which constitutes the domain-decomposition strategy for equation \eqref{eq:ddPCM-1}. The summation implies that every subdomain $\Omega_j$ interacts with all other subdomains. We anticipate that this contrasts with the ddCOSMO strategy for equation \eqref{eq:ddPCM-2}, which only involves neighbor-to-neighbor interactions.
 
 {\bf Step 2.} 
-We note that $W = \tilde{\mathcal{S}}\,\sigma$, where $\sigma$ solves the integral equation \eqref{eq:ddPCM-2}, solves the equation $\Delta W = 0$ in $\Omega$ with boundary condition $W=-\Phi_\varepsilon$ on $\Gamma=\partial \Omega$. 
+We note that $W = \tilde{\mathcal{S}}\,\sigma$, where $\sigma$ it the solution to the integral equation \eqref{eq:ddPCM-2}, solves the equation $\Delta W = 0$ in $\Omega$ with boundary condition $W=-\Phi_\varepsilon$ on $\Gamma=\partial \Omega$. 
 The restriction $W_j := W |_{\overline{\Omega}_j}$ is harmonic over the subdomain $\Omega_j$, thus it can be represented  locally as 
 \begin{equation}\label{eq:COSMOloc}
 W_j(x) = (\tilde{\mathcal{S}}_j \,  \sigma_j) (x) \quad , \quad x \in \Omega_j \qquad ; \qquad
@@ -115,7 +114,7 @@ The first step to discretize equations \eqref{eq:1} and \eqref{eq:2} is to expan
 \[
 \sigma_j(s) = \sigma_j(x_j + r_j y) = \frac{1}{r_j} \, \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell \, [X_j]_\ell^m \, Y_\ell^m(y)
 \]
-for some unknown coefficients $X = [X_j]_\ell^m$. The choice of this ansatz implies a spectral-like numerical method. The scaling factor has been introduced for convenience, as seen from the derivation in Appendix \ref{app:cosmo}. We approximate $\Phi_{\varepsilon,j}$ and $\Phi_j$ in the same fashion, namely
+for some unknown coefficients $X = [X_j]_\ell^m$. The choice of this ansatz implies a spectral-like numerical method. The scaling factor $1/r_j$ has been introduced for convenience, as seen from the derivation in Appendix \ref{app:cosmo}. We approximate $\Phi_{\varepsilon,j}$ and $\Phi_j$ in the same fashion, namely
 \begin{equation}\label{eq:71}
 \Phi_{\varepsilon,j}(s) = - \sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell \, [G_j]_\ell^m \, Y_\ell^m(y) \qquad , \qquad \Phi_j(s) = -\sum_{\ell=0}^{L_\text{max}} \sum_{m = -\ell}^\ell \, [F_j]_\ell^m \, Y_\ell^m(y)
 \end{equation}
@@ -128,11 +127,12 @@ A_\varepsilon \, G = A_\infty \, F \qquad , \qquad  L \, X = G
 \end{equation}
 where the discrete operators $A_\varepsilon$ and $L$ are known in closed form, see \eqref{eq:ajj}, \eqref{eq:ajk}, and \eqref{eq:61}, \eqref{eq:62}. We remark that $A_\varepsilon$ is a dense operator, while $L$ is a sparse operator. In fact, for a fixed index $j$, the block $L_{jk}$ is \emph{a priori} nonzero only when $k = j$ or $k \in N_j$. Since $\Omega_j$ is a neighbor of $\Omega_k$ if and only if $\Omega_k$ is a neighbor of $\Omega_j$, then $L_{jk}$ is \emph{a priori} nonzero if and only if $L_{kj}$ is. We conclude that $L$ has a symmetric block-structure, although, in general, $L$ is non symmetric.
 
-The dependency of operators $A_\varepsilon$ and $L$ upon the nuclear positions is evident. Although more subtle, the load vector $F$ depends on the nuclear positions as well. Indeed, the second one of the expansions \eqref{eq:71} and the fact that $\Phi_j$ is the trivial extension of $\Phi$, i.e., $\Phi_j = U_j \, \Phi$ imply
-\begin{equation}\label{eq:25}
-[F_j]_\ell^m = - \int_{\mathbb{S}} \Phi_j(s(y)) \, Y_\ell^m(y) \,dy = - \int_{\mathbb{S}} U_j(s(y)) \, \Phi(s(y)) \, Y_\ell^m(y) \,dy
-\end{equation}
-Since the characteristic function $U_j$ depends upon $x_j$ and $x_i$ such that $i \in N_j$, see Appendix \ref{app:pcm_der}, so does $[F_j]_\ell^m$. {\color{red}(Paolo: should also comment on $\nabla \Phi = - \boldsymbol{E} $...)} Those dependencies upon the nuclear positions are needed in the computation of the ddPCM-forces, discussed in the following Section.
+
+Since operators $A_\varepsilon$ and $L$ are known in closed form, it is immediate to conclude that they depend upon the nuclear positions. The right-hand-side $F$, see Appendix \ref{app:pcm}, also depends upon the nuclear positions through both the characteristic function and the potential.  Those dependencies upon the nuclear positions are needed in the computation of the ddPCM-forces, discussed in the following Section.
+
+
+
+
 
 
 %As customary, in order to obtain the ddPCM and ddCOSMO discretizations we interpret each local problem (\ref{eq:1}) and (\ref{eq:2}) in a variational setting that employs expansions of $\Phi_j$, $\Phi_{\varepsilon,j}$ and $\sigma_j$ as truncated series of spherical harmonics, as well as spherical harmonics as test functions. We briefly describe the discretization of the ddCOSMO problem \eqref{eq:2}, and refer to Appendix \ref{app:mats} for the more involved discretization of the ddPCM problem \eqref{eq:1}.

@@ -28,15 +28,15 @@ As a first test, we investigated the rate of convergence for a molecular configu
 &	& {\sl Error}	&& {\sl Error}	& {\sl Rate} && {\sl Error}	& {\sl Rate}&& {\sl Error}	& {\sl Rate} \\
 %			 & $\delta = \delta_0/2$& $\delta = \delta_0/4$& $\delta = \delta_0/8$ \\
 \midrule[0.05em]
-$x_{+1,1}$ &  &  0.23529E-02  &  &    0.11751E-02  &  -1.002  &&  0.58717E-03  &  -1.001  &&  0.29345E-03  &  -1.001  \\
-$x_ {-1,1}$  &&  0.23529E-02  &   &  0.11751E-02  &  -1.002  &&  0.58718E-03  &  -1.001  &&  0.29344E-03  &  -1.001  \\
-$x_ {+2,2}$  &&  0.23529E-02  &   & 0.11751E-02  &  -1.002  &&  0.58692E-03  &  -1.002  &&  0.29411E-03  &  -0.997  \\
-$x_ {-2,2}$  &&  0.23529E-02  &    &0.11751E-02  &  -1.002  &&  0.58719E-03  &  -1.001  &&  0.29348E-03  &  -1.001  \\
-$x_ {+3,3}$  &&  0.23529E-02  &  &  0.11751E-02  &  -1.002  &&  0.58718E-03  &  -1.001  &&  0.29344E-03  &  -1.001  \\
-$x_ {-3,3}$  &&  0.23529E-02  &   &  0.11751E-02  &  -1.002  &&  0.58720E-03  &  -1.001  &&  0.29337E-03  &  -1.001  \\
+$x_{+1,1}$ &  &  0.23529E-02  &  &    0.11751E-02  &  1.002  &&  0.58717E-03  &  1.001  &&  0.29345E-03  &  1.001  \\
+$x_ {-1,1}$  &&  0.23529E-02  &   &  0.11751E-02  &  1.002  &&  0.58718E-03  &  1.001  &&  0.29344E-03  &  1.001  \\
+$x_ {+2,2}$  &&  0.23529E-02  &   & 0.11751E-02  &  1.002  &&  0.58692E-03  &  1.002  &&  0.29411E-03  &  0.997  \\
+$x_ {-2,2}$  &&  0.23529E-02  &    &0.11751E-02  &  1.002  &&  0.58719E-03  &  1.001  &&  0.29348E-03  &  1.001  \\
+$x_ {+3,3}$  &&  0.23529E-02  &  &  0.11751E-02  &  1.002  &&  0.58718E-03  &  1.001  &&  0.29344E-03  &  1.001  \\
+$x_ {-3,3}$  &&  0.23529E-02  &   &  0.11751E-02  &  1.002  &&  0.58720E-03  &  1.001  &&  0.29337E-03  &  1.001  \\
 \bottomrule[0.1em]
 \end{tabular}
-\caption{Relative error and converge rate, as a function of $1/\delta$, for a configuration of 6 spheres with radii equal to 1.5, and centers $x_{\pm \alpha} =  \pm e_\alpha$ for $\alpha = 1, 2,3$.  Results where obtained with an angular momentum $L_\text{max} =  8$, and an integration grid with $N_\text{grid} = 110$ nodes. Each atomic position coordinate $x_{\pm\alpha,\beta}$, where $\beta = 1,2,3$, was perturbed as $(1 + \delta)x_{\pm\alpha , \beta}$, thus generating only six nonzero variations, starting from an initial value $\delta_0 = 10^{-3}$.}\label{tab:1}
+\caption{Relative error and converge rate for a configuration of 6 spheres with radii equal to 1.5, and centers $x_{\pm \alpha} =  \pm e_\alpha$ for $\alpha = 1, 2,3$.  Results where obtained with an angular momentum $L_\text{max} =  8$, and an integration grid with $N_\text{grid} = 110$ nodes. Each atomic position coordinate $x_{\pm\alpha,\beta}$, where $\beta = 1,2,3$, was perturbed as $(1 + \delta)x_{\pm\alpha , \beta}$, thus generating only six nonzero variations, starting from an initial value $\delta_0 = 10^{-3}$.}\label{tab:1}
 \end{center}
 \end{table}
 
@@ -60,10 +60,7 @@ $x_ {-3,3}$  &&  0.23529E-02  &   &  0.11751E-02  &  -1.002  &&  0.58720E-03  & 
 % dE / dr_ 6,3 :        0.000        -1.002        -1.001        -1.001
 
 
-In table \ref{tab:}, we illustrate the RMS of the approximate forces with $\delta_n = x^{-n}$ 
-for caffeine.
 
-\ldots
 
 
 \subsection{Timings}

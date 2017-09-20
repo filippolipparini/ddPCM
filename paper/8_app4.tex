@@ -40,11 +40,11 @@ so that only the derivatives of the characteristic function are required. The ca
 \begin{equation}\label{eq:7}
 {[\nablai A_{jk}]}_{\ell \ell'}^{mm'} = -  \frac{4 \pi \ell'}{2 \ell'+1} \, \sum_{n = 1}^{N_\text{grid}} w_n\, Y_\ell^m(s_n) \,\nablai \Big[ \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big]
 \end{equation}
-We proceed to analyze the gradient of the triple product when $i = j$, or $i = k$, or $i \in N_j \, , \, i \not= k$. Those three cases are mutually exclusive.
+We indicate the triple product as $I_{jk}$ and proceed to analyze its gradient when $i = j$, or $i = k$, or $i \in N_j \, , \, i \not= k$. Those three cases are mutually exclusive.
 
 The case $i = j$ yields no simplification, and the gradient of the triple product has the three standard contributions, namely
 \begin{multline}\label{eq:9}
-\nablaj \big[ \cdots \big] = \nablaj \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \\
+\nablaj I_{jk}= \nablaj \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \\
 + \hat{U}_j(s_n)  \, \nablaj \Big(  \big( t_n^{jk}\big)^{-(\ell'+1)} \Big) \, Y_{\ell'}^{m'} (s_n^{jk}) +  \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \nablaj Y_{\ell'}^{m'} (s_n^{jk})
 %\nablaj \Big[ \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \Big] = \nablaj \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) \\
 %- \hat{U}_j(s_n)  \, (\ell' + 1)  \big( t_n^{jk}\big)^{-(\ell'+2)} \, \nablaj t_n^{jk} \, Y_{\ell'}^{m'} (s_n^{jk}) + \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \big( \Dj\, s_n^{jk} \big)^T\, \nablaj Y_{\ell'}^{m'} (s_n^{jk})
@@ -53,16 +53,16 @@ In the implementation the differentiation is fully carried out through the chain
 
 The case $i =k$ needs to be split into the subcases $k \in N_j$ and $k \not \in N_j$. The first subcase does not yield any simplification and reduces to \eqref{eq:9}. On the other hand, when $k \not\in N_j$, the first term on the right-hand-side of \eqref{eq:9} drops out, and we obtain
 \[
-\nablak \big[ \cdots \big] = 
+\nablak I_{jk} = 
  \hat{U}_j(s_n)  \, \nablak \Big(  \big( t_n^{jk}\big)^{-(\ell'+1)} \Big) \, Y_{\ell'}^{m'} (s_n^{jk}) +  \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \nablak Y_{\ell'}^{m'} (s_n^{jk})
 \]
 
 Finally, when $i \in N_j$ and $i \not=k$ the second and third term on the right-hand-side of \eqref{eq:9} vanish, and we obtain 
 \[
-\nablai \big[ \cdots \big] = \nablaj \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
+\nablai I_{jk} = \nablaj \hat{U}_j(s_n)  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk})
 \]
 
-This conclude our discussion on the derivative of the PCM matrix, we remark that $\nablai A_{jk}$ is \emph{a priori} nonzero only when $i \in N_j \cup \{ j,k\}$. This implies that its action can be computed within linear, as oppose to quadratic, complexity.
+This conclude our discussion on the derivative of the PCM matrix, we remark that $\nablai A_{jk}$ is \emph{a priori} nonzero only when $i \in N_j \cup \{ j,k\}$.
 
 
 %%\cdots\Big[ \nabla U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \, \nabla \Big( \big( t_n^{jk}\big)^{-(\ell'+1)} \Big)\, Y_{\ell'}^{m'} (s_n^{jk}) + U_j^n  \,  \big( t_n^{jk}\big)^{-(\ell'+1)} \, \nabla Y_{\ell'}^{m'} (s_n^{jk}) \Big]

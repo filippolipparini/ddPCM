@@ -1,29 +1,27 @@
 \section{Computation of the ddPCM-Forces}\label{sec:forces}
 
 \subsection{Theoretical Derivation}
-%In the case of a classical solute, the form of the charge density $\rho$ allows to compute 
-The solvation energy can be written as a sum of subdomain contributions, which perfectly fits the domain-decomposition paradigm. {\color{red} (Paolo: this sentence should be moved...)}
 
-First, for a classical solute's charge distribution of the form of $\rho=\sum_j q_j \, \delta_{x_j}$, we can manipulate the energy as
+The solvation energy can always be written as a sum of subdomain contributions. A standard way to achieve this is to employ a partition of unity. This  approach of individual subdomain contributions perfectly fits the domain-decomposition paradigm. Indeed, for a classical solute's charge distribution of the form of $\rho=\sum_j q_j \, \delta_{x_j}$, we can manipulate the energy as
 \[
 	E_s 
-	= \tfrac{1}{2} \, g(\varepsilon_s)  \int_{\Omega} \rho(x) \, W(x) \, dx
-	= \tfrac{1}{2} \, g(\varepsilon_s) \sum_j \, q_j \,  W(x_j)
+	= \tfrac{1}{2} \, f(\varepsilon_s)  \int_{\Omega} \rho(x) \, W(x) \, dx
+	= \tfrac{1}{2} \, f(\varepsilon_s) \sum_j \, q_j \,  W(x_j)
 	%=   2\pi \, \sum_j q_j [X_j]_0^0    \, Y_0^0
-	= g(\varepsilon_s) \,{\sqrt{\pi}}\, \sum_j  \,q_j \, [X_j]_0^0
+	= \tfrac{1}{2} \, f(\varepsilon_s) \,{2\sqrt{\pi}}\, \sum_j  \,q_j \, [X_j]_0^0
 \]
-Indeed, the rescaling property $(\tilde{\cS}_j \, \sigma_j)(x) = r_j (\tilde{\cS} \, \hat{\sigma}_j)(u)$, where $u = (x-x_j)/r_j$, and the Addition Theorem for spherical harmonics, imply that
+The Addition Theorem for spherical harmonics, which implies that
 \[
-W_j(x) = (\tilde{\cS}_j \, \sigma_j)(x) = (\tilde{\cS} \, \hat{\sigma}_j)(u) = \sum_{\ell,m} \, \frac{4\pi}{ 2\ell + 1} \, |u|^\ell \, Y_\ell^m(u/|u|) \, [X_j]_\ell^m
+W_j(x) = (\tilde{\cS}_j \, \sigma_j)(x)  = \sum_{\ell,m} \, \frac{4\pi}{ 2\ell + 1} \, |u|^\ell \, Y_\ell^m(u/|u|) \, [X_j]_\ell^m
 \]
-so that $W(x_j) = W_j(x_j) = 2 \sqrt{\pi} \, [X_j]_0^0$, since $Y_0^0 = 1/ \sqrt{4\pi}$. We recall that $g(\varepsilon_s) =1$ for PCM, so that we shall henceforth omit it.
+where $u = (x-x_j)/r_j$, and the fact that $Y_0^0 = 1/ \sqrt{4\pi}$ allow to conclude that $W(x_j) = W_j(x_j) = 2 \sqrt{\pi} \, [X_j]_0^0$. We recall that $f(\varepsilon_s) =1$ for PCM, so that we shall henceforth omit it.
 
 This concept easily generalizes to point multipolar charge distributions. 
 The evaluation of the energy for charge distributions is a bit more involved as it requires a three-dimensional integration and we refer to \cite{Lipparini_JCP_ddCOSMO-QM} for more details. In all cases however, the energy can be written as
 \[
 E_s = \tfrac{1}{2}
 % \,f(\varepsilon)
- \, \sum_j \sum_{\ell,m} [\Psi_j]_\ell^m [X_j]_\ell^m
+ \, \sum_j \sum_{\ell,m} \, [\Psi_j]_\ell^m \,[X_j]_\ell^m
   =: \tfrac{1}{2} 
   %\,f(\varepsilon) 
   \,\langle \Psi, X \rangle
@@ -31,9 +29,9 @@ E_s = \tfrac{1}{2}
 where the angular brackets indicate the double scalar product over $j$ and $\ell,m$.
 For example, if we define
 \[
-	[\Psi_j]_\ell^m = {\sqrt{\pi}}\, q_j \, \delta_{\ell\,0} \,\delta_{m\,0}
+	[\Psi_j]_\ell^m = 2{\sqrt{\pi}}\, q_j \, \delta_{\ell\,0} \,\delta_{m\,0}
 \]
-we recover the case of  the classical charge above. {\color{red}(Paolo: isn't there a factor $2$ missing?)}
+we recover the case of  the classical charge above.
 
 % THE FOLLOWING IS NOT ENTIRELY CORRECT SINCE THE OVERLAP IN THE INTEGRALS SHOULD BE SUBSTRACTED
 %Indeed, the spherical harmonics addition theorem implies that
@@ -86,7 +84,7 @@ Secondly, to deal with the term $A_\varepsilon \, \nablai G$, which involves the
 \[
 \nablai A_\varepsilon \, G + A_\varepsilon \, \nablai G = \nablai A_\infty \, F + A_\infty \, \nablai F
 \]
-The quantity $\nablai F$ is \emph{a priori} nonzero since $F$ does depend upon the nuclear positions through the characteristic functions, recall \eqref{eq:25}. Since the derivative of $A_\varepsilon$ is independent of $\varepsilon$, we just write $\nablai A$ and obtain
+The quantity $\nablai F$ is \emph{a priori} nonzero since $F$ does depend upon the nuclear positions through the characteristic functions, recall \eqref{eq:25}. Since the derivative of $A_\varepsilon$ is independent of $\varepsilon_s$, we just write $\nablai A$ and obtain
 \[
 \langle \Psi , \nablai X\rangle = \langle s , \nablai  A ( F - G ) \rangle + \langle  s ,{A_\infty}\, \nablai F \rangle - \langle  s , {A_\varepsilon}\, \nablai L \,  X \rangle
 \]
@@ -94,17 +92,17 @@ The solution of the adjoint problem $(A_\varepsilon \, L )^* s = \Psi$ requires 
 \[
 \langle \Psi , \nablai X\rangle = \langle s , \nablai  A ( F - G ) \rangle + \langle {A_\infty}^*\, s , \nablai F \rangle - \langle  y , \nablai L \,  X \rangle
 \]
-As a last step, we write ${A_\infty}^*\, s = ({A_\infty}-{A_\varepsilon})^*\, s + y$ and observe that ${A_\infty}-{A_\varepsilon} $ is a multiple of the identity, which implies that the adjoint is redundant. The final expression becomes
+As a last step, we write ${A_\infty}^*\, s = ({A_\infty}-{A_\varepsilon})^*\, s + y$ and observe that ${A_\infty}-{A_\varepsilon} $ is only a multiple of the identity, which implies that the adjoint is redundant. The final expression becomes
 \[
 \langle \Psi , \nablai X\rangle = \langle s , \nablai  A ( F - G ) \rangle + \langle ({A_\infty}-{A_\varepsilon})\, s, \nablai F \rangle +\langle y , \nablai F \rangle - \langle  y , \nablai L \,  X \rangle
 \]
 where the last two terms coincide with the COSMO force.
 
-We remark that the PCM-forces we just derived are a perturbation of the COSMO-forces presented in \cite{Lipparini_JCTC_ddCOSMO}. Indeed, when $\varepsilon$ approaches infinity, then $G = F$ and $A_\varepsilon = {A_\infty} $, so that we recover
+Therefore that the PCM-forces we just derived are a perturbation of the COSMO-forces presented in \cite{Lipparini_JCTC_ddCOSMO}. Indeed, when $\varepsilon_s$ approaches infinity, then $G = F$ and $A_\varepsilon = {A_\infty} $, so that we recover
 \[
 \langle \Psi , \nablai X\rangle =  \langle y , \nablai F \rangle - \langle y , \nablai L \,  X \rangle
 \]
-We recall that, because of the sparsity of $L$, and, consequently, its derivative $\nablai L$, the contraction $\langle y ,\nablai L \, X\rangle$ can be computed within a complexity that depends upon $L_\text{max}$, $N_\text{grid}$ and the number of neighbors $N_i$, but is independent of $M$. In other words, it is $O(1)$ with respect to the number of atoms. A similar analysis holds for the contraction $\langle y , \nablai F \rangle$ {\color{red} (Paolo: add comment, maybe...)}. As reported in \cite{Lipparini_JCTC_ddCOSMO} for COSMO, the computation of all the $M$ forces acting on all atoms is an operation of complexity $O(M)$, with a prefactor that depends at least upon $L_\text{max}$, $N_\text{grid}$, and the average number of neighbors of each atom. As we shall see below, this contrasts with the computation of the PCM-forces, which has complexity $O(M^2)$.
+We recall that, because of the sparsity of $L$, and, consequently, its derivative $\nablai L$, the contraction $\langle y ,\nablai L \, X\rangle$ can be computed within a complexity that depends upon $L_\text{max}$, $N_\text{grid}$ and the number of neighbors $N_i$, but is independent of $M$. In other words, it is $O(1)$ with respect to the number of atoms. A similar analysis holds for the contraction $\langle y , \nablai F \rangle$. As reported in \cite{Lipparini_JCTC_ddCOSMO} for ddCOSMO, the computation of all the $M$ forces acting on all atoms is an operation of complexity $O(M)$, with a prefactor that depends at least upon $L_\text{max}$, $N_\text{grid}$, and the average number of neighbors of each atom. As we shall see below, this contrasts with the computation of the PCM-forces, which has complexity $O(M^2)$.
 
 \subsection{Efficient Implementation}
 
