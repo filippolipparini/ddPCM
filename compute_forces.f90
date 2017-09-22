@@ -84,6 +84,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       call wghpot( Phi, g )
 !
 !     compute SH expansion of Phi on i-sphere
+!$omp parallel do default(shared) private(isph)
       do isph = 1,nsph
 !      
         call intrhs( isph, g(:,isph), w_lm(:,isph) )
@@ -117,6 +118,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       w_lm(:,:) = w_lm(:,:) - Phi_eps(:,:)
 !
 !     contract
+!$omp parallel do default(shared) private(isph,basloc,dbsloc,vplm,vcos,vsin)
       do isph = 1,nsph 
 !      
 !!!        call service_routine1_new( s, w_lm , isph, f(1:3,isph) )
@@ -134,6 +136,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     expand y
       xi(:,:) = zero
 !      
+!$omp parallel do default(shared) private(isph,n)
       do isph = 1,nsph
         do n = 1,ngrid
 !        
@@ -144,6 +147,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       enddo
 !
 !     contract
+!$omp parallel do default(shared) private(isph,basloc,dbsloc,vplm,vcos,vsin)
       do isph = 1, nsph
 !
 !       accumulate f += K_a contribution to < y , L' sigma >
@@ -162,6 +166,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       vplm(:) = zero ; vcos(:) = zero ; vsin(:) = zero
 !      
 !     compute z = A_oo^T s
+!$omp parallel do default(shared) private(isph,basloc,dbsloc,vplm,vcos,vsin,xlm,x)
       do isph = 1,nsph
 !      
         call ADJvec( isph, zero, s(:,:), z(:,isph), xlm, x, basloc, vplm, vcos, vsin )
@@ -171,6 +176,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     expand z
       xi(:,:) = zero
 !      
+!$omp parallel do default(shared) private(isph)
       do isph = 1,nsph
         do n = 1,ngrid
 !        
@@ -204,6 +210,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       enddo
 ! 
 !     loop over atoms
+!$omp parallel do default(shared) private(isph)
       do isph = 1,nsph
 !
 !       accumulate f -= sum_n U_n^i' Phi_n^i xi(i,n) 
@@ -240,7 +247,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       if ( iprint.gt.0 ) then
 !              
         write(*,1010) dble(c2-c1)/dble(cr)
- 1010   format(' computation time of ddPCM forces = ',f8.3,' secs.')
+ 1010   format(' computation time of ddPCM forces = ',f12.4,' secs.')
 ! 
       endif
 !
