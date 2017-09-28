@@ -130,8 +130,8 @@ subroutine lx( n, x, y )
 !     initialize
       y = zero
       !
-      !$omp parallel do default(shared) private(isph,pot,basloc,vplm,vcos,vsin) &
-      !$omp schedule(dynamic)
+!$omp parallel do default(shared) private(isph,pot,basloc,vplm,vcos,vsin) &
+!$omp schedule(dynamic)
       !
 !
 !     loop over spheres
@@ -196,7 +196,7 @@ subroutine lstarx( n, x, y )
 !     initilize
       y = zero
       !
-      !$omp parallel do default(shared) private(isph,ig)
+!$omp parallel do default(shared) private(isph,ig)
       !
 !
 !     expand x over spherical harmonics
@@ -213,8 +213,8 @@ subroutine lstarx( n, x, y )
         enddo
       enddo
       !
-      !$omp parallel do default(shared) private(isph,basloc,vplm,vcos,vsin) &
-      !$omp schedule(dynamic)
+!$omp parallel do default(shared) private(isph,basloc,vplm,vcos,vsin) &
+!$omp schedule(dynamic)
 !
 !     compute action
 !     --------------
@@ -421,6 +421,7 @@ subroutine precx( n, x, y )
 !-------------------------------------------------------------------------------
 !
 !     loop over spheres
+!$omp parallel do default(shared) private(isph)
       do isph = 1,nsph
 !
 !       mutiply by preconditioner
@@ -464,6 +465,7 @@ subroutine rx( n, x, y )
       endif
 !
 !     loop over spheres
+!$omp parallel do default(shared) private(isph,ulm,u,basloc,vplm,vcos,vsin)
       do isph = 1, nsph
 !
 !       action of PCM
@@ -562,6 +564,7 @@ subroutine rstarx( n, x, y )
       endif
 !
 !     loop over spheres
+!$omp parallel do default(shared) private(isph,ulm,u,basloc,vplm,vcos,vsin)
       do isph = 1,nsph
 !
 !       action of adjoint PCM
