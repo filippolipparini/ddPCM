@@ -64,20 +64,25 @@ $x_ {-3,3}$  &&  0.23529E-02  &   &  0.11751E-02  &  1.002  &&  0.58720E-03  &  
 
 
 \subsection{Scaling and Timings of the ddPCM forces computation}
-In this section, we demonstrate the scaling of the computational cost associated with the computation of the ddPCM forces with respect to the size of the system. As anticipated in section \ref{sec:forces}, an efficient implementation must exhibit quadratic scaling. We report also overall timings of the ddPCM forces computation, and in particular of the operations described in section \ref{sec:forces}, which do not include the computation of the solute's electric field, which is assumed to be done by an external library. Both serial and shared-memory parallel timings are reported. We point out that this is a pilot implementation, and a thorough, aggressive optimization of the code has not yet been carried out. Furthermore, only basic OpenMP parallelism is exploited at the moment. 
-All the computations reported in this section were performed on a dual Intel Xeon E5-2620 (v2) CPU cluster node (12 cores) equipped with 64 GB of RAM. Hyper-Threading was disabled. 
-We report in figure \ref{fig:serial} the total elapsed time for the ddPCM forces computations as obtained with the scalar implementation for systems of increasing size. The geometries used for testing were obtained starting from Crambin, a small globular protein (PDB reference 1EJG), and cutting atom chains with lenghts multiple of 80, up to the whole protein which is made by 642 atoms. While the structures so obtained are meaningless from a chemical point of view, they offer a good benchmarking set. 
-\begin{figure}
- \caption{Elapsed time for the serial computation of the ddPCM forces as a function of the system size. The results are shown in a log-log scale. The results are fitted with a function $\log (y) = a \log(x) + c$, which is also plotted ($a=1.94, c=-6.44$)\label{fig:serial}}
+In this section, we demonstrate the scaling, with respect to the size of the system, of the computational cost associated with the ddPCM forces. As anticipated in Section \ref{sec:forces}, an efficient implementation must exhibit quadratic scaling. The overall timings of the ddPCM forces computation we report include the operations described in Section \ref{sec:forces}. They do not include the computation of the solute's electric field, which is assumed to be done by an external library. Both serial and shared-memory parallel timings are reported. We point out that this is a pilot implementation, and a thorough, aggressive optimization of the code has not yet been carried out. Furthermore, only basic OpenMP parallelism is exploited at this stage.
+
+{\color{red}All the computations reported in this section were performed on a dual Intel Xeon E5-2620 (v2) CPU cluster node (12 cores) equipped with 64 GB of RAM. Hyper-Threading was disabled. (Paolo: would move this to caption)}
+
+Geometries suitable for testing were obtained from Crambin, a small globular protein (PDB reference 1EJG), by cutting atom chains with lenghts multiple of 80, up to the whole protein which is composed by 642 atoms. While the structures thus obtained are meaningless from a chemical standpoint, they provide a valuable benchmarking set. Figure \ref{fig:serial} shows the total elapsed time for the ddPCM forces computations, as obtained with the {\color{red}scalar (Paolo: serial?)} implementation for systems of increasing size. The anticipated quadratic scaling is observed.
+
+\begin{figure}[t]
+ \caption{Scaling of computation of the ddPCM forces (serial implementation). The results are plotted on a log-log scale, and fitted with a function of slope 1.94. {\color{red}(Paolo: here I would be a bit sloppy... everybody knows how a log-log plot works, or doesn't!) }%$\log (y) = a \log(x) + c$, which is also plotted ($a=1.94, c=-6.44$)
+ \label{fig:serial}}
  \includegraphics[width=0.6\textwidth]{figs/serial.eps}
 \end{figure}
-The anticipated quadratic scaling is observed. The small discrepancy between the fitted exponent (1.94) and the theoretical prediction (2) can be justified in terms of the size of the tested system, which are probably not large enough to reach the asymptotic scale. 
-In figure \ref{fig:para}, we report the timings for the computation of the ddPCM forces performed using the shared-memory (OpenMP) parallel version of the code. 
-We used the same systems, starting with the 240 atoms long chain, than for the serial benchmark, plus four additional systems obtained by taking up to the first four chains of a larger protein (PDB reference 2QHO), for system sizes ranging from 1174 to 3930 atoms. 
-\begin{figure}
- \caption{Elapsed time for the OpenMP parallel computation of the ddPCM forces as a function of the system size. The results are shown in a log-log scale. The results are fitted with a function $\log (y) = a \log(x) + c$, which is also plotted ($a=1.99, c=-9.12$)\label{fig:para}}
+
+The small discrepancy between the fitted exponent in Figure \ref{fig:serial}, i.e., 1.94, and the theoretical quadratic prediction can be justified in terms of the size of the tested systems, which fall into the pre-asymptotic, rather than asymptotic region. To support this claim, we employed a second benchmark set, which included a 240 atom long chain of Crambin from the previous set, and four additional systems obtained by incrementally considering the first four chains of a larger protein (PDB reference 2QHO). We obtained systems of size ranging from 1174 to 3930 atoms. The computation of the ddPCM forces was performed using the shared-memory (OpenMP) parallel version of the code. The timings are reported in
+Figure \ref{fig:para}, and the fitted, i.e., 1.99, supports our claim of asymptotic quadratic complexity. We remark that, overall, the observed timings are encouraging, despite the code not having been fully optimized. Nevertheless, the quadratic scaling makes the application of the ddPCM method to large systems challenging. 
+
+
+\begin{figure}[t]
+ \caption{Elapsed time for the OpenMP parallel computation of the ddPCM forces as a function of the system size. The results are shown in a log-log scale. The results are fitted with a function $\log (y) = a \log(x) + c$, which is also plotted ($a=1.99, c=-9.12$){\color{red}(Paolo: adapt caption of previous figure.)}\label{fig:para}}
  \includegraphics[width=0.6\textwidth]{figs/para.eps}
 \end{figure}
-The results obtained using larger test cases confirm the theoretical quadratic scaling, which is almost perfectly reproduced (fitted exponent: 1.99). 
-Overall, the timings obtained in these numerical experiments are good despite the code not having been fully optimized. Nevertheless, the quadratic scaling makes the application of the ddPCM method to large or very large systems challenging. 
+
 
