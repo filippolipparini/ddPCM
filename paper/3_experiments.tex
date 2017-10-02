@@ -8,7 +8,7 @@ We verified the implementation of the forces by performing a convergence test of
 \]
 where we have made explicit the dependency of the solvation energy on the nuclear positions $x_1 , \ldots , x_M$. It immediately follows that $\mathcal{F}_{i,\alpha} = F_{i,\alpha}(\delta) + O(\delta)$, where $\mathcal{F}_{i,\alpha}$ is the $\alpha$ component of $\mathcal{F}_i$, which implies that the relative error $\text{Err}_{i,\alpha}(\delta) = |(\mathcal{F}_{i,\alpha} - F_{i,\alpha}(\delta))/\mathcal{F}_{i,\alpha}|$ decreases as $O(\delta)$, namely with rate 1.
 
-As a first test, we investigated the rate of convergence for a molecular configuration composed of six spheres with radius 1.5 and centers at $x_{\pm \alpha} = \pm e_\alpha$, for $\alpha = 1, 2,3$. Although conceptually simple, this configuration generates a sextuple intersection which provides a challenging benchmark case. We have studied the behavior of the relative error over the range of angular momenta $\ell = 2, \ldots , 10$, and obtained numerical results that are qualitatively similar, and in excellent agreement with the predicted rate of convergence. Results for a representative case are reported in Table \ref{tab:1}.
+We investigated the rate of convergence for a molecular configuration composed of six spheres with radius 1.5 and centers at $x_{\pm \alpha} = \pm e_\alpha$, for $\alpha = 1, 2,3$. Although conceptually simple, this configuration generates a sextuple intersection which provides a challenging benchmark case. We have studied the behavior of the relative error over the range of angular momenta $\ell = 2, \ldots , 10$, and obtained numerical results that are qualitatively similar, and in excellent agreement with the predicted rate of convergence. Results for a representative case are reported in Table \ref{tab:1}.
 
 %\begin{tabular}{ l l l l}
 %\toprule
@@ -39,7 +39,7 @@ $x_ {-3,3}$  &&  0.23529E-02  &   &  0.11751E-02  &  1.002  &&  0.58720E-03  &  
 \caption{Relative error and converge rate for a configuration of 6 spheres with radii equal to 1.5, and centers $x_{\pm \alpha} =  \pm e_\alpha$ for $\alpha = 1, 2,3$.  Results where obtained with an angular momentum $L_\text{max} =  8$, and an integration grid with $N_\text{grid} = 110$ nodes. Each atomic position coordinate $x_{\pm\alpha,\beta}$, where $\beta = 1,2,3$, was perturbed as $(1 + \delta)x_{\pm\alpha , \beta}$, thus generating only six nonzero variations, starting from an initial value $\delta_0 = 10^{-3}$.}\label{tab:1}
 \end{center}
 \end{table}
-
+These results prove the correctness of our implemetation. 
 % lmax =  8 , ngrid =  110 - Integration points PRESENT in the switch region
 % eta = 0.2, s = 0
 % delta = 10^-3
@@ -66,12 +66,10 @@ $x_ {-3,3}$  &&  0.23529E-02  &   &  0.11751E-02  &  1.002  &&  0.58720E-03  &  
 \subsection{Scaling and Timings of the ddPCM forces computation}
 In this section, we demonstrate the scaling, with respect to the size of the system, of the computational cost associated with the ddPCM forces. As anticipated in Section \ref{sec:forces}, an efficient implementation must exhibit quadratic scaling. The overall timings of the ddPCM forces computation we report include the operations described in Section \ref{sec:forces}. They do not include the computation of the solute's electric field, which is assumed to be done by an external library. Both serial and shared-memory parallel timings are reported. We point out that this is a pilot implementation, and a thorough, aggressive optimization of the code has not yet been carried out. Furthermore, only basic OpenMP parallelism is exploited at this stage.
 
-{\color{red}All the computations reported in this section were performed on a dual Intel Xeon E5-2620 (v2) CPU cluster node (12 cores) equipped with 64 GB of RAM. Hyper-Threading was disabled. (Paolo: would move this to caption)}
-
-Geometries suitable for testing were obtained from Crambin, a small globular protein (PDB reference 1EJG), by cutting atom chains with lenghts multiple of 80, up to the whole protein which is composed by 642 atoms. While the structures thus obtained are meaningless from a chemical standpoint, they provide a valuable benchmarking set. Figure \ref{fig:serial} shows the total elapsed time for the ddPCM forces computations, as obtained with the {\color{red}scalar (Paolo: serial?)} implementation for systems of increasing size. The anticipated quadratic scaling is observed.
+Geometries suitable for testing were obtained from Crambin, a small globular protein (PDB reference 1EJG), by cutting atom chains with lenghts multiple of 80, up to the whole protein which is composed by 642 atoms. While the structures thus obtained are meaningless from a chemical standpoint, they provide a valuable benchmarking set. Figure \ref{fig:serial} shows the total elapsed time for the ddPCM forces computations, as obtained with the serial implementation for systems of increasing size. The anticipated quadratic scaling is observed.
 
 \begin{figure}[t]
- \caption{Scaling of computation of the ddPCM forces (serial implementation). The results are plotted on a log-log scale, and fitted with a function of slope 1.94. {\color{red}(Paolo: here I would be a bit sloppy... everybody knows how a log-log plot works, or doesn't!) }%$\log (y) = a \log(x) + c$, which is also plotted ($a=1.94, c=-6.44$)
+ \caption{Scaling of computation of the ddPCM forces (serial implementation). The results are plotted on a log-log scale, and fitted with a function of slope 1.94. The computations were performed on a dual Intel Xeon E5-2620 (v2) CPU cluster node (12 cores) equipped with 64 GB of RAM. Hyper-Threading was disabled.
  \label{fig:serial}}
  \includegraphics[width=0.6\textwidth]{figs/serial.eps}
 \end{figure}
@@ -81,7 +79,8 @@ Figure \ref{fig:para}, and the fitted, i.e., 1.99, supports our claim of asympto
 
 
 \begin{figure}[t]
- \caption{Elapsed time for the OpenMP parallel computation of the ddPCM forces as a function of the system size. The results are shown in a log-log scale. The results are fitted with a function $\log (y) = a \log(x) + c$, which is also plotted ($a=1.99, c=-9.12$){\color{red}(Paolo: adapt caption of previous figure.)}\label{fig:para}}
+ \caption{Scaling of computation of the ddPCM forces (OpenMP parallel implementation). The results are plotted on a log-log scale, and fitted with a function of slope 1.99. The computations were performed on a dual Intel Xeon E5-2620 (v2) CPU cluster node (12 cores) equipped with 64 GB of RAM. Hyper-Threading was disabled.
+\label{fig:para}}
  \includegraphics[width=0.6\textwidth]{figs/para.eps}
 \end{figure}
 
