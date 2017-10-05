@@ -1,25 +1,25 @@
 \section{A Brief Review of the ddPCM Strategy}\label{sec:review}
 
 \subsection{The Polarizable Continuum Model}
-In PCSM, the solute is accommodated in a hollow molecular cavity $\Omega$ surrounded by the continuum, which can be treated either as a conductor, as in the COSMO model, or as a dielectric, as in PCM. We follow the customary approach of taking the cavity to be the so-called Van der Waals cavity\cite{ReviewPCM_2005}, i.e., the union of spheres centered at each atom with radii coinciding with (scaled) van der Waals radii. Note that the similar Solvent Accessible Surface (SAS) cavity can be treated through this approach as well. Models based on the Solvent Excluded Surface (SES) have recently been proposed~\cite{Harbrecht2011,quan2017polarizable,C5CP03410H,JCC:JCC21431}, however are not considered here.
+In PCSM's, the solute is accommodated in a hollow molecular cavity $\Omega$ surrounded by the continuum, which can be treated either as a conductor, as in COSMO, or as a dielectric, as in PCM. We follow the customary approach of taking the cavity to be the so-called Van der Waals cavity\cite{ReviewPCM_2005}, i.e., the union of spheres centered at each atom with radii coinciding with (scaled) van der Waals radii. Note that the similar Solvent Accessible Surface (SAS) cavity can be treated through this approach as well. Models based on the Solvent Excluded Surface (SES) have recently been proposed~\cite{Harbrecht2011,quan2017polarizable,C5CP03410H,JCC:JCC21431}, however are not considered here.
 
-The electrostatic part of the solute/solvent interaction is given by the electrostatic interaction energy between the solute's density of charge $\rho$ and the polarization potential of the solvent $W$
+The electrostatic part of the solute/solvent interaction is given by the electrostatic interaction energy between the solute's density of charge $\rho$ and the polarization potential of the solvent $W$, namely
 \[
 E_s = \tfrac{1}{2}\, f(\varepsilon_s)\,\int_\Omega \rho(x) W(x) \, dx,
 \]
-where $f(\varepsilon_s)$ is an empirical scaling that depends on the dielectric constant $\varepsilon_s$ of the solvent, e.g., $f(\varepsilon_s) = (\varepsilon_s - 1)/\varepsilon_s$ for COSMO and $f(\varepsilon_s) = 1$ for PCM, $\rho$ is the solute's charge density, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to as the reaction potential and the electrostatic contribution to the solvation energy, respectively. 
+Here $f(\varepsilon_s)$ is an empirical scaling that depends on the dielectric constant $\varepsilon_s$ of the solvent, e.g., $f(\varepsilon_s) = (\varepsilon_s - 1)/\varepsilon_s$ for COSMO and $f(\varepsilon_s) = 1$ for PCM, $\rho$ is the solute's charge density, and $W$ is the polarization potential of the solvent. The quantities $W$ and $E_s$ are usually referred to as the reaction potential and the electrostatic contribution to the solvation energy, respectively. 
 
 The reaction potential is defined as $W = \varphi - \Phi$, where $\varphi$ is the total electrostatic potential of the solute/solvent system and $\Phi$ is the potential of the solute \emph{in vacuo}. In the case of the PCM, the total potential $\varphi$ satisfies the generalized Poisson equation\cite{Mennucci_JCP_IEF1,Mennucci_JMC_IEF2}
 \begin{equation}
  \label{eq:genpoisson}
- \nabla \cdot (\varepsilon(x) \nabla \varphi) = -4\pi \rho,
+\text{div} \, (\varepsilon \, \nabla \varphi) = -4\pi \rho,
 \end{equation}
-where $\varepsilon(x) = 1$ when $x \in \Omega$ and $\varepsilon(x) = \varepsilon_s$ otherwise. As a consequence, the reaction potential fulfills
+where the coefficient $\varepsilon$ is defined as $\varepsilon(x) = 1$ when $x \in \Omega$, and $\varepsilon(x) = \varepsilon_s$ otherwise. As a consequence, the reaction potential fulfills
 \begin{equation} 
 \label{eq:pcmpde}
 \left \{ 
 \begin{alignedat}{4}
-\Delta  W &= 0  &&\mbox{in } \sR^3\setminus \Gamma  \\
+\Delta \,  W &= 0  &&\mbox{in } \sR^3\setminus \Gamma  \\
  \ [\![W]\!] &= 0  &&\mbox{on } \Gamma\\
 \  [\![\varepsilon \, \partial_n W]\!] &= (\varepsilon_s-1)\, \partial_n \Phi &\qquad& \mbox{on } \Gamma.
 \end{alignedat} 
@@ -27,28 +27,21 @@ where $\varepsilon(x) = 1$ when $x \in \Omega$ and $\varepsilon(x) = \varepsilon
 \end{equation}
 Here $\Gamma=\partial\Omega$ is the boundary of the cavity, $\partial_n$ is the normal derivative at $\Gamma$, and $[\![\,\cdot\,]\!]$ is the jump operator (inside minus outside) at $\Gamma$.
 
-The reaction potential $W$ is a \emph{single-layer potential} and can be represented\cite{sauter2010boundary} as $W(x) = (\tilde{\mathcal{S}}\sigma)(x)$ when $x \in \sR^3 \setminus \Gamma$, or $W(s) = (\mathcal{S}\sigma)(s)$ when $s \in \Gamma$, where we introduced a surface density of charge $\sigma$ usually referred to as \emph{apparent surface charge} and the operators
-\begin{equation}
- \label{eq:Stilde}
- (\tilde{\cS}\sigma)(x) = \int_{\Gamma} \frac{\sigma(s)}{|x-s|} ds\quad \forall\, x \in \sR^3 \setminus \Gamma,
+The reaction potential $W$ is a \emph{single-layer potential}, and can be represented\cite{sauter2010boundary} as $W(x) = (\tilde{\mathcal{S}}\sigma)(x)$ when $x \in \sR^3 \setminus \Gamma$, or $W(s) = (\mathcal{S}\sigma)(s)$ when $s \in \Gamma$, where we introduced a surface density of charge $\sigma$ usually referred to as \emph{apparent surface charge}. The integral operators
+\begin{equation*}
+ %\label{eq:Stilde}
+ (\tilde{\cS}\sigma)(x) = \int_{\Gamma} \frac{\sigma(t)}{|x-t|} \, dt \qquad  x \in \sR^3 \setminus \Gamma \qquad , \qquad  ({\cS}\sigma)(s) = \int_{\Gamma} \frac{\sigma(t)}{|s-t|} \, dt \qquad  s \in \Gamma
+\end{equation*}
+are known, respectively, as the single layer potential and the single layer operator. Furthermore, the latter one is invertible\cite{Calderon}. It can be shown that $\sigma$ satisfies the equation $\sigma = 1/4\pi \, [\![ \partial_n W]\!]$, so that it is possible to recast the PCM problem \eqref{eq:pcmpde} as a single integral equation for $\sigma$. Let $\cD$ be the double layer operator
+\begin{equation}\label{eq:DOper}
+ ({\cD}\sigma)(s) = \int_{\Gamma} \sigma(t) \, \partial_{n(t)} \bigg( \frac{1}{|s-t|}\bigg) \,dt \qquad s \in \Gamma
 \end{equation}
-known as single layer potential, and 
-\begin{equation}
- \label{eq:Soper}
- ({\cS}\sigma)(s) = \int_{\Gamma} \frac{\sigma(s')}{|s-s'|} ds'\quad \forall\, s \in \Gamma,
-\end{equation}
-known as single layer operator. The latter is invertible\cite{Calderon}. 
-It can be shown that $\sigma$ satisfies the equation $\sigma = 1/4\pi \, [\![ \partial_n W]\!]$, so that it is possible to recast the PCM problem \eqref{eq:pcmpde} as a single integral equation for $\sigma$. In fact, if we define the operators 
+and define the operators 
 \begin{equation}
  \label{eq:Reps}
  \cR_\varepsilon = 2\pi \, g(\varepsilon_s) \, \cI - \cD \qquad, \qquad \cR_\infty = 2\pi \, \cI - \cD
 \end{equation}
-with $g(\varepsilon_s) = (\varepsilon_s+1)/(\varepsilon_s-1)$, where $\cI$ is the identity and 
-\begin{equation}
- \label{eq:DOper}
- ({\cD}\sigma)(s) = \int_{\Gamma} \sigma(s') \partial_{n_{s'}} \frac{1}{|s-s'|} ds'\quad \forall\, s \in \Gamma,
-\end{equation}
-is the double layer operator. It can be shown\cite{ReviewPCM_2005} that the apparent surface charge satisfies
+where $g(\varepsilon_s) = (\varepsilon_s+1)/(\varepsilon_s-1)$ and $\cI$ is the identity. It can be shown\cite{ReviewPCM_2005} that the apparent surface charge satisfies
 \begin{equation}
 \label{eq:IEFPCM}
 \cR_\varepsilon \, \cS \, \sigma = - \cR_\infty \, \Phi \qquad \text{on }\Gamma
