@@ -10,7 +10,7 @@ The solvation energy can always be written as a sum of subdomain contributions. 
 	%=   2\pi \, \sum_j q_j [X_j]_0^0    \, Y_0^0
 	= \tfrac{1}{2} \, f(\varepsilon_s) \,{2\sqrt{\pi}}\, \sum_j  \,q_j \, [X_j]_0^0
 \]
-The Addition Theorem for spherical harmonics, which implies that
+Indeed, the Addition Theorem for spherical harmonics, which implies that
 \[
 W_j(x) = (\tilde{\cS}_j \, \sigma_j)(x)  = \sum_{\ell,m} \, \frac{4\pi}{ 2\ell + 1} \, |u|^\ell \, Y_\ell^m(u/|u|) \, [X_j]_\ell^m
 \]
@@ -69,7 +69,7 @@ The force acting on the $i$-th atom is then given by
 \,  \langle \Psi, \nablai X \rangle 
 % = - \langle \Psi, \nabla_j\sigma \rangle
 \]
-where the gradient is understood with respect to $x_i$, and we employed the fact that $\Psi$ is independent of the atomic positions. On the other hand, since the operators $A_\varepsilon$ and $L$, along with the right-hand-side $F$, depend on the nuclear positions, so does the solution $X$ of \eqref{eq:6}. Analogously to the ddCOSMO forces, we proceed to remove the derivative from the unknown $X$ through the solution of the adjoint problem $(A_\varepsilon \, L)^* s = \Psi$, and Leibnitz differentiation rule.
+where the gradient is understood with respect to $x_i$, and we employed the fact that $\Psi$ is independent of the atomic positions. On the other hand, since the operators $A_\varepsilon$ and $L$, along with the right-hand-side $F$, depend on the nuclear positions, so does the solution $X$ of \eqref{eq:6}. Analogously to the ddCOSMO forces, we proceed to remove the derivative from the unknown $X$ through the solution of the adjoint problem $(A_\varepsilon \, L)^* s = \Psi$.
 
 As a first step, differentiation of the COSMO equation $L\, X = G$ yields
 \[
@@ -84,7 +84,7 @@ Secondly, to deal with the term $A_\varepsilon \, \nablai G$, which involves the
 \[
 \nablai A_\varepsilon \, G + A_\varepsilon \, \nablai G = \nablai A_\infty \, F + A_\infty \, \nablai F
 \]
-The quantity $\nablai F$ is \emph{a priori} nonzero since $F$ does depend upon the nuclear positions through the characteristic functions, recall \eqref{eq:25}. Since the derivative of $A_\varepsilon$ is independent of $\varepsilon_s$, we just write $\nablai A$ and obtain
+The quantity $\nablai F$ is \emph{a priori} nonzero since $F$ does depend upon the nuclear positions through the characteristic functions, recall \eqref{eq:25}. Since the derivatives of $A_\varepsilon$ and $A_\infty$ are identical so that we just write $\nablai A$ and obtain
 \[
 \langle \Psi , \nablai X\rangle = \langle s , \nablai  A ( F - G ) \rangle + \langle  s ,{A_\infty}\, \nablai F \rangle - \langle  s , {A_\varepsilon}\, \nablai L \,  X \rangle
 \]
@@ -98,22 +98,26 @@ As a last step, we write ${A_\infty}^*\, s = ({A_\infty}-{A_\varepsilon})^*\, s 
 \]
 where the last two terms coincide with the COSMO force.
 
-Therefore that the PCM-forces we just derived are a perturbation of the COSMO-forces presented in \cite{Lipparini_JCTC_ddCOSMO}. Indeed, when $\varepsilon_s$ approaches infinity, then $G = F$ and $A_\varepsilon = {A_\infty} $, so that we recover
-\[
-\langle \Psi , \nablai X\rangle =  \langle y , \nablai F \rangle - \langle y , \nablai L \,  X \rangle
-\]
+Therefore, the PCM-forces we just derived are a perturbation of the COSMO-forces presented in \cite{Lipparini_JCTC_ddCOSMO}. Indeed, when $\varepsilon_s$ approaches infinity, then $G = F$ and $A_\varepsilon = {A_\infty} $, so that we recover
+\begin{equation}
+	\label{eq:ddCOSMOforce}
+	\langle \Psi , \nablai X\rangle =  \langle y , \nablai F \rangle - \langle y , \nablai L \,  X \rangle
+\end{equation}
 We recall that, because of the sparsity of $L$, and, consequently, its derivative $\nablai L$, the contraction $\langle y ,\nablai L \, X\rangle$ can be computed within a complexity that depends upon $L_\text{max}$, $N_\text{grid}$ and the number of neighbors $N_i$, but is independent of $M$. In other words, it is $O(1)$ with respect to the number of atoms. A similar analysis holds for the contraction $\langle y , \nablai F \rangle$. As reported in \cite{Lipparini_JCTC_ddCOSMO} for ddCOSMO, the computation of all the $M$ forces acting on all atoms is an operation of complexity $O(M)$, with a prefactor that depends at least upon $L_\text{max}$, $N_\text{grid}$, and the average number of neighbors of each atom. As we shall see below, this contrasts with the computation of the PCM-forces, which has complexity $O(M^2)$.
 
 \subsection{Efficient Implementation}
 
-Since the PCM forces are an extension of the COSMO forces, we rely on the analysis in \cite{Lipparini_JCTC_ddCOSMO} for the COSMO contribution, and only need to discuss the additional term $\langle s , \nablai  A ( F - G ) \rangle$. As previously remarked, the operator ${A_\infty} -{A_\varepsilon}$ is a rescaled identity, so that the contraction $\langle ({A_\infty}-{A_\varepsilon})\, s, \nablai F \rangle$ is completely analogous to $\langle y , \nablai F \rangle$ and can be computed in $O(1)$ operations, for each $i$.
+Since the PCM forces are an extension of the COSMO forces~\eqref{eq:ddCOSMOforce}, we rely on the analysis in \cite{Lipparini_JCTC_ddCOSMO} for the COSMO contribution, and only need to discuss the additional term $\langle s , \nablai  A ( F - G ) \rangle$. Indeed, as previously remarked, the operator ${A_\infty} -{A_\varepsilon}$ is a rescaled identity, so that the contraction $\langle ({A_\infty}-{A_\varepsilon})\, s, \nablai F \rangle$ is completely analogous to $\langle y , \nablai F \rangle$ and can be computed in $O(1)$ operations, for each $i$.
  
  
-We proceed to establish the complexity of the contraction $\langle s , \nablai  A\, X \rangle$, where we traded $F-G$ for an arbitrary vector $X$, by employing the sparsity of the derivative $\nablai A$. The entries of $A_\varepsilon$ are derived in closed for in Appendix \ref{app:pcm}. The definition \eqref{eq:ajj} of the diagonal blocks implies that $A_{jj}$ depends upon the nuclear positions $x_j$ and $x_i$ such that $i \in N_j$. Similarly, if we recall \eqref{eq:ajk}, the off-diagonal block $A_{jk}$ depends upon $x_j$, $x_k$, and $x_i$ such that $i \in N_j$. This implies that $\nablai A_{jj}$ is \emph{a priori} nonzero only when $i = j$, or $i \in N_j$. Analogously, $\nablai A_{jk}$ is \emph{a priori} nonzero only when $i = j$, or $i = k$, or $i \in N_j$. In order to restate those conditions for a \emph{fixed} index $i$, and variable indices $j$ and $k$, we make the trivial observation that $i \in N_j$ if and only if $j \in N_i$. We obtain that $\nablai A_{jj}$ is \emph{a priori} nonzero only when $j = i$, or $j \in N_i$, and $\nablai A_{jk}$ is \emph{a priori} nonzero only when $j= i$, or $k = i$, or $j \in N_i$.
+We proceed to establish the complexity of the contraction $\langle s , \nablai  A\, X \rangle$, where we traded $F-G$ for an arbitrary vector $X$, by employing the sparsity of the derivative $\nablai A$. The entries of $A_\varepsilon$ are derived in closed form in Appendix \ref{app:pcm}. The definition \eqref{eq:ajj} of the diagonal blocks implies that $A_{jj}$ depends upon the nuclear position $x_j$ and all $x_i$ such that $i \in N_j$. Similarly, if we recall \eqref{eq:ajk}, the off-diagonal block $A_{jk}$ depends upon $x_j$, $x_k$, and all $x_i$ such that $i \in N_j$. This implies that $\nablai A_{jj}$ is \emph{a priori} nonzero only when $i = j$, or $i \in N_j$. Analogously, $\nablai A_{jk}$ is \emph{a priori} nonzero only when $i = j$, or $i = k$, or $i \in N_j$. In order to restate those conditions for a \emph{fixed} index $i$, and variable indices $j$ and $k$, we make the trivial observation that $i \in N_j$ if and only if $j \in N_i$. We obtain that $\nablai A_{jj}$ is \emph{a priori} nonzero only when $j = i$, or $j \in N_i$, and $\nablai A_{jk}$ is \emph{a priori} nonzero only when $j= i$, or $k = i$, or $j \in N_i$.
 
 We employ the previous vanishing conditions to compute the contraction $\langle s , \nablai A\,X \rangle$. We rearrange the summations as
 \[
-\sum_{k,j} s_j \, \nablai A_{jk} \, X_k =  s_i \, \sum_k \, \nablai A_{ik} \, X_k + X_i \, \sum_{j \not=i} \, s_j \, \nablai A_{ji}  + \sum_{k\not=i} \,X_k \,\sum_{j\not=i} \, s_j \, \nablai A_{jk}
+	\sum_{k,j} s_j \, \nablai A_{jk} \, X_k 
+	=  s_i \, \sum_k \, \nablai A_{ik} \, X_k 
+	+ \left(\sum_{j \not=i} \, s_j \, \nablai A_{ji}  \right) X_i 
+	+ \sum_{k\not=i}  \left(\sum_{j\not=i} \, s_j \, \nablai A_{jk}\right) X_k
 \]
 Each term on the right-hand-side that involves a single summation requires a $O(M)$ computation cost, with a prefactor that depends at least upon $L_\text{max}$ and $N_\text{grid}$. The range of index $j$ in the double summation term simplifies to $N_i$ because of the vanishing conditions. Thus, its computation requires $O(M)$ operations as well, although with a prefactor that also depends upon the average number of neighbors.
 
