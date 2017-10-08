@@ -311,8 +311,10 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}{How Well Are We Doing?}
 
+\onslide*<1>{
+
 \begin{wideitemize}
-\item Compare to {\bf state-of-the-art}: Continuous Surface Charge (CSC) method by York and Karplus
+\item Compare to {\bf state-of-the-art}: Continuous Surface Charge ({\bf CSC}) method by York and Karplus
 \item CSC produces {\bf smooth energy} profiles
 \item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned.
 \end{wideitemize}
@@ -320,6 +322,75 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 \vfill
 
 \pause
+
+{\footnotesize
+\begin{center}
+\begin{table}
+	\begin{tabular}{ lrrrr  }
+\toprule[0.1em] 
+{\bf System}	& {\bf Atoms}	& {\bf CSC} {\sl(sec)} & {\bf CSC \& FMM} {\sl(sec)} & {\bf ddCOSMO} {\sl(sec)} \\
+\midrule[0.08em]
+{\sl Vancomycin}	& 377	& 20  	& 43 		&  \phantom{$<\,$1} \\
+{\sl Hiv-1-GP41} 	& 530	& 86		& 57 		& \\
+{\sl l-Plectasin} 		& 567	& 96		& 77		&  \\
+{\sl Glutaredoxin} 	& 1,277 	& 534 	& 182 	& \\
+{\sl UBCH5B}		& 2,360 	& 94		& 378 	& \\
+{\sl Carboxylase} 	& 6,605	& 777 	& 1,482	& \\
+\bottomrule[0.1em]
+	\end{tabular}
+		\caption{ \scriptsize {\bf Timings} for solution of CSM and ddCOSMO equations on 2*Xeon E2560 2GHz}
+		\end{table}
+\end{center}
+}
+
+}
+
+\onslide*<2>{
+
+\begin{wideitemize}
+\item Compare to {\bf state-of-the-art}: Continuous Surface Charge ({\bf CSC}) method by York and Karplus
+\item CSC produces {\bf smooth energy} profiles
+\item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned.
+\end{wideitemize}
+
+\vfill
+
+
+
+{\footnotesize
+\begin{center}
+\begin{table}
+	\begin{tabular}{ lrrrr  }
+\toprule[0.1em] 
+{\bf System}	& {\bf Atoms}	& {\bf CSC} {\sl(sec)} & {\bf CSC \& FMM} {\sl(sec)} & {\bf ddCOSMO} {\sl(sec)} \\
+\midrule[0.08em]
+{\sl Vancomycin}	& 377	& 20  	& 43 		&  \phantom{$<\,$1} \\
+{\sl Hiv-1-GP41} 	& 530	& 86		& 57 		& \\
+{\sl l-Plectasin} 		& 567	& 96		& 77		&  \\
+{\sl Glutaredoxin} 	& 1,277 	& 534 	& 182 	& \\
+{\sl UBCH5B}		& 2,360 	& 94		& 378 	& \\
+{\sl Carboxylase} 	& 6,605	& 777 	& 1,482	& \\
+\bottomrule[0.1em]
+	\end{tabular}
+		\caption{\scriptsize {\bf Timings} for solution of CSM and ddCOSMO equations on 2*Xeon E2560 2GHz}
+		\end{table}
+\end{center}
+}
+
+}
+
+
+\onslide*<3>{
+
+\begin{wideitemize}
+\item Compare to {\bf state-of-the-art}: Continuous Surface Charge ({\bf CSC}) method by York and Karplus
+\item CSC produces {\bf smooth energy} profiles
+\item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned.
+\end{wideitemize}
+
+\vfill
+
+
 
 {\footnotesize
 \begin{center}
@@ -336,10 +407,13 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 {\sl Carboxylase} 	& 6,605	& 777 	& 1,482	& \cellcolor{YellowGreen}3 \\
 \bottomrule[0.1em]
 	\end{tabular}
-		\caption{{\bf Timings} for solution of CSM/ddCOSMO equations on 2*Xeon E2560 2GHz}
+		\caption{\scriptsize {\bf Timings} for solution of CSM and ddCOSMO equations on 2*Xeon E2560 2GHz}
 		\end{table}
 \end{center}
 }
+
+}
+
 
 \end{frame}
 
