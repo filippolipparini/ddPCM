@@ -1,7 +1,14 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!---------------------------------------------------------------------------------------
+! Purpose : wrapper for the linear solvers for COSMO equation
 !
-! wrapper for the linear solvers for COSMO.
-! 
+!             L sigma = G = int Phi Y_l^m
+!
+!           and adjoint COSMO equation
+!
+!             L^* sigma = Psi
+!
+!---------------------------------------------------------------------------------------
+!
 ! input:
 ! 
 !   star   logical, true:  solve the adjoint COSMO equations,
@@ -32,25 +39,23 @@
 !   esolv: real,    if star is false, the solvation energy.
 !                   if star is true, it is not referenced.
 !            
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!
-! this routine performs the following operations:
+!---------------------------------------------------------------------------------------
+! This routine performs the following operations :
 !
 !   - allocates memory for the linear solvers, and fixes dodiag.
 !     This parameters controls whether the diagonal part of the matrix is considered 
 !     in matvec, which depends on the solver used. It is false for jacobi_diis and
-!     true for GMRES. 
+!     true for GMRES;
 !
 !   - if star is false and cart is true, assembles the right-hand side for the COSMO
-!     equations. Note that for GMRES, a preconditioner is applied.
+!     equations. Note that for GMRES, a preconditioner is applied;
 !
-!   - computes a guess for the solution (using the inverse diagonal)
+!   - computes a guess for the solution (using the inverse diagonal);
 !
-!   - calls the required iterative solver
+!   - calls the required iterative solver;
 !
 !   - if star is false, computes the solvation energy.
-!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!---------------------------------------------------------------------------------------
 !
 subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
@@ -75,21 +80,19 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
       external             :: lx, ldm1x, hnorm, lstarx, plx, plstarx
 !
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!---------------------------------------------------------------------------------------
 !
-!     set a few parameters for the solver and matvec routine:
-!
+!     parameters for the solver and matvec routine
       tol     = 10.0d0**(-iconv)
       n_iter  = 100
 !
-!     initialize the timer:
-!
+!     initialize the timer
       call system_clock(count_rate=cr)
       call system_clock(count=c1)
 !
-!     set solver-specific options:
+!     set solver-specific options
 !
-!     jacobi/diis
+!     Jacobi/DIIS
       if ( isolver.eq.0 ) then
 !
         do_diag = .false.
@@ -101,7 +104,7 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
 !       allocate workspace 
         allocate( work(nsph*nbasis,0:2*gmj+gmm+2 -1) , stat=istatus )
-        if ( istatus.ne.0) then
+        if ( istatus.ne.0 ) then
           write(*,*) ' cosmo: [1] failed allocation for GMRES'
           stop
         endif
@@ -113,30 +116,32 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
 !
 !     DIRECT COSMO EQUATION L X = g
-!     -----------------------------
+!     =============================
+!
       if ( .not.star ) then
 !
 !       allocate workspace for rhs
-        allocate( rhs(nbasis,nsph), stat=istatus )
+        allocate( rhs(nbasis,nsph) , stat=istatus )
         if (istatus .ne. 0) then
           write(*,*) ' cosmo: [2] failed allocation'
         endif
 !
-!       assemble the right-hand side by weighting the potential and integrating
+!       1. RHS
+!       ------
+
+!       assemble rhs
         if ( cart ) then
 !
 !         allocate workspace for weighted potential
-          allocate( g(ngrid,nsph), stat=istatus )
+          allocate( g(ngrid,nsph) , stat=istatus )
           if (istatus .ne. 0) then
             write(*,*) ' cosmo: [3] failed allocation'
           endif
 !
-!         Start weighting the potential...
-! 
+!         weight the potential...
           call wghpot( phi, g )
 !
 !         ... and compute its multipolar expansion
-!
           do isph = 1, nsph
             call intrhs( isph, g(:,isph), rhs(:,isph) )
           enddo
@@ -154,15 +159,17 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
         endif
 !
-!       assemble a guess:
+!       2. INITIAL GUESS
+!       ----------------
 !
         do isph = 1, nsph
           sigma(:,isph) = facl(:)*rhs(:,isph)
         enddo
 !
-!       call the solver:
+!       3. SOLVER CALL
+!       --------------
 !
-!       jacobi/diis
+!       Jacobi/DIIS
         if ( isolver.eq.0 ) then
 !
 !         Jacobi method : 
@@ -177,11 +184,11 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !       GMRES
         elseif ( isolver.eq.1 ) then
 !
-!         the gmres solver can not handle preconditioners, so we will solve 
+!         GMRES solver can not handle preconditioners, so we solve 
 !        
 !           P L X = P g,
 !      
-!         where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
+!         where P is a Jacobi preconditioner, hence the plx matrix-vector routine
 !
           call ldm1x( nsph*nbasis, rhs, rhs )
           call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plx, info )
@@ -191,7 +198,8 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
         endif
 !
-!       compute solvation energy :
+!       4. SOLVATION ENERGY
+!       -------------------
 !
         esolv = pt5 * ((eps - one)/eps) * sprod( nsph*nbasis, sigma, psi )
 !
@@ -201,25 +209,31 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
            write(*,*) 'cosmo: [2] failed deallocation'
         endif
 !
-!     ADJOINT COSMO EQUATION L^* X = g
-!     --------------------------------
+!
+!     ADJOINT COSMO EQUATION L^* X = Psi
+!     ==================================
+!
       else
 !
-!       assemble a guess:
+!       1. INITIAL GUESS
+!       ----------------
 !
         do isph = 1, nsph
           sigma(:,isph) = facl(:)*psi(:,isph)
         enddo
 !
-!       call the solver:
+!       2. SOLVER CALL
+!       --------------
 !
-!       jacobi/diis
-        if (isolver .eq. 0) then
+!       Jacobi/DIIS
+        if ( isolver.eq.0 ) then
 !                
+!         Jacobi method : see above
+!
           call jacobi_diis( nsph*nbasis, iprint, ndiis, 4, tol, psi, sigma, n_iter, ok, lstarx, ldm1x, hnorm )
 !          
 !       GMRES
-        else if ( isolver.eq.1 ) then
+        elseif ( isolver.eq.1 ) then
 !                
 !         allocate workspace for rhs
           allocate( rhs(nbasis,nsph), stat=istatus )
@@ -228,11 +242,11 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
             stop
           endif
 !
-!         the gmres solver can not handle preconditioners, so we will solve 
+!         GMRES solver can not handle preconditioners, so we solve 
 !  
-!           P L^* X = P g,
+!           P L^* X = P Psi,
 !
-!         where P is a jacobi preconditioner. note thus the pstarlx matrix-vector multiplication routine.
+!         where P is a Jacobi preconditioner, hence the pstarlx matrix-vector routine
 !
           call ldm1x( nsph*nbasis, psi, rhs )
           call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, sigma, work, tol, 'abs', n_iter, r_norm, plstarx, info )
@@ -240,7 +254,7 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !         solver success flag
           ok = ( info.eq.0 )
 !          
-!         deallocate workspace for rhs
+!         deallocate workspace
           deallocate( rhs , stat=istatus )
           if ( istatus.ne.0 ) then
             write(*,*) 'cosmo: [3] failed deallocation'
@@ -278,7 +292,7 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
       call system_clock(count=c2)
 !
 !     printing
-      if (iprint.gt.0) then
+      if ( iprint.gt.0 ) then
 !              
         write(iout,*)
 !        

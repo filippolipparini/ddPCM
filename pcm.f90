@@ -1,10 +1,13 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!--------------------------------------------------------------------------------------
+! Purpose : wrapper for the linear solvers for IEFPCM equation
 !
-! wrapper for the linear solvers for IEFPCM. The IEFPCM equation we want to solve is
-!
-!     R_\eps \Phi_\eps = R_\infty \Phi.
+!             A_eps Phi_eps = A_oo Phi ( = g )
 ! 
-! the right-hand side is therefore g = R_\infty \Phi.
+!           and adjoint PCM equation
+!
+!             A_eps^* Phi_eps = g
+!
+!--------------------------------------------------------------------------------------
 !
 ! input:
 ! 
@@ -32,23 +35,21 @@
 !
 !   phi_eps: real,    the solution to the COSMO (adjoint) equations
 !
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!
-! this routine performs the following operations:
+!--------------------------------------------------------------------------------------
+! This routine performs the following operations:
 !
 !   - allocates memory for the linear solvers, and fixes dodiag.
 !     This parameters controls whether the diagonal part of the matrix is considered 
 !     in matvec, which depends on the solver used. It is false for jacobi_diis and
-!     true for GMRES. 
+!     true for GMRES;
 !
 !   - if star is false and cart is true, assembles the right-hand side for the PCM
-!     equations. Note that for GMRES, a preconditioner is applied.
+!     equations. Note that for GMRES, a preconditioner is applied;
 !
-!   - computes a guess for the solution (using the preconditioner)
+!   - computes a guess for the solution (using the preconditioner);
 !
-!   - calls the required iterative solver
-!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!   - calls the required iterative solver.
+!--------------------------------------------------------------------------------------
 !
 subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !
@@ -73,20 +74,17 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !
       external             :: rx, prx, precx, hnorm, rstarx, prstarx
 !
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!--------------------------------------------------------------------------------------
 !
-!     set a few parameters for the solver and matvec routine:
-!
+!     set a few parameters for the solver and matvec routine
       tol    = 10.0d0**(-iconv)
       n_iter = 300
 !
-!     initialize the timer:
-!
+!     initialize the timer
       call system_clock(count_rate=cr)
       call system_clock(count=c1)
 !
-!     allocate additional memory for GMRES:
-
+!     allocate additional memory for GMRES
       if ( isolver.eq.1 ) then
 !
 !       allocate workspace
@@ -102,8 +100,9 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
       endif
 !
 !     
-!     DIRECT PCM EQUATION  R_\eps \Phi_\eps = R_\infty \Phi
-!     -----------------------------------------------------
+!     DIRECT PCM EQUATION  A_eps Phi_eps = A_oo Phi
+!     =============================================
+!
       if ( .not.star ) then
 !
 !       allocate workspace for rhs
@@ -115,27 +114,29 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !       initialize
         rhs = zero
 !
-!       if required, set up the preconditioner:
+!       if required, assemble the preconditioner
         if ( doprec ) then
 !
 !         allocate workspaces for preconditioner
           if ( allocated(prec) )    deallocate(prec)
           if ( allocated(precm1) )  deallocate(precm1)
-!          
           allocate( prec(nbasis,nbasis,nsph), precm1(nbasis,nbasis,nsph) , stat=istatus )
           if ( istatus.ne.0 ) then
             write(*,*) ' pcm: [3] failed allocation of the preconditioner'
             stop
           endif
 !
-!         now, build the preconditioner
+!         build the preconditioner
           do isph = 1,nsph
             call mkprec( isph, .true., prec(:,:,isph), precm1(:,:,isph) )
           enddo
 !          
         endif 
 !
-!       assemble rhs by weighting the potential and integrating
+!       1. RHS
+!       ------
+!
+!       assemble rhs
         if ( cart ) then
 !                
 !         allocate workspaces
@@ -145,18 +146,15 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
             write(*,*) ' pcm: [4] failed allocation'
           endif
 !
-!         Start weighting the potential...
-! 
+!         weight the potential...
           call wghpot( phi, g )
 !
 !         ... and compute its multipolar expansion
-!
           do isph = 1,nsph
             call intrhs( isph, g(:,isph), x(:,isph) )
           enddo
 !
-!         now, apply R_\infty [ do_diag should be set to .true. !!! ] :
-!
+!         apply A_oo [ do_diag should be set to .true. !!! ] :
           do isph = 1,nsph
             call mkrvec( isph, zero, x, rhs(:,isph), ulm, u, basloc, vplm, vcos, vsin )
           enddo
@@ -179,7 +177,7 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !       no need to manipulate rhs
         else
 !
-!         jacobi/diis
+!         Jacobi/DIIS
           if ( isolver.eq.0 ) then
 !
             rhs = glm
@@ -193,16 +191,18 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
           endif
         endif
 !
-!       assemble a guess:
+!       2. INITIAL GUESS
+!       ----------------
 !
         call precx( nsph*nbasis, rhs, phi_eps )
 !
-!       call the solver:
+!       3. SOLVER CALL
+!       --------------
 !
-!       jacobi/diis
+!       Jacobi/DIIS
         if ( isolver.eq.0 ) then
 !
-!         exclude diagonal blocks from action of R_\eps
+!         exclude diagonal blocks from action of A_eps
           do_diag = .false.
 !
 !         action of  diag^-1 :  precx
@@ -216,11 +216,11 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !       GMRES      
         elseif ( isolver.eq.1 ) then
 !
-!         the gmres solver can not handle preconditioners, so we will solve 
+!         GMRES solver can not handle preconditioners, so we solve 
 !  
-!           P R_\eps \Phi_\eps = P g,
+!           P A_eps Phi_eps = P g
 !
-!         where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
+!         where P is a Jacobi preconditioner, hence the prx matrix-vector routine
 !
           call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, phi_eps, work, tol, 'abs', n_iter, r_norm, prx, info )
 !
@@ -246,8 +246,9 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
         endif
 !
 !
-!     ADJOINT PCM EQUATION  R_\epsi^* \Phi_\eps = g
-!     ---------------------------------------------
+!     ADJOINT PCM EQUATION  A_eps^* Phi_eps = g
+!     =========================================
+!
       else
 !
 !       allocate workspace for rhs
@@ -257,9 +258,8 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
           stop
         endif
 !
-!       if required, assemble the preconditioner:
-!
-        if (doprec) then
+!       if required, assemble the preconditioner
+        if ( doprec ) then
 !
 !         allocate workspaces for the preconditionner
           if ( allocated(prec) )    deallocate( prec )
@@ -271,14 +271,16 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
           endif
 !
 !         build the preconditioner
-!
           do isph = 1,nsph
             call adjprec( isph, .true., prec(:,:,isph), precm1(:,:,isph) )
           enddo
 !          
         endif
 !
-!       jacobi/diis
+!       1. RHS
+!       ------
+!
+!       Jacobi/DIIS
         if ( isolver.eq.0 ) then
 !                
           rhs = glm
@@ -291,16 +293,18 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !          
         endif
 !
-!       assemble a guess:
+!       2. INITIAL GUESS
+!       ----------------
 !
         call precx( nbasis*nsph, rhs, phi_eps )
 !
-!       call the solver:
+!       3. SOLVER CALL
+!       --------------
 !
-!       jacobi/diis
+!       Jacobi/DIIS
         if ( isolver.eq.0 ) then
 !
-!         exclude diagonal blocks from action of R_\eps^*
+!         exclude diagonal blocks from action of A_eps^*
           do_diag = .false.
 !          
 !         action of  diag^-1 :  precx
@@ -314,11 +318,11 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
 !       GMRES
         elseif ( isolver.eq.1 ) then
 !
-!       the gmres solver can not handle preconditioners, so we will solve 
+!         GMRES solver can not handle preconditioners, so we solve 
 !  
-!         P R_\eps^* Phi_eps = P g,
+!           P A_eps^* Phi_eps = P g
 !
-!       where P is a jacobi preconditioner. note thus the plx matrix-vector multiplication routine.
+!         where P is a Jacobi preconditioner, hence the prstarx matrix-vector routine
 !
           call gmresr( (iprint.gt.0), nsph*nbasis, gmj, gmm, rhs, phi_eps, work, tol, 'abs', n_iter, r_norm, prstarx, info )
 !

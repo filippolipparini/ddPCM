@@ -344,7 +344,8 @@ endsubroutine compute_forces
 subroutine forces_pcm( Phi, Charge, Psi, Sigma, Flm, F )
 !
       use ddcosmo , only : zero, pi, ngrid, nsph, nbasis, lmax, intrhs, basis, &
-                           iprint, ncav, fdoga, eps, wghpot, sprod
+                           iprint, ncav, fdoga, eps, wghpot, sprod, ui, w, ccav, &
+                           csph
 !      
       implicit none
       real*8, dimension(ncav),        intent(in)  :: Phi
@@ -356,9 +357,10 @@ subroutine forces_pcm( Phi, Charge, Psi, Sigma, Flm, F )
 !
       real*8, dimension(ngrid,nsph) :: phiexp, xi
       real*8, dimension(nbasis,nsph) :: glm, s, y
-      real*8 :: rvoid, e0, xx(1), f_eps
+      real*8 :: rvoid, e0, xx(1), f_eps, faux(3)
+      real*8 :: zeta(ncav), ef(3,ncav)
 !
-      integer :: isph, n, c1, c2, cr
+      integer :: isph, n, c1, c2, cr, i
       real*8, parameter :: tokcal=627.509469d0
 !
 !-------------------------------------------------------------------------------------
@@ -395,9 +397,9 @@ subroutine forces_pcm( Phi, Charge, Psi, Sigma, Flm, F )
 !     ----------------------------------
 !
 !     expand Phi
-      call wghpot( Phi, phiexp )
+      call wghpot( -Phi, phiexp )
 !      
-!     compute Glm
+!     compute glm
       do isph = 1,nsph
 !      
         call intrhs( isph, phiexp(:,isph), glm(:,isph) )
@@ -407,12 +409,16 @@ subroutine forces_pcm( Phi, Charge, Psi, Sigma, Flm, F )
 !     contract
       do isph = 1,nsph 
 !      
-        call contract_dA( s, (Flm-glm) , isph, F(:,isph) )
+        call contract_dA( s, (Flm-glm) , isph, faux(:) )
+        F(:,isph) = F(:,isph) + faux(:)
 !
       enddo
 !
 !     3. < , > = < , > - 4pi/(eps-1) < s , F' >
 !     ------------------------------------------------
+!
+!     compute xi
+!     ----------
 !
 !     expand s, rescale, flip sign
       do isph = 1, nsph
@@ -430,10 +436,34 @@ subroutine forces_pcm( Phi, Charge, Psi, Sigma, Flm, F )
 !      
       enddo
 !
+!     compute zeta
+!     ------------
 !
+!     initialize index
+      i=0
+!
+!     loop over atoms
+      do isph = 1,nsph
+!
+!       loop over gridpoints
+        do n = 1,ngrid
+!
+!         non-null contribution from grid point
+          if ( ui(n,isph).gt.zero ) then
+!   
+!           advance index
+            i=i+1
+!
+!           compute zeta(i,n)
+            zeta(i) = xi(n,isph)*w(n)*ui(n,isph)
+!            
+          endif
+        enddo
+      enddo
+!      
 !     time computation of forces
       call system_clock( count = c2 )
-!
+!      
 !     printing
       if ( iprint.gt.0 ) then
 !              
@@ -443,8 +473,50 @@ subroutine forces_pcm( Phi, Charge, Psi, Sigma, Flm, F )
       endif
 !
 !
-!     4. Scale the forces the eps factor, and flip sign
+! =========================  M O D I F Y    H E R E  =========================
+!
+!     electric field produced by the charges, at the cavity points [ TARGETS ]
+      call efld( nsph, charge, csph, ncav, ccav, ef )
+!
+!     initialize index
+      i=0
+!
+!     loop over atoms
+      do isph = 1, nsph
+!
+!       loop over gridpoints
+        do n = 1, ngrid
+!
+!         non-null contribution from integration point
+          if ( ui(n,isph).gt.zero ) then 
+!
+!           advance index
+            i=i+1
+!
+!           accumulate FIRST contribution to < z , Phi' >
+            F(:,isph) = F(:,isph) + zeta(i)*ef(:,i)
+!            
+          endif
+        enddo
+      enddo
+!
+!     electric field produced by the cavity, at the nuclei [ TARGETS ]
+      call efld( ncav, zeta, ccav, nsph, csph, ef )
+!
+!     loop over atoms
+      do isph = 1, nsph
+!      
+!       accumulate SECOND contribution to < z , Phi' >
+        F(:,isph) = F(:,isph) + ef(:,isph)*charge(isph)
+!        
+      enddo
+!
+! ==========================  E N D    M O D I F Y  ==========================
+!
+!
+!     4. Scale the forces the PCM factor, and flip sign
 !     -------------------------------------------------
+      f_eps = 0.5d0*(eps-1.d0)/eps
       F = -f_eps * F
 !
 !     energy
