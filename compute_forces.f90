@@ -84,6 +84,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       call wghpot( Phi, g )
 !
 !     compute SH expansion of Phi on i-sphere
+!$omp parallel do default(shared) private(isph)
       do isph = 1,nsph
 !      
         call intrhs( isph, g(:,isph), w_lm(:,isph) )
@@ -117,6 +118,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       w_lm(:,:) = w_lm(:,:) - Phi_eps(:,:)
 !
 !     contract
+!$omp parallel do default(shared) private(isph,basloc,dbsloc,vplm,vcos,vsin)
       do isph = 1,nsph 
 !      
 !!!        call service_routine1_new( s, w_lm , isph, f(1:3,isph) )
@@ -134,6 +136,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     expand y
       xi(:,:) = zero
 !      
+!$omp parallel do default(shared) private(isph,n)
       do isph = 1,nsph
         do n = 1,ngrid
 !        
@@ -144,6 +147,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       enddo
 !
 !     contract
+!$omp parallel do default(shared) private(isph,basloc,dbsloc,vplm,vcos,vsin)
       do isph = 1, nsph
 !
 !       accumulate f += K_a contribution to < y , L' sigma >
@@ -162,6 +166,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       vplm(:) = zero ; vcos(:) = zero ; vsin(:) = zero
 !      
 !     compute z = A_oo^T s
+!$omp parallel do default(shared) private(isph,basloc,dbsloc,vplm,vcos,vsin,xlm,x)
       do isph = 1,nsph
 !      
         call ADJvec( isph, zero, s(:,:), z(:,isph), xlm, x, basloc, vplm, vcos, vsin )
@@ -171,6 +176,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
 !     expand z
       xi(:,:) = zero
 !      
+!$omp parallel do default(shared) private(isph)
       do isph = 1,nsph
         do n = 1,ngrid
 !        
@@ -204,6 +210,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       enddo
 ! 
 !     loop over atoms
+!$omp parallel do default(shared) private(isph)
       do isph = 1,nsph
 !
 !       accumulate f -= sum_n U_n^i' Phi_n^i xi(i,n) 
@@ -240,7 +247,7 @@ subroutine compute_forces( Phi, charge, Psi, sigma, Phi_eps, f )
       if ( iprint.gt.0 ) then
 !              
         write(*,1010) dble(c2-c1)/dble(cr)
- 1010   format(' computation time of ddPCM forces = ',f8.3,' secs.')
+ 1010   format(' computation time of ddPCM forces = ',f12.4,' secs.')
 ! 
       endif
 !
@@ -792,10 +799,11 @@ subroutine compute_grad( isph, jsph, n, t, dt, ds, basloc, dbsloc, x, f2 )
       real*8, dimension(  nbasis), intent(in)  :: x
       real*8, dimension(3),        intent(out) :: f2
 !
-      real*8, dimension(3,nbasis) :: s1,s2,f1
+!     real*8, dimension(3,nbasis) :: s2,f1
+      real*8, dimension(nbasis,3) :: s1,s2,f1
       real*8, dimension(3) :: s3
       real*8 :: tt,fl,fac
-      integer :: icomp,jcomp,l,m,ind
+      integer :: icomp,jcomp,l,m,ind,lm
 !      
 !----------------------------------------------------------------------------------
 ! Recall :
@@ -829,23 +837,41 @@ subroutine compute_grad( isph, jsph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !     compute s1
       do icomp = 1,3
 !      
-        s1(icomp,1:nbasis) = dt(icomp) * basloc(1:nbasis) * ui(n,jsph)
+        s1(:,icomp) = dt(icomp)*basloc(:)
+!       s1(icomp,1:nbasis) = dt(icomp) * basloc(1:nbasis) * ui(n,jsph)
 !        
       enddo
+      s1 = s1*ui(n,jsph)
+!fl
+!     write(6,*) 's1:'
+!     write(6,'(3f16.8)') transpose(s1)
+!     write(6,'(3f16.8)') s1
 !
 !     compute s2
-      s2(1:3,1:nbasis) = zero
+      s2 = zero
+!     s2(1:3,1:nbasis) = zero
 !      
-      do icomp = 1,3
+!     do icomp = 1,3
 !
 !       accumulate
-        do jcomp = 1,3
+!       do jcomp = 1,3
 !
-          s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(jcomp,icomp)
+!         s2(icomp,1:nbasis) = s2(icomp,1:nbasis) + dbsloc(jcomp,1:nbasis)*ds(jcomp,icomp)
+!         s2(:,icomp) = s2(:,icomp) + dbsloc(jcomp,:)*ds(jcomp,icomp)
 !
-        enddo
+!       enddo
 !
-        s2(icomp,1:nbasis) = ui(n,jsph)*s2(icomp,1:nbasis) + du(icomp,isph,n,jsph)*basloc(1:nbasis)
+!     end do
+!
+      call dgemm('t','n',nbasis,3,3,ui(n,jsph),dbsloc,3,ds,3,zero,s2,nbasis)
+!
+!     s2 = s2*ui(n,jsph)
+!
+      do icomp = 1, 3
+      
+!       s2(:,icomp) = s2(:,icomp)*ui(n,jsph) + basloc(:)*du(icomp,isph,n,jsph)
+!
+        s2(:,icomp) = s2(:,icomp) + basloc(:)*du(icomp,isph,n,jsph)
 !
       enddo
 !
@@ -860,18 +886,31 @@ subroutine compute_grad( isph, jsph, n, t, dt, ds, basloc, dbsloc, x, f2 )
         fac = four*pi*fl / (two*fl+one)
 !
 !       build f1
-        f1(1:3,1:nbasis) = tt * ( (fl+one)*s1(1:3,1:nbasis) + t*s2(1:3,1:nbasis) )
+!       do lm = 1, nbasis
+!         do icomp = 1, 3
+!           f1(icomp,lm) = tt * ( (fl+one)*s1(icomp,lm) + t*s2(icomp,lm))
+!           f1(icomp,lm) = tt * ( (fl+one)*s1(lm,icomp) + t*s2(icomp,lm))
+!           f1(lm,icomp) = tt * ( (fl+one)*s1(lm,icomp) + t*s2(lm,icomp))
+!         end do
+!       end do
+        f1 = tt * ( (fl+one)*s1 + t*s2 )
+!       f1(1:3,1:nbasis) = tt * ( (fl+one)*s1(1:nbasis,1:3) + t*s2(1:3,1:nbasis) )
+!       f1(1:3,1:nbasis) = tt * ( (fl+one)*s1(1:3,1:nbasis) + t*s2(1:3,1:nbasis) )
+!       do icomp = 1, 3
+!         f1(:,icomp) = tt * ( (fl+one)*s1(:,icomp) + t*s2(:,icomp) )
+!       end do
 !
 !       compute 1st index
         ind = l*l + l + 1
 !
 !       initialize s3(l)
-        s3(1:3) = zero
+        s3 = zero
 !
 !       contract over m
         do m = -l,l
 !
-          s3(1:3) = s3(1:3) + f1(1:3,ind+m) * x(ind+m)          
+!         s3(1:3) = s3(1:3) + f1(1:3,ind+m) * x(ind+m)          
+          s3 = s3 + f1(ind+m,:) * x(ind+m)          
 !
         enddo
 !
@@ -883,8 +922,100 @@ subroutine compute_grad( isph, jsph, n, t, dt, ds, basloc, dbsloc, x, f2 )
 !
       enddo
 !
+end subroutine compute_grad
 !
-endsubroutine compute_grad
+subroutine compute_grad2( isph, jsph, n, t, basloc, x, f2 )
+!
+      use ddcosmo , only : lmax, nbasis, zero, one, two, four, pi, ui, du, zi
+!
+      implicit none
+      integer,                     intent(in)  :: isph
+      integer,                     intent(in)  :: jsph
+      integer,                     intent(in)  :: n
+      real*8,                      intent(in)  :: t
+      real*8, dimension(  nbasis), intent(in)  :: basloc
+      real*8, dimension(  nbasis), intent(in)  :: x
+      real*8, dimension(3),        intent(out) :: f2
+!
+!     real*8, dimension(3,nbasis) :: s2,f1
+      real*8, dimension(nbasis,3) :: s1,s2,f1
+      real*8, dimension(3) :: s3
+      real*8 :: tt,fl,fac
+      integer :: icomp,jcomp,l,m,ind,lm
+!      
+!----------------------------------------------------------------------------------
+! Recall :
+!
+!   f1(1:3,lm) = \grad [ U * t^l+1 * Y(s) ]
+!
+!              = (\grad U) t^l+1 * Y(s) + U * t^l [ (l+1) (\grad t) Y(s) + t ( \grad s )^T \grad Y(s) ]
+!
+!              = t^l [ (l+1) (\grad t) U * Y + t [ (\grad U) Y + U ( \grad s )^T \grad Y ] ]
+!
+!              = tt  [ (l+1) s1(1:3,lm)      + t   s2(1:3,lm) ]
+!
+! and :
+!
+!                  4 pi l
+!   f2(1:3) = sum  ------  sum x(lm) * f1(1:3,lm)
+!              l   2l + 1   m
+!
+!                  4 pi l
+!           = sum  ------  s3(1:3,l)  
+!              l   2l + 1 
+!
+!           = sum fac(l) * s3(1:3,l) 
+!              l
+!
+!----------------------------------------------------------------------------------
+!
+!     initialize f2
+      f2(1:3) = zero
+!
+!     compute s2
+      s2 = zero
+!
+      do icomp = 1, 3
+!
+        s2(:,icomp) = s2(:,icomp) + basloc(:)*du(icomp,isph,n,jsph)
+!
+      enddo
+!
+!     initialize factor t^l
+      tt = one
+!
+!     contract over l
+      do l = 0,lmax
+!
+!       build factor : 4pi*l / (2l+1)
+        fl = dble(l)
+        fac = four*pi*fl / (two*fl+one)
+        f1 = tt * ( t*s2 )
+!
+!       compute 1st index
+        ind = l*l + l + 1
+!
+!       initialize s3(l)
+        s3 = zero
+!
+!       contract over m
+        do m = -l,l
+!
+!         s3(1:3) = s3(1:3) + f1(1:3,ind+m) * x(ind+m)          
+          s3 = s3 + f1(ind+m,:) * x(ind+m)          
+!
+        enddo
+!
+!       accumulate for f2
+        f2(1:3) = f2(1:3) + fac*s3(1:3)
+!
+!       update factor t^l
+        tt = tt*t
+!
+      enddo
+!
+end subroutine compute_grad2
+!
 !------------------------------------------------------------------------------      
 !
 !
@@ -894,7 +1025,7 @@ subroutine contract_dA( s, x, isph, f )
 !
       use ddcosmo , only : ui, nsph, nbasis, zero, ngrid, w, one, basis, csph, &
                            rsph, grid, zi, lmax, dbasis, du, pi, two, intrhs, &
-                           inl, nl
+                           inl, nl, ylmbas
 !
       implicit none 
       real*8, dimension(nbasis,nsph), intent(in)    :: s
@@ -909,7 +1040,7 @@ subroutine contract_dA( s, x, isph, f )
       real*8, dimension(3,3) :: ds_ijn
       real*8 :: vvij,t_ijn,f3!!,err
       integer :: n,icomp,jcomp,jsph,ksph,ivoid,ind,l,m,i
-      real*8 :: fgrid(3,ngrid), flm(3,nbasis),fac,ss
+      real*8 :: fgrid(3,ngrid), flm(3,nbasis),fac,ss,dunorm
 !      
 !------------------------------------------------------------------------------      
 !
@@ -1020,17 +1151,139 @@ subroutine contract_dA( s, x, isph, f )
 !
 !           skip diagonal term
             if ( ksph.eq.jsph )  cycle
+            if (ksph .ne. isph .and. jsph.ne.isph) then
+!             contract over l,m
+              dunorm = dot_product(du(:,isph,n,jsph),du(:,isph,n,jsph))
+              if (dunorm .lt. 1.0d-14) cycle
+              f3 = dot_product( basis(:,n), s(:,jsph) )
 !
-!           contract over l,m
-            f3 = dot_product( basis(:,n), s(:,jsph) )
+!             compute s_ijn, t_ijn
+              vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,ksph)
+              vvij     = sqrt( dot_product( vij(:), vij(:) ) )
+              t_ijn    = rsph(ksph)/vvij 
+              s_ijn(:) =     vij(:)/vvij
 !
-!           compute s_ijn, t_ijn
-            vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,ksph)
-            vvij     = sqrt( dot_product( vij(:), vij(:) ) )
-            t_ijn    = rsph(ksph)/vvij 
-            s_ijn(:) =     vij(:)/vvij
+!             compute Y_l'^m'(s_ijn) 
+              call ylmbas( s_ijn, basloc, vplm, vcos, vsin)
 !
-!           derivatives of s, t
+!             compute f2(j,n)
+!             ---------------
+              call compute_grad2 ( isph, jsph, n, t_ijn, basloc, x(:,ksph), f2(1:3) )
+!
+!             call compute_grad2(isph, jsph, n, s_ijn, t_ijn, x(:,ksph), f2)
+!
+!             accumulate for f4(n)
+!             --------------------
+              f4(1:3) = f4(1:3) - f3 * f2(1:3)
+!
+            else
+!
+!             contract over l,m
+              f3 = dot_product( basis(:,n), s(:,jsph) )
+!
+!             compute s_ijn, t_ijn
+              vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,ksph)
+              vvij     = sqrt( dot_product( vij(:), vij(:) ) )
+              t_ijn    = rsph(ksph)/vvij 
+              s_ijn(:) =     vij(:)/vvij
+!
+!             derivatives of s, t
+              if ( isph.eq.jsph ) then
+!
+!               compute derivatives \grad_i t_ijn
+                dt_ijn(1:3) = -rsph(ksph) * vij(1:3) / vvij**3
+!
+!               compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+                do icomp = 1,3
+                  do jcomp = 1,3
+!
+                    ds_ijn(icomp,jcomp) = -vij(icomp)*vij(jcomp) / vvij**3
+!
+                    if ( icomp.eq.jcomp ) then
+!
+                      ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) + one / vvij
+!
+                    endif
+!                    
+                  enddo
+                enddo
+!                
+              elseif ( isph.eq.ksph ) then
+!
+!               compute derivatives \grad_i t_ijn
+                dt_ijn(1:3) = rsph(ksph) * vij(1:3) / vvij**3
+!                
+!               compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
+                do icomp = 1,3
+                  do jcomp = 1,3
+!
+                    ds_ijn(icomp,jcomp) = vij(icomp)*vij(jcomp) / vvij**3
+!
+                    if ( icomp.eq.jcomp ) then
+!
+                      ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) - one / vvij
+!
+                    endif
+!                    
+                  enddo
+                enddo
+!
+              else
+!                      
+!               compute derivatives \grad_i t_ijn
+                dt_ijn(1:3) = zero
+!                
+!               compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
+                ds_ijn(1:3,1:3) = zero
+!                
+              endif
+!               
+!             compute Y_l'^m'(s_ijn) , d_i Y_l'^m' ( ... )
+              call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
+!
+!             compute f2(j,n)
+!             ---------------
+              call compute_grad( isph, jsph, n, t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,ksph), f2(1:3) )
+!                      
+!             accumulate for f4(n)
+!             --------------------
+              f4(1:3) = f4(1:3) - f3 * f2(1:3)
+!
+            end if
+!
+          enddo
+!
+!
+!         case j = i
+          jsph = isph
+!
+!         skip diagonal term
+          if ( ksph.eq.jsph )  cycle
+!
+!         contract over l,m
+          f3 = dot_product( basis(:,n), s(:,jsph) )
+!
+!         compute s_ijn, t_ijn
+          vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,ksph)
+          vvij     = sqrt( dot_product( vij(:), vij(:) ) )
+          t_ijn    = rsph(ksph)/vvij 
+          s_ijn(:) =     vij(:)/vvij
+!
+!         derivatives of s, t
+          if ( jsph .ne. isph .and. ksph .ne. isph) then
+!
+!             compute Y_l'^m'(s_ijn) 
+              call ylmbas( s_ijn, basloc, vplm, vcos, vsin)
+!
+!             compute f2(j,n)
+!             ---------------
+              call compute_grad2 ( isph, jsph, n, t_ijn, basloc, x(:,ksph), f2(1:3) )
+!
+!             accumulate for f4(n)
+!             --------------------
+              f4(1:3) = f4(1:3) - f3 * f2(1:3)
+!
+          else
             if ( isph.eq.jsph ) then
 !
 !             compute derivatives \grad_i t_ijn
@@ -1092,87 +1345,7 @@ subroutine contract_dA( s, x, isph, f )
 !           --------------------
             f4(1:3) = f4(1:3) - f3 * f2(1:3)
 
-          enddo
-!
-!
-!         case j = i
-          jsph = isph
-!
-!         skip diagonal term
-          if ( ksph.eq.jsph )  cycle
-!
-!         contract over l,m
-          f3 = dot_product( basis(:,n), s(:,jsph) )
-!
-!         compute s_ijn, t_ijn
-          vij(:)   = csph(:,jsph) + rsph(jsph)*grid(:,n) - csph(:,ksph)
-          vvij     = sqrt( dot_product( vij(:), vij(:) ) )
-          t_ijn    = rsph(ksph)/vvij 
-          s_ijn(:) =     vij(:)/vvij
-!
-!         derivatives of s, t
-          if ( isph.eq.jsph ) then
-!
-!           compute derivatives \grad_i t_ijn
-            dt_ijn(1:3) = -rsph(ksph) * vij(1:3) / vvij**3
-!
-!           compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
-            do icomp = 1,3
-              do jcomp = 1,3
-!
-                ds_ijn(icomp,jcomp) = -vij(icomp)*vij(jcomp) / vvij**3
-!
-                if ( icomp.eq.jcomp ) then
-!
-                  ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) + one / vvij
-!
-                endif
-!                
-              enddo
-            enddo
-!            
-          elseif ( isph.eq.ksph ) then
-!
-!           compute derivatives \grad_i t_ijn
-            dt_ijn(1:3) = rsph(ksph) * vij(1:3) / vvij**3
-!            
-!           compute derivatives ds_kjn,icomp / dr_j,jcomp = ds_ijn(icomp,jcomp)
-            do icomp = 1,3
-              do jcomp = 1,3
-!
-                ds_ijn(icomp,jcomp) = vij(icomp)*vij(jcomp) / vvij**3
-!
-                if ( icomp.eq.jcomp ) then
-!
-                  ds_ijn(icomp,jcomp) = ds_ijn(icomp,jcomp) - one / vvij
-!
-                endif
-!                
-              enddo
-            enddo
-!
-          else
-!                  
-!           compute derivatives \grad_i t_ijn
-            dt_ijn(1:3) = zero
-!            
-!           compute derivatives ds_ijn,icomp / dr_i,jcomp = ds_ijn(icomp,jcomp)
-            ds_ijn(1:3,1:3) = zero
-!            
-          endif
-!           
-!         compute Y_l'^m'(s_ijn) , d_i Y_l'^m' ( ... )
-          call dbasis( s_ijn, basloc, dbsloc, vplm, vcos, vsin )
-!
-!         compute f2(j,n)
-!         ---------------
-          call compute_grad( isph, jsph, n, t_ijn, dt_ijn, ds_ijn, basloc, dbsloc, x(:,ksph), f2(1:3) )
-!                  
-!         accumulate for f4(n)
-!         --------------------
-          f4(1:3) = f4(1:3) - f3 * f2(1:3)
-
-
+          end if
 
         enddo
 !

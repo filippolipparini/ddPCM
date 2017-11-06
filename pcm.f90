@@ -150,11 +150,15 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
           call wghpot( phi, g )
 !
 !         ... and compute its multipolar expansion
+!
+!$omp parallel do default(shared) private(isph)
           do isph = 1,nsph
             call intrhs( isph, g(:,isph), x(:,isph) )
           enddo
 !
 !         apply A_oo [ do_diag should be set to .true. !!! ] :
+!
+!$omp parallel do default(shared) private(isph,ulm,u,basloc,vplm,vcos,vsin)
           do isph = 1,nsph
             call mkrvec( isph, zero, x, rhs(:,isph), ulm, u, basloc, vplm, vcos, vsin )
           enddo
@@ -271,6 +275,8 @@ subroutine pcm( star, cart, doprec, phi, glm, phi_eps )
           endif
 !
 !         build the preconditioner
+!
+!$omp parallel do default(shared) private(isph)
           do isph = 1,nsph
             call adjprec( isph, .true., prec(:,:,isph), precm1(:,:,isph) )
           enddo
