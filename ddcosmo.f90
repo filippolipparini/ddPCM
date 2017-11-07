@@ -159,6 +159,7 @@ module ddcosmo
       logical :: use_fmm = .false.
 !
 !     - subroutines & functions
+!     =========================
 !
 !     read_control_file  - read control file
 !     read_molecule_file - read molecule file
@@ -167,23 +168,23 @@ module ddcosmo
 !     ddinit             - initialize data structure
 !     memfree            - free data structure
 !     sprod              - scalar product
-!     fsw                - smoothing function
-!     dfsw               - derivative of smoothing function
+!     fsw                - switch function
+!     dfsw               - derivative of switch function
 !     ptcart             - print routine
 !     prtsph             - print routine
-!     intrhs             - integrate spherical harmonics expansions
+!     intrhs             - integrate spherical harmonics expansion
 !     ylmbas             - compute spherical harmonics Y_l^m
 !     dbasis             - compute derivatives of spherical harmonics
 !     polleg             - compute Legendre polynomials
 !     trgev              - service routine for computation of spherical harmonics
-!     intmlp             -
-!     wghpot             -
-!     hsnorm             -
+!     intmlp             - compute quantity needed for COSMO action
+!     wghpot             - weigh potential at cavity points
+!     hsnorm             - compute H-norm on unit sphere
 !     adjrhs1            - auxiliary routine for COSMO adjoint action
 !     header             - print header
-!     fdoka              -
-!     fdokb              -
-!     fdoga              -
+!     fdoka              - ??? [Filippo, please fill in...]
+!     fdokb              - ??? [Filippo, please fill in...]
+!     fdoga              - ??? [Filippo, please fill in...]
 !     calcv2             - auxiliary routine for COSMO action
 !
       contains
@@ -815,6 +816,10 @@ subroutine memfree
 !
 endsubroutine memfree
 !---------------------------------------------------------------------------------
+!
+!
+!
+!
 !
 !---------------------------------------------------------------------------------
 real*8 function sprod(n,u,v)

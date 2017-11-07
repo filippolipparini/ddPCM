@@ -125,7 +125,7 @@ program main
       integer :: i, istatus, idec, iidec, igrid
       real*8  :: esolv, xx(1)
 !
-      logical :: interactive_mode = .false.
+      logical :: interactive_mode = .true.
 !
 ! -------------------------------------------------------------------------------------
 !
