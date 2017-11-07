@@ -1,0 +1,523 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/MacPorts 2016_3) (preloaded format=pdflatex 2016.7.4)  7 NOV 2017 09:34
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**ddpcm-sub.tex
+(./ddpcm-sub.tex
+LaTeX2e <2016/03/31>
+Babel <3.9r> and hyphenation patterns for 83 language(s) loaded.
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/revtex/revtex4-1.cls
+Document Class: revtex4-1 2010/07/25/20:33:00 4.1r (http://publish.aps.org/revt
+ex4/ for documentation)
+ Copyright (c) 2009 The American Physical Society.
+ mailto:revtex@aps.org
+ Licensed under the LPPL:
+http://www.ctan.org/tex-archive/macros/latex/base/lppl.txt
+ Arthur Ogawa <arthur_ogawa at sbcglobal dot net>
+ Based on work by David Carlisle <david at dcarlisle.demon.co.uk>.
+ltxutil[2010/07/25/20:33:00 4.1r utilities package (portions licensed from W. E
+. Baxter web at superscript.com)]
+LaTeX Info: Redefining \@centercr on input line 308.
+Class revtex4-1 Info: Repairing broken LaTeX eqnarray on input line 358.
+\eqncolsep=\skip41
+Class revtex4-1 Info: Repairing hyperref-unfriendly LaTeX definition of \mpfoot
+note on input line 433.
+Class revtex4-1 Info: Repairing broken LateX \@sect on input line 755.
+\intertabularlinepenalty=\count79
+\@tbpen=\count80
+\@arstrutbox@hline=\box26
+Class revtex4-1 Info: Repairing broken LaTeX \@xbitor on input line 1786.
+Class revtex4-1 Info: Making \typeout \long on input line 2046.
+ltxfront[2010/07/25/20:33:00 4.1r frontmatter package (AO,DPC)]
+\c@affil=\count81
+\c@collab=\count82
+\absbox=\box27
+ltxgrid[2010/07/25/20:33:00 4.1r page grid package (portions licensed from W. E
+. Baxter web at superscript.com)]
+\c@linecount=\count83
+\output@latex=\toks14
+\box@size@1=\box28
+\box@size@2=\box29
+\@protection@box=\box30
+\@topmark@saved=\toks15
+\footins@saved=\box31
+\footins@recovered=\box32
+\column@recovered=\box33
+\pagesofar=\box34
+\footsofar=\box35
+\pagegrid@col=\count84
+Class revtex4-1 Info: Overriding \@vspace, \@vspacer, \@no@pgbk, \@newline, and
+ \\  on input line 5578.
+\c@part=\count85
+\c@section=\count86
+\c@subsection=\count87
+\c@subsubsection=\count88
+\c@paragraph=\count89
+\c@subparagraph=\count90
+\abovecaptionskip=\skip42
+\belowcaptionskip=\skip43
+\c@figure=\count91
+\fbox@1=\box36
+\c@table=\count92
+\fbox@2=\box37
+\c@video=\count93
+\fbox@4=\box38
+\@bibdataout=\write3
+\widetext@top=\box39
+\widetext@bot=\box40
+Class revtex4-1 Info: Selecting society aip on input line 7542.
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/revtex/aip4-1.rtx
+File: aip4-1.rtx 2010/07/25 4.1r AIP substyle for REVTeX
+Class revtex4-1 Info: RevTeX society AIP selected on input line 67.
+)
+Class revtex4-1 Info: Selecting journal jcp on input line 7544.
+
+Using journal substyle jcp.
+Class revtex4-1 Info: Reading file aps12pt4-1.rtx on input line 7547.
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/revtex/aps12pt4-1.rtx
+File: aps12pt4-1 2010/07/25/20:33:00 4.1r (http://publish.aps.org/revtex4/ for 
+documentation)
+Class revtex4-1 Info: RevTeX pointsize 12pt selected on input line 30.
+)
+Class revtex4-1 Info: Overriding 12pt on input line 7547.
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/textcase/textcase.sty
+Package: textcase 2004/10/07 v0.07 Text only upper/lower case changing (DPC)
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/url/url.sty
+\Urlmuskip=\muskip10
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/natbib/natbib.sty
+Package: natbib 2010/09/13 8.31b (PWD, AO)
+\bibhang=\skip44
+\bibsep=\skip45
+LaTeX Info: Redefining \cite on input line 694.
+\c@NAT@ctr=\count94
+)
+Class revtex4-1 Info: Repairing natbib's \BibitemShut on input line 7549.
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/revtex/revsymb4-1.sty
+Package: revsymb4-1 2010/07/25/20:33:00 4.1r (http://publish.aps.org/revtex4/ f
+or documentation)
+LaTeX Info: Redefining \REV@mathfrak on input line 119.
+))
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/base/inputenc.sty
+Package: inputenc 2015/03/17 v1.2c Input encoding file
+\inpenc@prehook=\toks16
+\inpenc@posthook=\toks17
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/ucs/utf8x.def
+File: utf8x.def 2004/10/17 UCS: Input encoding UTF-8
+))
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/ucs/ucs.sty
+Package: ucs 2013/05/11 v2.2 UCS: Unicode input support
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/ucs/data/uni-global.def
+File: uni-global.def 2013/05/13 UCS: Unicode global data
+)
+\uc@secondtry=\count95
+\uc@combtoks=\toks18
+\uc@combtoksb=\toks19
+\uc@temptokena=\toks20
+) (/Applications/MacPorts/share/texmf-texlive/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2016/03/10 v2.15b AMS math features
+\@mathmargin=\skip46
+
+For additional information on amsmath, use the `?' option.
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/amsmath/amstext.sty
+Package: amstext 2000/06/29 v2.01 AMS text
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks21
+\ex@=\dimen102
+)
+LaTeX Info: Redefining \text on input line 28.
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen103
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/amsmath/amsopn.sty
+Package: amsopn 2016/03/08 v2.02 operator names
+)
+\inf@bad=\count96
+LaTeX Info: Redefining \frac on input line 199.
+\uproot@=\count97
+\leftroot@=\count98
+LaTeX Info: Redefining \overline on input line 297.
+\classnum@=\count99
+\DOTSCASE@=\count100
+LaTeX Info: Redefining \ldots on input line 394.
+LaTeX Info: Redefining \dots on input line 397.
+LaTeX Info: Redefining \cdots on input line 518.
+\Mathstrutbox@=\box41
+\strutbox@=\box42
+\big@size=\dimen104
+LaTeX Font Info:    Redeclaring font encoding OML on input line 634.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 635.
+\macc@depth=\count101
+\c@MaxMatrixCols=\count102
+\dotsspace@=\muskip11
+\c@parentequation=\count103
+\dspbrk@lvl=\count104
+\tag@help=\toks22
+\row@=\count105
+\column@=\count106
+\maxfields@=\count107
+\andhelp@=\toks23
+\eqnshift@=\dimen105
+\alignsep@=\dimen106
+\tagshift@=\dimen107
+\tagwidth@=\dimen108
+\totwidth@=\dimen109
+\lineht@=\dimen110
+\@envbody=\toks24
+\multlinegap=\skip47
+\multlinetaggap=\skip48
+\mathdisplay@stack=\toks25
+LaTeX Info: Redefining \[ on input line 2739.
+LaTeX Info: Redefining \] on input line 2740.
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+LaTeX Info: Redefining \frak on input line 111.
+LaTeX Info: Redefining \Bbb on input line 113.
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/tools/bm.sty
+Package: bm 2016/02/27 v1.2a Bold Symbol Support (DPC/FMi)
+\symboldoperators=\mathgroup6
+\symboldletters=\mathgroup7
+\symboldsymbols=\mathgroup8
+LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 142.
+LaTeX Info: Redefining \bm on input line 208.
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/graphics/color.sty
+Package: color 2016/05/09 v1.1c Standard LaTeX Color (DPC)
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package color Info: Driver file: pdftex.def on input line 144.
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/pdftex-def/pdftex.def
+File: pdftex.def 2011/05/27 v0.06d Graphics/color for pdfTeX
+
+(/Applications/MacPorts/share/texmf-texlive/tex/generic/oberdiek/infwarerr.sty
+Package: infwarerr 2016/05/16 v1.4 Providing info/warning/error messages (HO)
+) (/Applications/MacPorts/share/texmf-texlive/tex/generic/oberdiek/ltxcmds.sty
+Package: ltxcmds 2016/05/16 v1.23 LaTeX kernel commands for general use (HO)
+)
+\Gread@gobject=\count108
+)) (/Applications/MacPorts/share/texmf-texlive/tex/latex/graphics/graphicx.sty
+Package: graphicx 2014/10/28 v1.0g Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/graphics/keyval.sty
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks26
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/graphics/graphics.sty
+Package: graphics 2016/05/09 v1.0r Standard LaTeX Graphics (DPC,SPQR)
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/graphics/trig.sty
+Package: trig 2016/01/03 v1.10 sin cos tan (DPC)
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/graphics-cfg/graphics.cfg
+File: graphics.cfg 2016/01/02 v1.10 sample graphics configuration
+)
+Package graphics Info: Driver file: pdftex.def on input line 96.
+)
+\Gin@req@height=\dimen111
+\Gin@req@width=\dimen112
+) (/Applications/MacPorts/share/texmf-texlive/tex/latex/booktabs/booktabs.sty
+Package: booktabs 2016/04/27 v1.618033 publication quality tables
+\heavyrulewidth=\dimen113
+\lightrulewidth=\dimen114
+\cmidrulewidth=\dimen115
+\belowrulesep=\dimen116
+\belowbottomsep=\dimen117
+\aboverulesep=\dimen118
+\abovetopsep=\dimen119
+\cmidrulesep=\dimen120
+\cmidrulekern=\dimen121
+\defaultaddspace=\dimen122
+\@cmidla=\count109
+\@cmidlb=\count110
+\@aboverulesep=\dimen123
+\@belowrulesep=\dimen124
+\@thisruleclass=\count111
+\@lastruleclass=\count112
+\@thisrulewidth=\dimen125
+) (/Applications/MacPorts/share/texmf-texlive/tex/latex/tools/array.sty
+Package: array 2014/10/28 v2.4c Tabular extension package (FMi)
+\col@sep=\dimen126
+\extrarowheight=\dimen127
+\NC@list=\toks27
+\extratabsurround=\skip49
+\backup@length=\skip50
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/graphics/epsfig.sty
+Package: epsfig 1999/02/16 v1.7a (e)psfig emulation (SPQR)
+\epsfxsize=\dimen128
+\epsfysize=\dimen129
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/subfig/subfig.sty
+Package: subfig 2005/06/28 ver: 1.3 subfig package
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/caption/caption.sty
+Package: caption 2016/02/21 v3.3-144 Customizing captions (AR)
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/caption/caption3.sty
+Package: caption3 2016/02/04 v1.7-139 caption3 kernel (AR)
+Package caption3 Info: TeX engine: e-TeX on input line 67.
+\captionmargin=\dimen130
+\captionmargin@=\dimen131
+\captionwidth=\dimen132
+\caption@tempdima=\dimen133
+\caption@indent=\dimen134
+\caption@parindent=\dimen135
+\caption@hangindent=\dimen136
+Package caption Info: Unknown document class (or package),
+(caption)             standard defaults will be used.
+)
+
+Package caption Warning: Unsupported document class (or package) detected,
+(caption)                usage of the caption package is not recommended.
+See the caption package documentation for explanation.
+
+Package caption Info: \@makecaption = \long macro:#1#2->\par \vskip \abovecapti
+onskip \begingroup \small \rmfamily \sbox \@tempboxa {\let \\\heading@cr \@make
+@capt@title {#1}{#2}}\@ifdim {\wd \@tempboxa >\hsize }{\begingroup \samepage \f
+lushing \let \footnote \@footnotemark@gobble \@make@capt@title {#1}{#2}\par \en
+dgroup }{\global \@minipagefalse \hb@xt@ \hsize {\hfil \unhbox \@tempboxa \hfil
+ }}\endgroup \vskip \belowcaptionskip .
+\c@ContinuedFloat=\count113
+)
+\c@KVtest=\count114
+\sf@farskip=\skip51
+\sf@captopadj=\dimen137
+\sf@capskip=\skip52
+\sf@nearskip=\skip53
+\c@subfigure=\count115
+\c@subfigure@save=\count116
+\c@lofdepth=\count117
+\c@subtable=\count118
+\c@subtable@save=\count119
+\c@lotdepth=\count120
+\sf@top=\skip54
+\sf@bottom=\skip55
+) (/Applications/MacPorts/share/texmf-texlive/tex/latex/multirow/multirow.sty
+\bigstrutjot=\dimen138
+)
+\tbspace=\skip56
+Class revtex4-1 Info: Patching array package. on input line 61.
+Class revtex4-1 Info: Robustifying \LaTeX's \boldmath command on input line 61.
+
+Class revtex4-1 Info: cite was not loaded (OK!) on input line 61.
+Class revtex4-1 Info: mcite was not loaded (OK!) on input line 61.
+Class revtex4-1 Info: multicol was not loaded (OK!) on input line 61.
+(./ddpcm-sub.aux)
+\openout1 = `ddpcm-sub.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 61.
+LaTeX Font Info:    ... okay on input line 61.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 61.
+LaTeX Font Info:    ... okay on input line 61.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 61.
+LaTeX Font Info:    ... okay on input line 61.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 61.
+LaTeX Font Info:    ... okay on input line 61.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 61.
+LaTeX Font Info:    ... okay on input line 61.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 61.
+LaTeX Font Info:    ... okay on input line 61.
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/ucs/ucsencs.def
+File: ucsencs.def 2011/01/21 Fixes to fontencodings LGR, T3
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count121
+\scratchdimen=\dimen139
+\scratchbox=\box43
+\nofMPsegments=\count122
+\nofMParguments=\count123
+\everyMPshowfont=\toks28
+\MPscratchCnt=\count124
+\MPscratchDim=\dimen140
+\MPnumerator=\count125
+\makeMPintoPDFobject=\count126
+\everyMPtoPDFconversion=\toks29
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/generic/oberdiek/pdftexcmds.sty
+Package: pdftexcmds 2016/05/10 v0.21 Utility functions of pdfTeX for LuaTeX (HO
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/generic/oberdiek/ifluatex.sty
+Package: ifluatex 2016/05/16 v1.4 Provides the ifluatex switch (HO)
+Package ifluatex Info: LuaTeX not detected.
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/generic/oberdiek/ifpdf.sty
+Package: ifpdf 2016/05/14 v3.1 Provides the ifpdf switch
+)
+Package pdftexcmds Info: LuaTeX not detected.
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+)
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/oberdiek/epstopdf-base.st
+y
+Package: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
+ (/Applications/MacPorts/share/texmf-texlive/tex/latex/oberdiek/grfext.sty
+Package: grfext 2016/05/16 v1.2 Manage graphics extensions (HO)
+
+(/Applications/MacPorts/share/texmf-texlive/tex/generic/oberdiek/kvdefinekeys.s
+ty
+Package: kvdefinekeys 2016/05/16 v1.4 Define keys (HO)
+))
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/oberdiek/kvoptions.sty
+Package: kvoptions 2016/05/16 v3.12 Key value format for package options (HO)
+
+(/Applications/MacPorts/share/texmf-texlive/tex/generic/oberdiek/kvsetkeys.sty
+Package: kvsetkeys 2016/05/16 v1.17 Key value parser (HO)
+
+(/Applications/MacPorts/share/texmf-texlive/tex/generic/oberdiek/etexcmds.sty
+Package: etexcmds 2016/05/16 v1.6 Avoid name clashes with e-TeX commands (HO)
+Package etexcmds Info: Could not find \expanded.
+(etexcmds)             That can mean that you are not using pdfTeX 1.50 or
+(etexcmds)             that some package has redefined \expanded.
+(etexcmds)             In the latter case, load this package earlier.
+)))
+Package grfext Info: Graphics extension search list:
+(grfext)             [.png,.pdf,.jpg,.mps,.jpeg,.jbig2,.jb2,.PNG,.PDF,.JPG,.JPE
+G,.JBIG2,.JB2,.eps]
+(grfext)             \AppendGraphicsExtensions on input line 456.
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/latexconfig/epstopdf-sys.
+cfg
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
+e
+))
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: subfig package v1.3 is loaded.
+Package caption Info: End \AtBeginDocument code.
+\openout3 = `ddpcm-subNotes.bib'.
+
+LaTeX Font Info:    Try loading font information for U+msa on input line 84.
+ (/Applications/MacPorts/share/texmf-texlive/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 84.
+
+(/Applications/MacPorts/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+[1{/Applications/MacPorts/var/db/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+(./0_intro.tex [2]
+Overfull \hbox (20.27122pt too wide) in paragraph at lines 13--15
+[]\OT1/cmr/m/n/12 Standard im-ple-men-ta-tions of PCSM's usu-ally em-ploy the B
+ound-ary El-e-ment Method$[]$
+ []
+
+[3]) (./1_review.tex [4] [5] [6] [7] [8]) (./2_forces.tex [9] [10] [11]
+[12]) (./3_experiments.tex [13]
+Package epstopdf Info: Source file: <figs/serial.eps>
+(epstopdf)                    date: 2017-10-20 10:38:21
+(epstopdf)                    size: 25355 bytes
+(epstopdf)             Output file: <figs/serial-eps-converted-to.pdf>
+(epstopdf)                    date: 2017-10-20 10:38:21
+(epstopdf)                    size: 8864 bytes
+(epstopdf)             Command: <repstopdf --outfile=figs/serial-eps-converted-
+to.pdf figs/serial.eps>
+(epstopdf)             \includegraphics on input line 74.
+Package epstopdf Info: Output file is already uptodate.
+
+<figs/serial-eps-converted-to.pdf, id=59, 505.89pt x 371.3875pt>
+File: figs/serial-eps-converted-to.pdf Graphic file (type pdf)
+
+<use figs/serial-eps-converted-to.pdf>
+Package pdftex.def Info: figs/serial-eps-converted-to.pdf used on input line 74
+.
+(pdftex.def)             Requested size: 280.80286pt x 206.14516pt.
+ [14]
+Package epstopdf Info: Source file: <figs/para.eps>
+(epstopdf)                    date: 2017-10-20 10:38:21
+(epstopdf)                    size: 26310 bytes
+(epstopdf)             Output file: <figs/para-eps-converted-to.pdf>
+(epstopdf)                    date: 2017-10-20 10:38:21
+(epstopdf)                    size: 8903 bytes
+(epstopdf)             Command: <repstopdf --outfile=figs/para-eps-converted-to
+.pdf figs/para.eps>
+(epstopdf)             \includegraphics on input line 84.
+Package epstopdf Info: Output file is already uptodate.
+
+<figs/para-eps-converted-to.pdf, id=70, 505.89pt x 371.3875pt>
+File: figs/para-eps-converted-to.pdf Graphic file (type pdf)
+
+<use figs/para-eps-converted-to.pdf>
+Package pdftex.def Info: figs/para-eps-converted-to.pdf used on input line 84.
+(pdftex.def)             Requested size: 280.80286pt x 206.14516pt.
+) (./4_conclusions.tex [15 <./figs/serial-eps-converted-to.pdf>]) [16 <./figs/p
+ara-eps-converted-to.pdf>] (./5_app1.tex
+[17] [18]) (./7_app3.tex [19] [20]) (./8_app4.tex [21] [22]) (./ddpcm-sub.bbl
+[23]
+Underfull \hbox (badness 10000) in paragraph at lines 244--252
+[]\OT1/cmr/m/n/12 E. Boulanger and W. Thiel, J. Chem. The-ory Com-put. \OT1/cmr
+/bx/n/12 8\OT1/cmr/m/n/12 , 4527 (2012),
+ []
+
+[24]
+Underfull \hbox (badness 2213) in paragraph at lines 440--448
+[]\OT1/cmr/m/n/12 N. Rega, M. Cossi,  and V. Barone, J. Am. Chem. Soc. \OT1/cmr
+/bx/n/12 120\OT1/cmr/m/n/12 , 5723 (1998),
+ []
+
+[25]) [26] (./ddpcm-sub.aux) ) 
+Here is how much of TeX's memory you used:
+ 6476 strings out of 493014
+ 96942 string characters out of 6129649
+ 189695 words of memory out of 5000000
+ 9872 multiletter control sequences out of 15000+600000
+ 17411 words of font info for 64 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 44i,12n,42p,1473b,412s stack positions out of 5000i,500n,10000p,200000b,80000s
+</Applications/MacPorts/share/texmf-texlive/fonts
+/type1/public/amsfonts/cm/cmbx10.pfb></Applications/MacPorts/share/texmf-texliv
+e/fonts/type1/public/amsfonts/cm/cmbx12.pfb></Applications/MacPorts/share/texmf
+-texlive/fonts/type1/public/amsfonts/cm/cmex10.pfb></Applications/MacPorts/shar
+e/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Applications/MacPor
+ts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi12.pfb></Applications
+/MacPorts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi6.pfb></Applic
+ations/MacPorts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi7.pfb></
+Applications/MacPorts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi8.
+pfb></Applications/MacPorts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/
+cmr10.pfb></Applications/MacPorts/share/texmf-texlive/fonts/type1/public/amsfon
+ts/cm/cmr12.pfb></Applications/MacPorts/share/texmf-texlive/fonts/type1/public/
+amsfonts/cm/cmr6.pfb></Applications/MacPorts/share/texmf-texlive/fonts/type1/pu
+blic/amsfonts/cm/cmr7.pfb></Applications/MacPorts/share/texmf-texlive/fonts/typ
+e1/public/amsfonts/cm/cmr8.pfb></Applications/MacPorts/share/texmf-texlive/font
+s/type1/public/amsfonts/cm/cmsl10.pfb></Applications/MacPorts/share/texmf-texli
+ve/fonts/type1/public/amsfonts/cm/cmss12.pfb></Applications/MacPorts/share/texm
+f-texlive/fonts/type1/public/amsfonts/cm/cmss8.pfb></Applications/MacPorts/shar
+e/texmf-texlive/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></Applications/MacP
+orts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Applicatio
+ns/MacPorts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmsy6.pfb></Appl
+ications/MacPorts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmsy7.pfb>
+</Applications/MacPorts/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmsy
+8.pfb></Applications/MacPorts/share/texmf-texlive/fonts/type1/public/amsfonts/c
+m/cmti12.pfb></Applications/MacPorts/share/texmf-texlive/fonts/type1/public/ams
+fonts/symbols/msbm10.pfb>
+Output written on ddpcm-sub.pdf (26 pages, 330976 bytes).
+PDF statistics:
+ 193 PDF objects out of 1000 (max. 8388607)
+ 136 compressed objects within 2 object streams
+ 0 named destinations out of 1000 (max. 500000)
+ 11 words of extra memory for PDF output out of 10000 (max. 10000000)
+
