@@ -160,7 +160,7 @@ program main
 !     initialize
       call ddinit( nsph, read_x, read_y, read_z, read_r )
 !      
-!
+!  
 ! ==============================  M O D I F Y   H E R E  ============================== 
 !
 ! Place here your favorite routine to assemble the solute's electrostatic potential
