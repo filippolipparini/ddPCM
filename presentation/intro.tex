@@ -5,30 +5,64 @@
 
 \onslide*<1>{
 
+%{\footnotesize
+%\begin{center}
+%\begin{table}
+%	\begin{tabular}{ lrrr  }
+%\toprule[0.1em] 
+%{\bf Search query}	& {\bf Google Scholar hits}	& {\bf MathSciNet hits} & {\bf Ratio} \\
+%\midrule[0.08em]
+%\rowcolor{RedOrange}
+%{\sl Navier Stokes}			& 537,000		& 8,220	& 65 \\
+%\rowcolor{RedOrange}
+%{\sl Maxwell equations} 		& 194,000		& 1,892	& 102 \\
+%\rowcolor{YellowGreen}
+%{\sl Molecular dynamics} 		& 1,550,000	& 325	& 4,769 \\
+%\rowcolor{YellowGreen}
+%{\sl Density functional theory} 	& 1,200,000 	& 124 	& 9,677 \\
+%\rowcolor{YellowGreen}
+%{\sl Particle Mesh Ewald}		& 24,200 		& 1		& 24,200 \\
+%\rowcolor{YellowGreen}
+%{\sl Continuum solvation model} 	& 6,320		& 0 		&$\alert{\infty}$\\
+%\rowcolor{YellowGreen}
+%{\sl Polarizable force field}		& 3,670		& 0		&$\alert{\infty}$ \\
+%\bottomrule[0.1em]
+%	\end{tabular}
+%	\caption{\scriptsize October 2017}
+%	\end{table}
+%\end{center}
+%}
+
+
 {\footnotesize
 \begin{center}
+\begin{table}
 	\begin{tabular}{ lrrr  }
 \toprule[0.1em] 
 {\bf Search query}	& {\bf Google Scholar hits}	& {\bf MathSciNet hits} & {\bf Ratio} \\
 \midrule[0.08em]
 \rowcolor{RedOrange}
-{\sl Navier Stokes}			& 537,000		& 8,220	& 65 \\
+{\sl Navier Stokes}			& 699,000		& 9,467	& 79 \\
 \rowcolor{RedOrange}
-{\sl Maxwell equations} 		& 194,000		& 1,892	& 102 \\
+{\sl Maxwell equations} 		& 1,120,000		& 2,648	& 423 \\
 \rowcolor{YellowGreen}
-{\sl Molecular dynamics} 		& 1,550,000	& 325	& 4,769 \\
+{\sl Molecular dynamics} 		& 3,440,000	& 496	& 6,936 \\
 \rowcolor{YellowGreen}
-{\sl Density functional theory} 	& 1,200,000 	& 124 	& 9,677 \\
+{\sl Density functional theory} 	& 3,050,000 	& 164 	& 18,598 \\
 \rowcolor{YellowGreen}
-{\sl Particle Mesh Ewald}		& 24,200 		& 1		& 24,200 \\
+{\sl Particle Mesh Ewald}		& 47,200 		& 2		& 23,600 \\
 \rowcolor{YellowGreen}
-{\sl Continuum solvation model} 	& 6,320		& 0 		&$\alert{\infty}$\\
+{\sl Continuum solvation model} 	& 102,000		& 1 		&102,000\\
 \rowcolor{YellowGreen}
-{\sl Polarizable force field}		& 3,670		& 0		&$\alert{\infty}$ \\
+{\sl Polarizable force field}		& 106,000		& 0		&{\normalsize${\color{Red}{\infty}}$} \\
 \bottomrule[0.1em]
 	\end{tabular}
+	\caption{\scriptsize October 2017}
+	\end{table}
 \end{center}
 }
+
+
 
 }
 
@@ -37,7 +71,7 @@
 \begin{figure}
 \begin{center}
 \includegraphics[scale=1]{figures/pie_chart.pdf}
-\caption{Distribution of LEF's by scientific area}
+\caption{\scriptsize Distribution of LEF's by scientific area}
 \end{center}
 \end{figure}
 
@@ -105,14 +139,17 @@
 \end{center}
 
 \begin{wideitemize}
-\item {\bf Cavity} $\Omega$, bounded by a {\bf solvent excluded surface} accommodates {\bf solute}
-\item Typically, $\Omega$ is a {\bf Van der Waals} cavity
+\item A {\bf hollow cavity} $\Omega$ bounded by a surface $\Gamma$ accommodates {\bf solute}
+\item Typically $\Omega$ is a {\bf Van der Waals} cavity
 \[
 \Omega = \textstyle \bigcup_{\,j=1}^{\,M} \: \Omega_j \qquad ; \qquad \Omega_j = B(x_j, r_j) \qquad , \qquad r_j = \textsl{\footnotesize Van der Waals radius} \displaybump
 \]
 %, i.e., union of {\bf spheres} $\Omega_j = B(x_j, r_j)$, one per atom
 \item Infinite {\bf continuum} replaces individual {\bf solvent} molecules
-\item Solute/solvent interaction modeled as {\bf electrostatic interaction} %between the charge density of the solute and the continuum medium
+%\item {\bf Electrostatic energy} of solute is {\bf modified} by presence of solvent
+\item Solute/solvent {\bf interaction} contributes {\bf extra term} $E_s$ to {\bf electrostatic energy} of solute \emph{in vacuo}
+%\item Add {\bf contribution} $E_s$ to electrostatic energy \emph{in vacuo}
+%\item Solute/solvent interaction modeled as {\bf electrostatic interaction} %between the charge density of the solute and the continuum medium
 \item {\bf Short-range} interactions (dispersion, repulsion, cavitation, etc.)~treated with {\bf empirical} expressions.
 \end{wideitemize}
 
@@ -134,19 +171,19 @@
 
 \begin{wideitemize}
 %\item COSMO approximates the solute/solvent {\bf interactions} as purely {\bf electrostatic forces}
-\item {\bf Solvent} treated as {\bf conductor-like} medium with permittivity $\varepsilon_s \gg 1$
-\item {\bf Electrostatic energy} of the solute/solvent system
+\item {\bf Solvent} treated as {\bf conductor-like} medium
+\item {\bf Contribution} to electrostatic  {\bf energy} of charge density $\varrho$ of solute
 \begin{align*}
 E_s =\tfrac{1}{2} \;  f(\varepsilon_s)  \int_{\Omega}\varrho(x) W(x)\, dx \displaybump
 \end{align*}
-where $\varrho$ is the {\bf charge} density of the solute, $f(\varepsilon_s)$ is an empirical {\bf scaling}
+with $f(\varepsilon_s)$ an {\bf empirical scaling} depending upon {\bf permittivity} $\varepsilon_s$ of solvent
 \medskip
-\item Poisson problem for {\bf reaction potential} $W$
+\item Poisson problem for {\bf reaction potential} $W = V - \Phi$ of solvent
 \begin{alignat*}{3}
 -\Delta \, W &= 0 &&\text{in } \Omega \displaybump \\
 W &=-\Phi \qquad &&\text{on }\Gamma
 \end{alignat*}
-where $\Phi$ is the {\bf electric potential} generated by the solute in \emph{vacuum}.
+with $\Phi$ the {\bf electric potential} generated by the solute in \emph{vacuum}.
 \item Solute/solvent {\bf interaction} consists purely of {\bf electrostatic forces}.
 \end{wideitemize}
 
@@ -302,7 +339,7 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 }\displaybump
 \]
 \item Unfortunately, operator $L$ is {\bf non symmetric}
-\item Operator $L$ is {\bf well-conditioned} and {\bf diagonally dominant}
+\item Operator $L$ is {\bf well-conditioned}
 \item Employ {\bf iterative} method to solve COSMO system $L \, X = F$.
 \end{wideitemize}
 
@@ -314,9 +351,10 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 \onslide*<1>{
 
 \begin{wideitemize}
-\item Compare to {\bf state-of-the-art}: Continuous Surface Charge ({\bf CSC}) method by York and Karplus
+\item State-of-the-art: {\bf Continuous Surface Charge} (CSC) method by York and Karplus
 \item CSC produces {\bf smooth energy} profiles
-\item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned.
+\item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned
+\item Employ \textsc{Gaussian}\textsuperscript{\textregistered} for {\bf benchmark} tests.
 \end{wideitemize}
 
 \vfill
@@ -334,8 +372,8 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 {\sl Hiv-1-GP41} 	& 530	& 86		& 57 		& \\
 {\sl l-Plectasin} 		& 567	& 96		& 77		&  \\
 {\sl Glutaredoxin} 	& 1,277 	& 534 	& 182 	& \\
-{\sl UBCH5B}		& 2,360 	& 94		& 378 	& \\
-{\sl Carboxylase} 	& 6,605	& 777 	& 1,482	& \\
+{\sl UBCH5B}		& 2,360 	& 5,640	& 378 	& \\
+{\sl Carboxylase} 	& 6,605	& 46,620 	& 1,482	& \\
 \bottomrule[0.1em]
 	\end{tabular}
 		\caption{ \scriptsize {\bf Timings} for solution of CSM and ddCOSMO equations on 2*Xeon E2560 2GHz}
@@ -348,9 +386,10 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 \onslide*<2>{
 
 \begin{wideitemize}
-\item Compare to {\bf state-of-the-art}: Continuous Surface Charge ({\bf CSC}) method by York and Karplus
+\item State-of-the-art: {\bf Continuous Surface Charge} (CSC) method by York and Karplus
 \item CSC produces {\bf smooth energy} profiles
-\item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned.
+\item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned
+\item Employ \textsc{Gaussian}\textsuperscript{\textregistered} for {\bf benchmark} tests.
 \end{wideitemize}
 
 \vfill
@@ -368,8 +407,8 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 {\sl Hiv-1-GP41} 	& 530	& 86		& 57 		& \\
 {\sl l-Plectasin} 		& 567	& 96		& 77		&  \\
 {\sl Glutaredoxin} 	& 1,277 	& 534 	& 182 	& \\
-{\sl UBCH5B}		& 2,360 	& 94		& 378 	& \\
-{\sl Carboxylase} 	& 6,605	& 777 	& 1,482	& \\
+{\sl UBCH5B}		& 2,360 	& 5,640	& 378 	& \\
+{\sl Carboxylase} 	& 6,605	& 46,620 	& 1,482	& \\
 \bottomrule[0.1em]
 	\end{tabular}
 		\caption{\scriptsize {\bf Timings} for solution of CSM and ddCOSMO equations on 2*Xeon E2560 2GHz}
@@ -383,9 +422,10 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 \onslide*<3>{
 
 \begin{wideitemize}
-\item Compare to {\bf state-of-the-art}: Continuous Surface Charge ({\bf CSC}) method by York and Karplus
+\item State-of-the-art: {\bf Continuous Surface Charge} (CSC) method by York and Karplus
 \item CSC produces {\bf smooth energy} profiles
-\item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned.
+\item CSC is {\bf not} systematically {\bf improvable}, and {\bf poorly} conditioned
+\item Employ \textsc{Gaussian}\textsuperscript{\textregistered} for {\bf benchmark} tests.
 \end{wideitemize}
 
 \vfill
@@ -403,8 +443,8 @@ W(s) = \int_\Gamma \frac{\sigma(t)}{|s - t|} \, dt =:  (\mathcal{S} \, \sigma) (
 {\sl Hiv-1-GP41} 	& 530	& 86		& 57 		& \cellcolor{YellowGreen}$<\,$1 \\
 {\sl l-Plectasin} 		& 567	& 96		& 77		& \cellcolor{YellowGreen}$<\,$1 \\
 {\sl Glutaredoxin} 	& 1,277 	& 534 	& 182 	& \cellcolor{YellowGreen}$<\,$1 \\
-{\sl UBCH5B}		& 2,360 	& 94		& 378 	& \cellcolor{YellowGreen}1 \\
-{\sl Carboxylase} 	& 6,605	& 777 	& 1,482	& \cellcolor{YellowGreen}3 \\
+{\sl UBCH5B}		& 2,360 	& 5,640	& 378 	& \cellcolor{YellowGreen}1 \\
+{\sl Carboxylase} 	& 6,605	& 46,620 	& 1,482	& \cellcolor{YellowGreen}3 \\
 \bottomrule[0.1em]
 	\end{tabular}
 		\caption{\scriptsize {\bf Timings} for solution of CSM and ddCOSMO equations on 2*Xeon E2560 2GHz}
@@ -525,7 +565,7 @@ where $\mathcal{R}_\varepsilon = 2\pi \,g(\varepsilon_s) \, Id - \mathcal{D}$, a
 }  \displaybump
 \]
 \item Unfortunately, operator $A_\varepsilon$ is {\bf non symmetric}
-\item
+\item Employ {\bf iterative} method to solve ddPCM system $A_\varepsilon \, G = A_\infty \, F$.
 %\item Operator $L$ is {\bf well-conditioned} and {\bf diagonally dominant}
 %\item Employ {\bf iterative} method to solve COSMO system $L \, X = F$.
 \end{wideitemize}
@@ -576,7 +616,7 @@ where $\Psi$ is a vector {\bf independent} of nuclear positions
 
 \begin{wideitemize}
 
-\item {\bf Adjoint} problem $(A_\varepsilon \, L)' s = \Psi$ {\bf trasfers} operator to second argument
+\item {\bf Adjoint} problem $(A_\varepsilon \, L)' s = \Psi$ {\bf transfers} operator to second argument
 \[
 \langle \Psi \, , \nabla X \rangle = \langle (A_\varepsilon \, L)' s \, , \nabla X \rangle = \langle  s \, , A_\varepsilon \, L \,\nabla X \rangle \displaybump
 \]
@@ -607,7 +647,7 @@ L \, \alert{X} & = \alert{G} &&\Rightarrow  &L \, \alert{\nabla X} & = \alert{\n
 
 \begin{wideitemize}
 
-\item {\bf Adjoint} problem $(A_\varepsilon \, L)' s = \Psi$ {\bf trasfers} operator to second argument
+\item {\bf Adjoint} problem $(A_\varepsilon \, L)' s = \Psi$ {\bf transfers} operator to second argument
 \[
 \langle \Psi \, , \nabla X \rangle = \langle (A_\varepsilon \, L)' s \, , \nabla X \rangle = \langle  s \, , A_\varepsilon \, L \,\nabla X \rangle \displaybump
 \]
@@ -637,7 +677,7 @@ L \, \alert{X} & = \alert{G} &&\Rightarrow  &L \, \alert{\nabla X} & = \alert{\n
 
 \begin{wideitemize}
 
-\item {\bf Adjoint} problem $(A_\varepsilon \, L)' s = \Psi$ {\bf trasfers} operator to second argument
+\item {\bf Adjoint} problem $(A_\varepsilon \, L)' s = \Psi$ {\bf transfers} operator to second argument
 \[
 \langle \Psi \, , \nabla X \rangle = \langle (A_\varepsilon \, L)' s \, , \nabla X \rangle = \langle  s \, , A_\varepsilon \, L \,\nabla X \rangle \displaybump
 \]
@@ -755,5 +795,38 @@ L \, \alert{X} & = \alert{G} &&\Rightarrow  &L \, \alert{\nabla X} & = \alert{\n
 
 }
 
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}{Numerical Results}
+
+
+\onslide*<1>{
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.18]{figures/crambin.png}
+\caption{\scriptsize Crambin, 642 atoms}
+\end{center}
+\end{figure}
+
+\begin{wideitemize}
+\item Extract {\bf chains} of atoms of length 80, 160, 240, etc. to employ as {\bf benchmark} set.
+\end{wideitemize}
+
+}
+
+
+\onslide*<2>{
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.45]{figures/plot.png}
+%\caption{Example of Solvatochromism}
+\end{center}
+\end{figure}
+
+}
 
 \end{frame}
