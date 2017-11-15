@@ -496,10 +496,23 @@ $x_ {-3,3}$  &&  0.23529E-02  &   &  0.11751E-02  &  1.002  &&  0.58720E-03  &  
 \caption{Relative error and converge rate for a configuration of 6 spheres with radii equal to 1.5, and centers $x_{\pm \alpha} =  \pm e_\alpha$ for $\alpha = 1, 2,3$.  Results where obtained with an angular momentum $L_\text{max} =  8$, and an integration grid with $N_\text{grid} = 110$ nodes. Each atomic position coordinate $x_{\pm\alpha,\beta}$, where $\beta = 1,2,3$, was perturbed as $(1 + \delta)x_{\pm\alpha , \beta}$, thus generating only six nonzero variations, starting from an initial value $\delta_0 = 10^{-3}$.}\label{tab:1}
 \end{center}
 \end{table}
-These results prove the correctness of our implementation. 
-
-
-\input{caffeine.tex}
+These results prove the correctness of our implementation. \color{red}As a further proof, we report in table \ref{tab:fnum} the root-mean-square and maximum difference between the ddPCM forces computed analytically or via finite differences (using an increment $\delta=10^{-5}$ Bohrs) for several small to medium-sized molecules.
+\begin{table}
+ \caption{Root-mean-square and maximum difference (in Hartree/Bohr) between the ddPCM forces computed analytically and via finite differences ($\delta=10^{-5}$ Bohrs). The electrostatic solvation energy is also reported (in kcal/mol). Ala$_2$ and Ala$_4$ are the alanine dimer and its tetramer, respectively. \label{tab:fnum}}
+ \begin{tabular}{lrrr}
+  \toprule[0.1em] 
+  Molecule & RMS difference & Max difference & $E_{\rm solve}$\\
+  \midrule[0.05em]
+   Formaldehyde & $2 \cdot 10^{-10}$ & $2 \cdot 10^{-10}$ & -1.19 \\
+   Benzene & $1 \cdot 10^{-9}$ & $3 \cdot 10^{-9}$ & -0.21 \\
+   Caffeine & $2 \cdot 10^{-8}$ & $9 \cdot 10^{-6}$ & -2.19 \\
+   Ala$_2$ & $4 \cdot 10^{-7}$ & $2 \cdot 10^{-6}$ & -14.29 \\
+   Ala$_4$ & $4 \cdot 10^{-7}$ & $2 \cdot 10^{-6}$ & -26.30 \\
+  \bottomrule[0.1em]
+ \end{tabular}
+\end{table}
+The differences reported in table \ref{tab:fnum} are well within the numerical error associated with the numerical differentiation, confirming the correctness of our implementation.\color{black}
+%\input{caffeine.tex}
 
 % lmax =  8 , ngrid =  110 - Integration points PRESENT in the switch region
 % eta = 0.2, s = 0
