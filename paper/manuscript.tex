@@ -531,9 +531,9 @@ Geometries suitable for testing were obtained from Crambin, a small globular pro
  \includegraphics[width=0.6\textwidth]{serial.eps}
 \end{figure}
 
-The small discrepancy between the fitted exponent in Figure \ref{fig:serial}, i.e., 1.94, and the theoretical quadratic prediction can be justified in terms of the size of the tested systems, which fall into the pre-asymptotic, rather than asymptotic region. To support this claim, we employed a second benchmark set (see table \ref{tab:set} for details), which includes a number of increasing size molecules and four additional systems obtained by incrementally considering the first four chains of a larger protein (PDB reference 2QHO). The computation of the ddPCM forces was performed using the shared-memory (OpenMP) parallel version of the code. 
+The small discrepancy between the fitted exponent in Figure \ref{fig:serial}, i.e., 1.94, and the theoretical quadratic prediction can be justified in terms of the size of the tested systems, which fall into the pre-asymptotic, rather than asymptotic region. \color{red}To support this claim, we employed a second benchmark set (see table \ref{tab:set} for details), which includes a number of increasing size molecules and four additional systems obtained by incrementally considering the first four chains of a larger protein (PDB reference 2QHO). The computation of the ddPCM forces was performed using the shared-memory (OpenMP) parallel version of the code. 
 \begin{table}
- \caption{Systems used to compute the scaling of the ddPCM forces.\label{tab:ref}. Peptide refers to a peptide formed by all 20 aminoacids. For 2QHO, the chains considered are reported in parentheses.}
+ \caption{Systems used to compute the scaling of the ddPCM forces. Peptide refers to a peptide formed by all 20 aminoacids. For 2QHO, the chains considered are reported in parentheses.\label{tab:set}}
  \begin{tabular}{lr}
   \toprule[0.1em] 
   Name or PDB reference & \# Atoms \\
@@ -550,9 +550,8 @@ The small discrepancy between the fitted exponent in Figure \ref{fig:serial}, i.
   \bottomrule[0.1em]
  \end{tabular}
 \end{table}
-
-The timings are reported in
-Figure \ref{fig:para}, and the fitted exponent, i.e., 1.98, supports our claim of asymptotic quadratic complexity. We remark that, overall, the observed timings are encouraging, despite the code not having been fully optimized. Nevertheless, the quadratic scaling makes the application of the ddPCM method to large systems challenging. 
+\color{black}
+The timings are reported in figure \ref{fig:para}, and the fitted exponent, i.e., 1.98, supports our claim of asymptotic quadratic complexity. We remark that, overall, the observed timings are encouraging, despite the code not having been fully optimized. Nevertheless, the quadratic scaling makes the application of the ddPCM method to large systems challenging. 
 
 
 \begin{figure}[t]
