@@ -1,7 +1,5 @@
-subroutine jacobi_diis(n, lprint, diis_max, norm, tol, rhs, x, n_iter, ok, matvec, dm1vec, u_norm)
-implicit none
-!
-! general jacobi/diis solver
+!---------------------------------------------------------------------------------------------
+! Purpose : Jacobi/DIIS solver
 !
 ! variables:
 !
@@ -41,118 +39,149 @@ implicit none
 !   u_norm   : external, optional function to compute the norm of a vector.
 !              format: real*8 function u_norm(n,x)
 !
-integer,               intent(in)    :: n, diis_max, norm, lprint
-real*8,                intent(in)    :: tol
-real*8,  dimension(n), intent(in)    :: rhs
-real*8,  dimension(n), intent(inout) :: x
-integer,               intent(inout) :: n_iter
-logical,               intent(inout) :: ok
-external                             :: matvec, dm1vec
-real*8,  optional                    :: u_norm
-external                             :: u_norm
+!---------------------------------------------------------------------------------------------
+subroutine jacobi_diis( n, lprint, diis_max, norm, tol, rhs, x, n_iter, ok, matvec, &
+                        dm1vec, u_norm)
+!                
+      implicit none
+      integer,               intent(in)    :: n, diis_max, norm, lprint
+      real*8,                intent(in)    :: tol
+      real*8,  dimension(n), intent(in)    :: rhs
+      real*8,  dimension(n), intent(inout) :: x
+      integer,               intent(inout) :: n_iter
+      logical,               intent(inout) :: ok
+      external                             :: matvec, dm1vec
+      real*8,  optional                    :: u_norm
+      external                             :: u_norm
 !
-! local variables:
+      integer :: it, nmat, istatus, lenb
+      real*8  :: rms_norm, max_norm, tol_max
+      logical :: dodiis
 !
-integer :: it, nmat, istatus, lenb
-real*8  :: rms_norm, max_norm, tol_max
-logical :: dodiis
+      real*8, allocatable :: x_new(:), y(:), x_diis(:,:), e_diis(:,:), bmat(:,:)
 !
-real*8, allocatable :: x_new(:), y(:), x_diis(:,:), e_diis(:,:), bmat(:,:)
+!---------------------------------------------------------------------------------------------
 !
-if (norm .eq. 4 .and. .not. present(u_norm)) then
-  write(6,*) ' must provide a function norm(n,x) to evaluate the norm of the increment'
-  stop
-end if
+!     check inputs
+      if ( (norm.eq.4) .and. (.not.present(u_norm)) ) then
+        write(6,*) ' must provide a function norm(n,x) to evaluate the norm of the increment'
+        stop
+      endif
 !
-dodiis = diis_max .ne. 0
-tol_max = 10.0d0 * tol
+!     DIIS extrapolation flag
+      dodiis =  (diis_max.ne.0)
 !
-if (dodiis) then
+!     set tolerance
+      tol_max = 10.0d0 * tol
 !
-! allocate memory for diis:
+!     extrapolation required
+      if (dodiis) then
 !
-  lenb = diis_max + 1
-  allocate (x_diis(n,diis_max), e_diis(n,diis_max), bmat(lenb,lenb), stat=istatus)
-  if (istatus .ne. 0) then
-    write(*,*) ' jacobi_diis: [1] failed allocation (diis)'
-    stop
-  end if
-  nmat = 1
-end if
+!       allocate workspaces
+        lenb = diis_max + 1
+        allocate( x_diis(n,diis_max), e_diis(n,diis_max), bmat(lenb,lenb) , stat=istatus )
+        if (istatus .ne. 0) then
+          write(*,*) ' jacobi_diis: [1] failed allocation (diis)'
+          stop
+        endif
+!        
+!       an enigmatic constant
+        nmat = 1
+!        
+      endif
 !
-! allocate some scratch memory:
+!     allocate workspaces
+      allocate( x_new(n), y(n) , stat=istatus )
+      if (istatus .ne. 0) then
+        write(*,*) ' jacobi_diis: [2] failed allocation (scratch)' 
+        stop
+      endif
 !
-allocate (x_new(n), y(n), stat=istatus)
-if (istatus .ne. 0) then
-  write(*,*) ' jacobi_diis: [2] failed allocation (scratch)' 
-  stop
-end if
+!     Jacobi iterations
+!     =================
+      do it = 1, n_iter
 !
-do it = 1, n_iter
+!       y = rhs - O x
+        call matvec( n, x, y )
+        y = rhs - y
 !
-! y = rhs - Ox
+!       x_new = D^-1 y
+        call dm1vec(n,y,x_new)
 !
-  call matvec(n,x,y)
-  y = rhs - y
+!       DIIS extrapolation
+!       ==================
+        if (dodiis) then
 !
-! x_new = D^-1 y
+          x_diis(:,nmat) = x_new
+          e_diis(:,nmat) = x_new - x
 !
-  call dm1vec(n,y,x_new)
+          call diis(n,nmat,diis_max,x_diis,e_diis,bmat,x_new)
 !
-! diis extrapolation:
+        endif
 !
-  if (dodiis) then
+!       increment
+        x = x_new - x
 !
-    x_diis(:,nmat) = x_new
-    e_diis(:,nmat) = x_new - x
+!       rms/max norm of increment
+        if ( norm.le.3 ) then
 !
-    call diis(n,nmat,diis_max,x_diis,e_diis,bmat,x_new)
+!         compute norm
+          call rmsvec( n, x, rms_norm, max_norm )
 !
-  end if
+!         check norm
+          if ( norm.eq.1 ) then
+!                  
+            ok = (rms_norm.lt.tol)
+            
+          elseif ( norm.eq.2 ) then
+!                  
+            ok = (max_norm.lt.tol)
+!            
+          else 
+
+            ok = (rms_norm.lt.tol) .and. (max_norm.lt.tol_max)
+!            
+          endif
 !
-  x = x_new - x
+!       user-provided norm of increment
+        elseif ( norm.eq.4 ) then
 !
-! compute the norm of the increment:
+!         just a placeholder for printing
+          max_norm = -1.d0
 !
-  if (norm .le. 3) then
+!         compute norm
+          rms_norm = u_norm( n, x )
 !
-! use the rms/max norm
+!         check norm
+          ok = (rms_norm.lt.tol)
+!          
+        endif
 !
-    call rmsvec(n,x,rms_norm,max_norm)
+!       printing
+        if ( lprint.gt.0 )  write(*,100) it, rms_norm, max_norm
+  100   format(t3,'iter=',i4,' residual norm (rms,max): ', 2d14.4 )
 !
-    if (norm .eq. 1) then
-      ok = rms_norm .lt. tol
-    else if (norm .eq. 2) then
-      ok = max_norm .lt. tol
-    else 
-      ok = rms_norm .lt. tol .and. max_norm .lt. tol_max
-    end if
+!       update
+        x = x_new
 !
-  else if (norm .eq. 4) then
+!       EXIT Jacobi loop here
+!       =====================
+        if (ok) exit
+!
+      enddo
+!
+!     record number of Jacobi iterations
+      n_iter = it
+!
+      return
 !
 !
-!   just a placeholder for printing
-    max_norm = -1.d0
+endsubroutine jacobi_diis
+!---------------------------------------------------------------------------------------------
 !
-! use a user-provided norm function
 !
-    rms_norm = u_norm(n,x)
-    ok = rms_norm .lt. tol
-  end if
 !
-  if (lprint.gt.0) write(*,100) it, rms_norm, max_norm
-100 format(t3,'iter=',i4,' residual norm (rms,max): ', 2d14.4 )
-!
-  x = x_new
-!
-  if (ok) exit
-!
-end do
-!
-n_iter = it
-!
-return
-end
+!---------------------------------------------------------------------------------------------
 !
 subroutine diis(n,nmat,ndiis,x,e,b,xnew)
 implicit none
@@ -358,23 +387,41 @@ return
 1000 format (' warning: singular matrix in gjinv!')
 end subroutine gjinv
 !
-subroutine rmsvec(n,v,vrms,vmax)
+!------------------------------------------------------------------------------
+! Purpose : compute root-mean-square and max norm
+!------------------------------------------------------------------------------
+subroutine rmsvec( n, v, vrms, vmax )
 !
-! compute root-mean-square and max norm
+      implicit none
+      integer,               intent(in)    :: n
+      real*8,  dimension(n), intent(in)    :: v
+      real*8,                intent(inout) :: vrms, vmax
 !
-implicit none
-integer,               intent(in)    :: n
-real*8,  dimension(n), intent(in)    :: v
-real*8,                intent(inout) :: vrms, vmax
+      integer :: i
+      real*8, parameter :: zero=0.0d0
+!      
+!------------------------------------------------------------------------------
+!      
+!     initialize
+      vrms = zero
+      vmax = zero
 !
-integer :: i
-real*8, parameter :: zero = 0.0d0, one = 1.0d0
-vrms = zero
-vmax = zero
-do i = 1, n
-  vmax = max(vmax,abs(v(i)))
-  vrms = vrms + v(i)*v(i)
-end do
-vrms = sqrt(vrms/dble(n))
-return
-end subroutine rmsvec
+!     loop over entries
+      do i = 1,n
+!
+!       max norm
+        vmax = max(vmax,abs(v(i)))
+!
+!       rms norm
+        vrms = vrms + v(i)*v(i)
+!        
+      enddo
+!
+!     the much neglected square root
+      vrms = sqrt(vrms/dble(n))
+!      
+      return
+!      
+!      
+endsubroutine rmsvec
+!------------------------------------------------------------------------------

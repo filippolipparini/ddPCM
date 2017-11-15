@@ -1,0 +1,412 @@
+%merlin.mbs aipnum4-1.bst 2010-07-25 4.21a (PWD, AO, DPC) hacked
+%Control: key (0)
+%Control: author (8) initials jnrlst
+%Control: editor formatted (1) identically to author
+%Control: production of article title (-1) disabled
+%Control: page (0) single
+%Control: year (1) truncated
+%Control: production of eprint (0) enabled
+\begin{thebibliography}{38}%
+\makeatletter
+\providecommand \@ifxundefined [1]{%
+ \@ifx{#1\undefined}
+}%
+\providecommand \@ifnum [1]{%
+ \ifnum #1\expandafter \@firstoftwo
+ \else \expandafter \@secondoftwo
+ \fi
+}%
+\providecommand \@ifx [1]{%
+ \ifx #1\expandafter \@firstoftwo
+ \else \expandafter \@secondoftwo
+ \fi
+}%
+\providecommand \natexlab [1]{#1}%
+\providecommand \enquote  [1]{``#1''}%
+\providecommand \bibnamefont  [1]{#1}%
+\providecommand \bibfnamefont [1]{#1}%
+\providecommand \citenamefont [1]{#1}%
+\providecommand \href@noop [0]{\@secondoftwo}%
+\providecommand \href [0]{\begingroup \@sanitize@url \@href}%
+\providecommand \@href[1]{\@@startlink{#1}\@@href}%
+\providecommand \@@href[1]{\endgroup#1\@@endlink}%
+\providecommand \@sanitize@url [0]{\catcode `\\12\catcode `\$12\catcode
+  `\&12\catcode `\#12\catcode `\^12\catcode `\_12\catcode `\%12\relax}%
+\providecommand \@@startlink[1]{}%
+\providecommand \@@endlink[0]{}%
+\providecommand \url  [0]{\begingroup\@sanitize@url \@url }%
+\providecommand \@url [1]{\endgroup\@href {#1}{\urlprefix }}%
+\providecommand \urlprefix  [0]{URL }%
+\providecommand \Eprint [0]{\href }%
+\providecommand \doibase [0]{http://dx.doi.org/}%
+\providecommand \selectlanguage [0]{\@gobble}%
+\providecommand \bibinfo  [0]{\@secondoftwo}%
+\providecommand \bibfield  [0]{\@secondoftwo}%
+\providecommand \translation [1]{[#1]}%
+\providecommand \BibitemOpen [0]{}%
+\providecommand \bibitemStop [0]{}%
+\providecommand \bibitemNoStop [0]{.\EOS\space}%
+\providecommand \EOS [0]{\spacefactor3000\relax}%
+\providecommand \BibitemShut  [1]{\csname bibitem#1\endcsname}%
+\let\auto@bib@innerbib\@empty
+%</preamble>
+\bibitem [{\citenamefont {Tomasi}, \citenamefont {Mennucci},\ and\
+  \citenamefont {Cammi}(2005)}]{ReviewPCM_2005}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {J.}~\bibnamefont
+  {Tomasi}}, \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont {Mennucci}}, \
+  and\ \bibinfo {author} {\bibfnamefont {R.}~\bibnamefont {Cammi}},\
+  }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {Chem. Rev.}\
+  }\textbf {\bibinfo {volume} {105}},\ \bibinfo {pages} {2999} (\bibinfo {year}
+  {2005})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Cramer}\ and\ \citenamefont
+  {Truhlar}(1999)}]{Cramer:1999wt}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {C.}~\bibnamefont
+  {Cramer}}\ and\ \bibinfo {author} {\bibfnamefont {D.}~\bibnamefont
+  {Truhlar}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {Chem
+  Rev}\ }\textbf {\bibinfo {volume} {99}},\ \bibinfo {pages} {2161} (\bibinfo
+  {year} {1999})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Orozco}\ and\ \citenamefont
+  {Luque}(2000)}]{Orozco_CR_Solvent00}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {M.}~\bibnamefont
+  {Orozco}}\ and\ \bibinfo {author} {\bibfnamefont {F.~J.}\ \bibnamefont
+  {Luque}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {Chem.
+  Rev.}\ }\textbf {\bibinfo {volume} {100}},\ \bibinfo {pages} {4187} (\bibinfo
+  {year} {2000})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Klamt}(2011)}]{Klamt:2011we}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Klamt}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {WIREs
+  Comput. Mol. Sci.}\ }\textbf {\bibinfo {volume} {1}},\ \bibinfo {pages} {699}
+  (\bibinfo {year} {2011})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Mennucci}(2012)}]{Mennucci:2012ct}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {B.}~\bibnamefont
+  {Mennucci}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal}
+  {WIREs Comput. Mol. Sci.}\ }\textbf {\bibinfo {volume} {2}},\ \bibinfo
+  {pages} {386} (\bibinfo {year} {2012})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Honig}\ and\ \citenamefont
+  {Nicholls}(1995)}]{honig1995cla}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {B.}~\bibnamefont
+  {Honig}}\ and\ \bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Nicholls}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal}
+  {Science}\ }\textbf {\bibinfo {volume} {268}},\ \bibinfo {pages} {1144}
+  (\bibinfo {year} {1995})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Roux}\ and\ \citenamefont
+  {Simonson}(1999)}]{Roux:1999vp}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {B.}~\bibnamefont
+  {Roux}}\ and\ \bibinfo {author} {\bibfnamefont {T.}~\bibnamefont
+  {Simonson}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal}
+  {Biophys. Chem.}\ }\textbf {\bibinfo {volume} {78}},\ \bibinfo {pages} {1}
+  (\bibinfo {year} {1999})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Klamt}\ and\ \citenamefont
+  {Schuurmann}(1993)}]{Klamt_JCS_Cosmo}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.}~\bibnamefont
+  {Klamt}}\ and\ \bibinfo {author} {\bibfnamefont {G.}~\bibnamefont
+  {Schuurmann}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J.
+  Chem. Soc.{,} Perkin Trans. 2}\ ,\ \bibinfo {pages} {799}} (\bibinfo {year}
+  {1993})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Chipman}(1999)}]{Chipman_JCP_SSVPE}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {D.}~\bibnamefont
+  {Chipman}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J.
+  Chem. Phys.}\ }\textbf {\bibinfo {volume} {110}},\ \bibinfo {pages} {8012}
+  (\bibinfo {year} {1999})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Chipman}(2006)}]{Chipman_JCP_SSVPE2}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {D.~M.}\ \bibnamefont
+  {Chipman}},\ }\href {\doibase 10.1063/1.2203068} {\bibfield  {journal}
+  {\bibinfo  {journal} {J. Chem. Phys.}\ }\textbf {\bibinfo {volume} {124}},\
+  \bibinfo {eid} {224111} (\bibinfo {year} {2006})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Canc{\`e}s}, \citenamefont {Mennucci},\ and\
+  \citenamefont {Tomasi}(1997)}]{Mennucci_JCP_IEF1}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {E.}~\bibnamefont
+  {Canc{\`e}s}}, \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont
+  {Mennucci}}, \ and\ \bibinfo {author} {\bibfnamefont {J.}~\bibnamefont
+  {Tomasi}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J.
+  Chem. Phys.}\ }\textbf {\bibinfo {volume} {107}},\ \bibinfo {pages} {3032}
+  (\bibinfo {year} {1997})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Canc{\`e}s}\ and\ \citenamefont
+  {Mennucci}(1998)}]{Mennucci_JMC_IEF2}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {E.}~\bibnamefont
+  {Canc{\`e}s}}\ and\ \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont
+  {Mennucci}},\ }\href {\doibase 10.1023/A:1019133611148} {\bibfield  {journal}
+  {\bibinfo  {journal} {J.Math. Chem.}\ }\textbf {\bibinfo {volume} {23}},\
+  \bibinfo {pages} {309} (\bibinfo {year} {1998})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Mennucci}, \citenamefont {Canc{\`e}s},\ and\
+  \citenamefont {Tomasi}(1997)}]{Mennucci_JPCB_IEF3}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {B.}~\bibnamefont
+  {Mennucci}}, \bibinfo {author} {\bibfnamefont {E.}~\bibnamefont
+  {Canc{\`e}s}}, \ and\ \bibinfo {author} {\bibfnamefont {J.}~\bibnamefont
+  {Tomasi}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J.
+  Phys. Chem. B}\ }\textbf {\bibinfo {volume} {101}},\ \bibinfo {pages} {10506}
+  (\bibinfo {year} {1997})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Barone}\ and\ \citenamefont
+  {Cossi}(1998)}]{Barone_JCPA_CPCM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {V.}~\bibnamefont
+  {Barone}}\ and\ \bibinfo {author} {\bibfnamefont {M.}~\bibnamefont {Cossi}},\
+  }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J. Phys. Chem. A}\
+  }\textbf {\bibinfo {volume} {102}},\ \bibinfo {pages} {1995} (\bibinfo {year}
+  {1998})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Cossi}\ \emph {et~al.}(2003)\citenamefont {Cossi},
+  \citenamefont {Rega}, \citenamefont {Scalmani},\ and\ \citenamefont
+  {Barone}}]{Cossi_JCC_CPCM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {M.}~\bibnamefont
+  {Cossi}}, \bibinfo {author} {\bibfnamefont {N.}~\bibnamefont {Rega}},
+  \bibinfo {author} {\bibfnamefont {G.}~\bibnamefont {Scalmani}}, \ and\
+  \bibinfo {author} {\bibfnamefont {V.}~\bibnamefont {Barone}},\ }\href@noop {}
+  {\bibfield  {journal} {\bibinfo  {journal} {J. Comput. Chem.}\ }\textbf
+  {\bibinfo {volume} {24}},\ \bibinfo {pages} {669} (\bibinfo {year}
+  {2003})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Lipparini}\ \emph {et~al.}(2010)\citenamefont
+  {Lipparini}, \citenamefont {Scalmani}, \citenamefont {Mennucci},
+  \citenamefont {Canc{\`e}s}, \citenamefont {Caricato},\ and\ \citenamefont
+  {Frisch}}]{Lipparini_JCP_VPCM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {F.}~\bibnamefont
+  {Lipparini}}, \bibinfo {author} {\bibfnamefont {G.}~\bibnamefont {Scalmani}},
+  \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont {Mennucci}}, \bibinfo
+  {author} {\bibfnamefont {E.}~\bibnamefont {Canc{\`e}s}}, \bibinfo {author}
+  {\bibfnamefont {M.}~\bibnamefont {Caricato}}, \ and\ \bibinfo {author}
+  {\bibfnamefont {M.~J.}\ \bibnamefont {Frisch}},\ }\href {\doibase
+  10.1063/1.3454683} {\bibfield  {journal} {\bibinfo  {journal} {J. Chem.
+  Phys.}\ }\textbf {\bibinfo {volume} {133}},\ \bibinfo {pages} {014106}
+  (\bibinfo {year} {2010})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Lipparini}\ \emph {et~al.}(2011)\citenamefont
+  {Lipparini}, \citenamefont {Scalmani}, \citenamefont {Mennucci},\ and\
+  \citenamefont {Frisch}}]{Lipparini_JCTC_VPCMSCF}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {F.}~\bibnamefont
+  {Lipparini}}, \bibinfo {author} {\bibfnamefont {G.}~\bibnamefont {Scalmani}},
+  \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont {Mennucci}}, \ and\
+  \bibinfo {author} {\bibfnamefont {M.~J.}\ \bibnamefont {Frisch}},\
+  }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J. Chem. Theory
+  Comput.}\ }\textbf {\bibinfo {volume} {7}},\ \bibinfo {pages} {610} (\bibinfo
+  {year} {2011})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Marenich}, \citenamefont {Cramer},\ and\
+  \citenamefont {Truhlar}(2009)}]{Truhlar_JPCB_SMD}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.~V.}\ \bibnamefont
+  {Marenich}}, \bibinfo {author} {\bibfnamefont {C.~J.}\ \bibnamefont
+  {Cramer}}, \ and\ \bibinfo {author} {\bibfnamefont {D.~G.}\ \bibnamefont
+  {Truhlar}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J.
+  Phys. Chem. B}\ }\textbf {\bibinfo {volume} {113}},\ \bibinfo {pages} {6378}
+  (\bibinfo {year} {2009})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Mennucci}(2010)}]{Mennucci_JPCL_PCM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {B.}~\bibnamefont
+  {Mennucci}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J.
+  Phys. Chem. Lett.}\ }\textbf {\bibinfo {volume} {1}},\ \bibinfo {pages}
+  {1666} (\bibinfo {year} {2010})},\ \bibinfo {note} {and references
+  therein}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Miertus}, \citenamefont {Scrocco},\ and\
+  \citenamefont {Tomasi}(1981)}]{MST}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {S.}~\bibnamefont
+  {Miertus}}, \bibinfo {author} {\bibfnamefont {E.}~\bibnamefont {Scrocco}}, \
+  and\ \bibinfo {author} {\bibfnamefont {J.}~\bibnamefont {Tomasi}},\
+  }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {Chem. Phys.}\
+  }\textbf {\bibinfo {volume} {55}},\ \bibinfo {pages} {117} (\bibinfo {year}
+  {1981})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Tomasi}\ and\ \citenamefont
+  {Persico}(1994)}]{ReviewPCM_1994}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {J.}~\bibnamefont
+  {Tomasi}}\ and\ \bibinfo {author} {\bibfnamefont {M.}~\bibnamefont
+  {Persico}},\ }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {Chem.
+  Rev.}\ }\textbf {\bibinfo {volume} {94}},\ \bibinfo {pages} {2027} (\bibinfo
+  {year} {1994})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Scalmani}\ and\ \citenamefont
+  {Frisch}(2010)}]{Scalmani_JCP_CSC}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {G.}~\bibnamefont
+  {Scalmani}}\ and\ \bibinfo {author} {\bibfnamefont {M.~J.}\ \bibnamefont
+  {Frisch}},\ }\href {\doibase 10.1063/1.3359469} {\bibfield  {journal}
+  {\bibinfo  {journal} {J. Chem. Phys.}\ }\textbf {\bibinfo {volume} {132}},\
+  \bibinfo {pages} {114110} (\bibinfo {year} {2010})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {York}\ and\ \citenamefont
+  {Karplus}(1999)}]{York_JPCA_CSC}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {D.}~\bibnamefont
+  {York}}\ and\ \bibinfo {author} {\bibfnamefont {M.}~\bibnamefont {Karplus}},\
+  }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J. Phys. Chem. A}\
+  }\textbf {\bibinfo {volume} {103}},\ \bibinfo {pages} {11060} (\bibinfo
+  {year} {1999})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Lange}\ and\ \citenamefont
+  {Herbert}(2010)}]{Herbert_JCP_ISWIG}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {A.~W.}\ \bibnamefont
+  {Lange}}\ and\ \bibinfo {author} {\bibfnamefont {J.~M.}\ \bibnamefont
+  {Herbert}},\ }\href {\doibase 10.1063/1.3511297} {\bibfield  {journal}
+  {\bibinfo  {journal} {J. Chem. Phys.}\ }\textbf {\bibinfo {volume} {133}},\
+  \bibinfo {eid} {244111} (\bibinfo {year} {2010})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Cammi}\ and\ \citenamefont
+  {Tomasi}(1995)}]{Cammi_JCC_Inversion}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {R.}~\bibnamefont
+  {Cammi}}\ and\ \bibinfo {author} {\bibfnamefont {J.}~\bibnamefont {Tomasi}},\
+  }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J. Comput. Chem.}\
+  }\textbf {\bibinfo {volume} {16}},\ \bibinfo {pages} {1449} (\bibinfo {year}
+  {1995})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Scalmani}\ \emph {et~al.}(2004)\citenamefont
+  {Scalmani}, \citenamefont {Barone}, \citenamefont {Kudin}, \citenamefont
+  {Pomelli}, \citenamefont {Scuseria},\ and\ \citenamefont
+  {Frisch}}]{Scalmani_TCA_Iterative}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {G.}~\bibnamefont
+  {Scalmani}}, \bibinfo {author} {\bibfnamefont {V.}~\bibnamefont {Barone}},
+  \bibinfo {author} {\bibfnamefont {K.}~\bibnamefont {Kudin}}, \bibinfo
+  {author} {\bibfnamefont {C.}~\bibnamefont {Pomelli}}, \bibinfo {author}
+  {\bibfnamefont {G.}~\bibnamefont {Scuseria}}, \ and\ \bibinfo {author}
+  {\bibfnamefont {M.}~\bibnamefont {Frisch}},\ }\href@noop {} {\bibfield
+  {journal} {\bibinfo  {journal} {Theor. Chem. Acc.}\ }\textbf {\bibinfo
+  {volume} {111}},\ \bibinfo {pages} {90} (\bibinfo {year} {2004})}\BibitemShut
+  {NoStop}%
+\bibitem [{\citenamefont {Greengard}\ and\ \citenamefont
+  {Rokhlin}(1987)}]{FMM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {L.}~\bibnamefont
+  {Greengard}}\ and\ \bibinfo {author} {\bibfnamefont {V.}~\bibnamefont
+  {Rokhlin}},\ }\href {\doibase 10.1016/0021-9991(87)90140-9} {\bibfield
+  {journal} {\bibinfo  {journal} {J. Comput. Phys.}\ }\textbf {\bibinfo
+  {volume} {73}},\ \bibinfo {pages} {325} (\bibinfo {year} {1987})}\BibitemShut
+  {NoStop}%
+\bibitem [{\citenamefont {Lipparini}\ \emph
+  {et~al.}(2014{\natexlab{a}})\citenamefont {Lipparini}, \citenamefont
+  {Lagard{\`e}re}, \citenamefont {Scalmani}, \citenamefont {Stamm},
+  \citenamefont {Canc{\`e}s}, \citenamefont {Maday}, \citenamefont {Piquemal},
+  \citenamefont {Frisch},\ and\ \citenamefont
+  {Mennucci}}]{Lipparini_JPCL_ddCOSMO}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {F.}~\bibnamefont
+  {Lipparini}}, \bibinfo {author} {\bibfnamefont {L.}~\bibnamefont
+  {Lagard{\`e}re}}, \bibinfo {author} {\bibfnamefont {G.}~\bibnamefont
+  {Scalmani}}, \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont {Stamm}},
+  \bibinfo {author} {\bibfnamefont {E.}~\bibnamefont {Canc{\`e}s}}, \bibinfo
+  {author} {\bibfnamefont {Y.}~\bibnamefont {Maday}}, \bibinfo {author}
+  {\bibfnamefont {J.-P.}\ \bibnamefont {Piquemal}}, \bibinfo {author}
+  {\bibfnamefont {M.~J.}\ \bibnamefont {Frisch}}, \ and\ \bibinfo {author}
+  {\bibfnamefont {B.}~\bibnamefont {Mennucci}},\ }\href@noop {} {\bibfield
+  {journal} {\bibinfo  {journal} {J. Phys. Chem. Lett.}\ }\textbf {\bibinfo
+  {volume} {5}},\ \bibinfo {pages} {953} (\bibinfo {year}
+  {2014}{\natexlab{a}})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Canc\`{e}s}, \citenamefont {Maday},\ and\
+  \citenamefont {Stamm}(2013)}]{Cances_JCP_ddCOSMO}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {E.}~\bibnamefont
+  {Canc\`{e}s}}, \bibinfo {author} {\bibfnamefont {Y.}~\bibnamefont {Maday}}, \
+  and\ \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont {Stamm}},\
+  }\href@noop {} {\bibfield  {journal} {\bibinfo  {journal} {J. Chem. Phys.}\
+  }\textbf {\bibinfo {volume} {139}},\ \bibinfo {pages} {054111} (\bibinfo
+  {year} {2013})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Lipparini}\ \emph {et~al.}(2013)\citenamefont
+  {Lipparini}, \citenamefont {Stamm}, \citenamefont {Canc\`{e}s}, \citenamefont
+  {Maday},\ and\ \citenamefont {Mennucci}}]{Lipparini_JCTC_ddCOSMO}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {F.}~\bibnamefont
+  {Lipparini}}, \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont {Stamm}},
+  \bibinfo {author} {\bibfnamefont {E.}~\bibnamefont {Canc\`{e}s}}, \bibinfo
+  {author} {\bibfnamefont {Y.}~\bibnamefont {Maday}}, \ and\ \bibinfo {author}
+  {\bibfnamefont {B.}~\bibnamefont {Mennucci}},\ }\href@noop {} {\bibfield
+  {journal} {\bibinfo  {journal} {J. Chem. Theory Comput.}\ }\textbf {\bibinfo
+  {volume} {9}},\ \bibinfo {pages} {3637} (\bibinfo {year} {2013})}\BibitemShut
+  {NoStop}%
+\bibitem [{\citenamefont {Lipparini}\ \emph
+  {et~al.}(2014{\natexlab{b}})\citenamefont {Lipparini}, \citenamefont
+  {Scalmani}, \citenamefont {Lagard{\`e}re}, \citenamefont {Stamm},
+  \citenamefont {Canc{\`e}s}, \citenamefont {Maday}, \citenamefont {Piquemal},
+  \citenamefont {Frisch},\ and\ \citenamefont
+  {Mennucci}}]{Lipparini_JCP_ddCOSMO-QM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {F.}~\bibnamefont
+  {Lipparini}}, \bibinfo {author} {\bibfnamefont {G.}~\bibnamefont {Scalmani}},
+  \bibinfo {author} {\bibfnamefont {L.}~\bibnamefont {Lagard{\`e}re}}, \bibinfo
+  {author} {\bibfnamefont {B.}~\bibnamefont {Stamm}}, \bibinfo {author}
+  {\bibfnamefont {E.}~\bibnamefont {Canc{\`e}s}}, \bibinfo {author}
+  {\bibfnamefont {Y.}~\bibnamefont {Maday}}, \bibinfo {author} {\bibfnamefont
+  {J.-P.}\ \bibnamefont {Piquemal}}, \bibinfo {author} {\bibfnamefont {M.~J.}\
+  \bibnamefont {Frisch}}, \ and\ \bibinfo {author} {\bibfnamefont
+  {B.}~\bibnamefont {Mennucci}},\ }\href@noop {} {\bibfield  {journal}
+  {\bibinfo  {journal} {J. Chem. Phys.}\ }\textbf {\bibinfo {volume} {141}},\
+  \bibinfo {pages} {184108} (\bibinfo {year} {2014}{\natexlab{b}})}\BibitemShut
+  {NoStop}%
+\bibitem [{\citenamefont {Stamm}, \citenamefont {Canc{\`e}s},\ and\
+  \citenamefont {Maday}(2016)}]{Stamm_JCP_DDPCM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {B.}~\bibnamefont
+  {Stamm}}, \bibinfo {author} {\bibfnamefont {E.}~\bibnamefont {Canc{\`e}s}}, \
+  and\ \bibinfo {author} {\bibfnamefont {Y.}~\bibnamefont {Maday}},\ }\href
+  {\doibase 10.1063/1.4940136} {\bibfield  {journal} {\bibinfo  {journal} {J.
+  Chem. Phys.}\ }\textbf {\bibinfo {volume} {144}},\ \bibinfo {pages} {054101}
+  (\bibinfo {year} {2016})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Quan}, \citenamefont {Stamm},\ and\ \citenamefont
+  {Maday}(2017)}]{Quan_DDPCM_SES}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {C.}~\bibnamefont
+  {Quan}}, \bibinfo {author} {\bibfnamefont {B.}~\bibnamefont {Stamm}}, \ and\
+  \bibinfo {author} {\bibfnamefont {Y.}~\bibnamefont {Maday}},\ }\href
+  {https://hal.archives-ouvertes.fr/hal-01489262} {\enquote {\bibinfo {title}
+  {{Polarizable Continuum Model based on the Solvent Excluded Surface}},}\ }
+  (\bibinfo {year} {2017}),\ \bibinfo {note} {working paper or
+  preprint}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Bugeanu}\ \emph {et~al.}(2015)\citenamefont
+  {Bugeanu}, \citenamefont {Di~Remigio}, \citenamefont {Mozgawa}, \citenamefont
+  {Reine}, \citenamefont {Harbrecht},\ and\ \citenamefont
+  {Frediani}}]{C5CP03410H}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {M.}~\bibnamefont
+  {Bugeanu}}, \bibinfo {author} {\bibfnamefont {R.}~\bibnamefont {Di~Remigio}},
+  \bibinfo {author} {\bibfnamefont {K.}~\bibnamefont {Mozgawa}}, \bibinfo
+  {author} {\bibfnamefont {S.~S.}\ \bibnamefont {Reine}}, \bibinfo {author}
+  {\bibfnamefont {H.}~\bibnamefont {Harbrecht}}, \ and\ \bibinfo {author}
+  {\bibfnamefont {L.}~\bibnamefont {Frediani}},\ }\href {\doibase
+  10.1039/C5CP03410H} {\bibfield  {journal} {\bibinfo  {journal} {Phys. Chem.
+  Chem. Phys.}\ }\textbf {\bibinfo {volume} {17}},\ \bibinfo {pages} {31566}
+  (\bibinfo {year} {2015})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Harbrecht}\ and\ \citenamefont
+  {Randrianarivony}(2011)}]{Harbrecht2011}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {H.}~\bibnamefont
+  {Harbrecht}}\ and\ \bibinfo {author} {\bibfnamefont {M.}~\bibnamefont
+  {Randrianarivony}},\ }\href {\doibase 10.1007/s00607-011-0147-y} {\bibfield
+  {journal} {\bibinfo  {journal} {Computing}\ }\textbf {\bibinfo {volume}
+  {92}},\ \bibinfo {pages} {335} (\bibinfo {year} {2011})}\BibitemShut
+  {NoStop}%
+\bibitem [{\citenamefont {Weijo}\ \emph {et~al.}(2010)\citenamefont {Weijo},
+  \citenamefont {Randrianarivony}, \citenamefont {Harbrecht},\ and\
+  \citenamefont {Frediani}}]{JCC:JCC21431}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {V.}~\bibnamefont
+  {Weijo}}, \bibinfo {author} {\bibfnamefont {M.}~\bibnamefont
+  {Randrianarivony}}, \bibinfo {author} {\bibfnamefont {H.}~\bibnamefont
+  {Harbrecht}}, \ and\ \bibinfo {author} {\bibfnamefont {L.}~\bibnamefont
+  {Frediani}},\ }\href {\doibase 10.1002/jcc.21431} {\bibfield  {journal}
+  {\bibinfo  {journal} {Journal of Computational Chemistry}\ }\textbf {\bibinfo
+  {volume} {31}},\ \bibinfo {pages} {1469} (\bibinfo {year}
+  {2010})}\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Hackbusch}(1995)}]{Calderon}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {W.}~\bibnamefont
+  {Hackbusch}},\ }\href@noop {} {\emph {\bibinfo {title} {{Integral
+  Equations--Theory and Numerical Treatment}}}}\ (\bibinfo  {publisher}
+  {Birkh{\"a}user, Basel},\ \bibinfo {year} {1995})\BibitemShut {NoStop}%
+\bibitem [{\citenamefont {Canc{\`e}s}(2007)}]{Cances_Librone_PCM}%
+  \BibitemOpen
+  \bibfield  {author} {\bibinfo {author} {\bibfnamefont {E.}~\bibnamefont
+  {Canc{\`e}s}},\ }in\ \href@noop {} {\emph {\bibinfo {booktitle} {{Continuum
+  Solvation Models in Chemical Physics}}}},\ \bibinfo {editor} {edited by\
+  \bibinfo {editor} {\bibfnamefont {B.}~\bibnamefont {Mennucci}}\ and\ \bibinfo
+  {editor} {\bibfnamefont {R.}~\bibnamefont {Cammi}}}\ (\bibinfo  {publisher}
+  {Wiley, New York},\ \bibinfo {year} {2007})\ Chap.\ \bibinfo {chapter} {1.2},
+  pp.\ \bibinfo {pages} {29--48}\BibitemShut {NoStop}%
+\end{thebibliography}%

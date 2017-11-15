@@ -1,0 +1,68 @@
+This is BibTeX, Version 0.99d (TeX Live 2016/MacPorts 2016_3)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: ddpcm-sub.aux
+The style file: aipnum4-1.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Database file #1: ddpcm-subNotes.bib
+Database file #2: newbiblio.bib
+Warning--I didn't find a database entry for ""
+control{REVTEX41Control}, control.key{N/A}, control.author{N/A}, control.editor{N/A}, control.title{N/A}, control.pages{N/A}, control.year{N/A}, control.eprint{N/A}, 
+control{aip41Control}, control.key{N/A}, control.author{N/A}, control.editor{N/A}, control.title{}, control.pages{0}, control.year{N/A}, control.eprint{N/A}, 
+Warning--jnrlst (dependency: not reversed) set 1
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+merlin.mbs aipnum4-1.bst 2010-07-25 4.21a (PWD, AO, DPC) hacked
+Control: key (0) 
+Control: author (8) initials jnrlst
+Control: editor formatted (1) identically to author
+Control: production of article title (-1) disabled
+Control: page (0) single
+Control: year (1) truncated
+Control: production of eprint (0) enabled
+You've used 40 entries,
+            5918 wiz_defined-function locations,
+            1910 strings with 23110 characters,
+and the built_in function-call counts, 38988 in all, are:
+= -- 2494
+> -- 1225
+< -- 248
++ -- 384
+- -- 318
+* -- 5904
+:= -- 4038
+add.period$ -- 39
+call.type$ -- 40
+change.case$ -- 157
+chr.to.int$ -- 39
+cite$ -- 40
+duplicate$ -- 3544
+empty$ -- 2769
+format.name$ -- 625
+if$ -- 7668
+int.to.chr$ -- 2
+int.to.str$ -- 47
+missing$ -- 478
+newline$ -- 166
+num.names$ -- 115
+pop$ -- 1556
+preamble$ -- 1
+purify$ -- 190
+quote$ -- 0
+skip$ -- 1382
+stack$ -- 0
+substring$ -- 950
+swap$ -- 3391
+text.length$ -- 116
+text.prefix$ -- 0
+top$ -- 10
+type$ -- 543
+warning$ -- 1
+while$ -- 153
+width$ -- 0
+write$ -- 355
+(There were 2 warnings)

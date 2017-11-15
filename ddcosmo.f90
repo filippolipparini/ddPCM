@@ -159,6 +159,7 @@ module ddcosmo
       logical :: use_fmm = .false.
 !
 !     - subroutines & functions
+!     =========================
 !
 !     read_control_file  - read control file
 !     read_molecule_file - read molecule file
@@ -167,23 +168,23 @@ module ddcosmo
 !     ddinit             - initialize data structure
 !     memfree            - free data structure
 !     sprod              - scalar product
-!     fsw                - smoothing function
-!     dfsw               - derivative of smoothing function
+!     fsw                - switch function
+!     dfsw               - derivative of switch function
 !     ptcart             - print routine
 !     prtsph             - print routine
-!     intrhs             - integrate spherical harmonics expansions
+!     intrhs             - integrate spherical harmonics expansion
 !     ylmbas             - compute spherical harmonics Y_l^m
 !     dbasis             - compute derivatives of spherical harmonics
 !     polleg             - compute Legendre polynomials
 !     trgev              - service routine for computation of spherical harmonics
-!     intmlp             -
-!     wghpot             -
-!     hsnorm             -
+!     intmlp             - compute quantity needed for COSMO action
+!     wghpot             - weigh potential at cavity points
+!     hsnorm             - compute H-norm on unit sphere
 !     adjrhs1            - auxiliary routine for COSMO adjoint action
 !     header             - print header
-!     fdoka              -
-!     fdokb              -
-!     fdoga              -
+!     fdoka              - ??? [Filippo, please fill in...]
+!     fdokb              - ??? [Filippo, please fill in...]
+!     fdoga              - ??? [Filippo, please fill in...]
 !     calcv2             - auxiliary routine for COSMO action
 !
       contains
@@ -367,7 +368,7 @@ subroutine ddinit( n, x, y, z, rvdw )
       real*8,  allocatable :: vcos(:), vsin(:), vplm(:)
       real*8 :: tji,vji(3),vvji,sji(3)
 !
-!-------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------
 !
 !     openMP parallelization
       if ( nproc.eq.0 )  nproc = 1
@@ -378,7 +379,7 @@ subroutine ddinit( n, x, y, z, rvdw )
       call set_pi
 !    
 !     print header
-      if ( .not.iquiet ) call header
+      if ( .not.iquiet )  call header
 !    
 !     compute forces flag
       grad = ( igrad.ne.0 )
@@ -561,7 +562,7 @@ subroutine ddinit( n, x, y, z, rvdw )
 !             j \in N_i 
 ! 
 ! Notice that the derivative of fi(n,i) wrt to r_k is (possibly) nonzero
-! when, either k = i, or k \in N_j .
+! when either k = i, or k \in N_j .
 !
 ! Define :
 !
@@ -716,7 +717,7 @@ subroutine ddinit( n, x, y, z, rvdw )
         do isph = 1,nsph
 !   
 !         loop over neighbors of i-sphere, i.e., potentially nonzero derivatives
-          do ji = inl(isph), inl(isph+1) - 1
+          do ji = inl(isph), inl(isph+1)-1
 !          
 !           neighbor is j-sphere, i.e., compute j-derivative
             jsph  = nl(ji)
@@ -735,7 +736,7 @@ subroutine ddinit( n, x, y, z, rvdw )
 !
 !             accumulate
               du(1:3,jsph,ig,isph) = du(1:3,jsph,ig,isph) + fac*sji
-
+!
               du(1:3,isph,ig,isph) = du(1:3,isph,ig,isph) - fac*sji
 
             endif
@@ -815,28 +816,46 @@ subroutine memfree
 !
 endsubroutine memfree
 !---------------------------------------------------------------------------------
-      !
-      real*8 function sprod(n,u,v)
+!
+!
+!
+!
+!
+!---------------------------------------------------------------------------------
+real*8 function sprod(n,u,v)
+!        
       implicit none
       integer,               intent(in) :: n
       real*8,  dimension(n), intent(in) :: u, v
-      !
+!
       integer :: i
       real*8  :: ss
-      !
+!---------------------------------------------------------------------------------
+!
+!     initialize
       ss = zero
+!      
       do i = 1, n
+!
+!       accumulate
         ss = ss + u(i)*v(i)
-      end do
+!        
+      enddo
+!
+!     redirect
       sprod = ss
+!
       return
-  end function sprod
+!
+!
+endfunction sprod
 !------------------------------------------------------------------------------------------------
 !
 !
 !
 !
-!
+!------------------------------------------------------------------------------------------------
+! Purpose : switch function (5th degree polynomial)
 !------------------------------------------------------------------------------------------------
 real*8 function fsw( t, s, eta )
 !
@@ -874,7 +893,7 @@ real*8 function fsw( t, s, eta )
 !              
         a = f15*eta - f12
         b = f10*eta*eta - f15*eta + f6
-        fsw = ((x-one)*(x-one)*(one-x)*(f6*x*x + a*x + b))/(eta**5)
+        fsw = ( (x-one)*(x-one)*(one-x)*(f6*x*x + a*x + b) ) / (eta**5)
 !        
       endif
 !
@@ -885,6 +904,8 @@ endfunction fsw
 !
 !
 !
+!------------------------------------------------------------------------------------------------
+! Purpose : first derivative of switch function
 !------------------------------------------------------------------------------------------------
 real*8 function dfsw( t, s, eta )
 !
@@ -934,188 +955,250 @@ endfunction dfsw
 !
 !
 !
-  subroutine ptcart(label,ncol,icol,x)
-  implicit none
-  !
-  ! dump an array (ngrid,ncol) or just a column.
-  !
-  character (len=*), intent(in) :: label
-  integer, intent(in)           :: ncol, icol
-  real*8, dimension(ngrid,ncol), intent(in) :: x
-  !
-  integer :: ig, noff, nprt, ic, j
-  !
-  ! print an header:
-  !
-  if (ncol.eq.1) then
-    write (iout,'(3x,a,1x,"(column ",i4")")') label, icol
-  else
-    write (iout,'(3x,a)') label
-  end if
-  if (ncol.eq.1) then
-    do ig = 1, ngrid
-      write(iout,1000) ig, x(ig,1)
-    end do
-  !
-  else
-    noff = mod (ncol,5)
-    nprt = max(ncol - noff,0)
-    do ic = 1, nprt, 5
-      write(iout,1010) (j, j = ic, ic+4)
-      do ig = 1, ngrid
-        write(iout,1020) ig, x(ig,ic:ic+4)
-      end do
-    end do
-    write (iout,1010) (j, j = nprt+1, nprt+noff)
-    do ig = 1, ngrid
-      write(iout,1020) ig, x(ig,nprt+1:nprt+noff)
-    end do
-  end if
-  !
-  1000 format(1x,i5,f14.8)
-  1010 format(6x,5i14)
-  1020 format(1x,i5,5f14.8)
-  return
-  end subroutine ptcart
-  !
-  subroutine prtsph(label,ncol,icol,x)
-  implicit none
-  !
-  ! dump an array (nbasis,ncol) or just a column.
-  !
-  character (len=*), intent(in) :: label
-  integer, intent(in)           :: ncol, icol
-  real*8, dimension(nbasis,ncol), intent(in) :: x
-  !
-  integer :: l, m, ind, noff, nprt, ic, j
-  !
-  ! print an header:
-  !
-  if (ncol.eq.1) then
-    write (iout,'(3x,a,1x,"(column ",i4")")') label, icol
-  else
-    write (iout,'(3x,a)') label
-  end if
-  if (ncol.eq.1) then
-    do l = 0, lmax
-      ind = l*l + l + 1
-      do m = -l, l
-        write(iout,1000) l, m, x(ind+m,1)
-      end do
-    end do
-  !
-  else
-    noff = mod (ncol,5)
-    nprt = max(ncol - noff,0)
-    do ic = 1, nprt, 5
-      write(iout,1010) (j, j = ic, ic+4)
-      do l = 0, lmax
-        ind = l*l + l + 1
-        do m = -l, l
-          write(iout,1020) l, m, x(ind+m,ic:ic+4)
+!------------------------------------------------------------------------------------------------
+! Purpose : dump an array (ngrid,ncol) or just a column.
+!------------------------------------------------------------------------------------------------
+subroutine ptcart( label, ncol, icol, x )
+!        
+      implicit none
+!
+      character (len=*), intent(in) :: label
+      integer, intent(in)           :: ncol, icol
+      real*8, dimension(ngrid,ncol), intent(in) :: x
+!
+      integer :: ig, noff, nprt, ic, j
+!
+!------------------------------------------------------------------------------------------------
+!
+!     print header :
+      if (ncol.eq.1) then
+        write (iout,'(3x,a,1x,"(column ",i4")")') label, icol
+      else
+        write (iout,'(3x,a)') label
+      endif
+!      
+!     print entries :
+      if (ncol.eq.1) then
+        do ig = 1, ngrid
+          write(iout,1000) ig, x(ig,1)
+        enddo
+!
+      else
+        noff = mod (ncol,5)
+        nprt = max(ncol - noff,0)
+        do ic = 1, nprt, 5
+          write(iout,1010) (j, j = ic, ic+4)
+          do ig = 1, ngrid
+            write(iout,1020) ig, x(ig,ic:ic+4)
+          end do
         end do
-      end do
-    end do
-    write (iout,1010) (j, j = nprt+1, nprt+noff)
-    do l = 0, lmax
-      ind = l*l + l + 1
-      do m = -l, l
-        write(iout,1020) l, m, x(ind+m,nprt+1:nprt+noff)
-      end do
-    end do
-  end if
-  !
-  1000 format(1x,i3,i4,f14.8)
-  1010 format(8x,5i14)
-  1020 format(1x,i3,i4,5f14.8)
-  return
-  end subroutine prtsph
-  !
-  !
-  subroutine intrhs(isph,x,xlm)
-  implicit none
-  integer, intent(in) :: isph
-  real*8, dimension(ngrid),  intent(in)    :: x
-  real*8, dimension(nbasis), intent(inout) :: xlm
-  !
-  integer ig
-  xlm = zero
-  do ig = 1, ngrid
-    xlm = xlm + basis(:,ig)*w(ig)*x(ig)
-  end do
-  !
-  if (iprint.ge.5) then
-    call ptcart('pot',1,isph,x)
-    call prtsph('vlm',1,isph,xlm)
-  end if
-  return
-  end subroutine intrhs
+        write (iout,1010) (j, j = nprt+1, nprt+noff)
+        do ig = 1, ngrid
+          write(iout,1020) ig, x(ig,nprt+1:nprt+noff)
+        end do
+      end if
+!
+      1000 format(1x,i5,f14.8)
+      1010 format(6x,5i14)
+      1020 format(1x,i5,5f14.8)
+!
+      return
 !
 !
-  subroutine ylmbas(x,basloc,vplm,vcos,vsin)
-  implicit none
-  real*8, dimension(3), intent(in) :: x
-  real*8, dimension(nbasis), intent(out) :: basloc, vplm
-  real*8, dimension(lmax+1), intent(out) :: vcos, vsin
-  !
-  integer :: l, m, ind
-  real*8  :: cthe, sthe, cphi, sphi, plm
-
-  basloc=zero ; vplm=zero ; vcos=zero ; vsin=zero
+endsubroutine ptcart
+!------------------------------------------------------------------------------------------------
 !
-! get cos(\theta), sin(\theta), cos(\phi) and sin(\phi) from the cartesian
-! coordinates of x.
 !
-! evaluate cos( theta ) ; sin( theta )  
-  cthe = x(3)
-  sthe = sqrt(one - cthe*cthe)
 !
-! evalutate cos( phi ) ; sin( phi )
-  if (sthe.ne.zero) then
-    cphi = x(1)/sthe
-    sphi = x(2)/sthe
-  else
-    cphi = zero
-    sphi = zero
-  end if
 !
-! evaluate cos(m*phi) and sin(m*phi) arrays. notice that this is 
-! pointless if z = 1, as the only non vanishing terms will be the 
-! ones with m=0.
-  if(sthe.ne.zero) then
-    call trgev(cphi,sphi,vcos,vsin)
-  else
-    vcos = one
-    vsin = zero
-  end if
 !
-! evaluate the generalized legendre polynomials
-  call polleg(cthe,sthe,vplm)
+!------------------------------------------------------------------------------------------------
+! Purpose : dump an array (nbasis,ncol) or just a column.
+!------------------------------------------------------------------------------------------------
+subroutine prtsph(label,ncol,icol,x)
+!        
+      implicit none
 !
-! now build the spherical harmonics. we will distinguish m=0,
-! m>0 and m<0:
-  do l = 0, lmax
-    ind = l**2 + l + 1
+      character (len=*), intent(in) :: label
+      integer, intent(in)           :: ncol, icol
+      real*8, dimension(nbasis,ncol), intent(in) :: x
 !
-!   m = 0
-    basloc(ind) = facs(ind)*vplm(ind)
+      integer :: l, m, ind, noff, nprt, ic, j
 !
-    do m = 1, l
+!------------------------------------------------------------------------------------------------
+!
+!     print header :
+      if (ncol.eq.1) then
+        write (iout,'(3x,a,1x,"(column ",i4")")') label, icol
+      else
+        write (iout,'(3x,a)') label
+      endif
 !    
-      plm = vplm(ind+m)
+!     print entries :
+      if (ncol.eq.1) then
+        do l = 0, lmax
+          ind = l*l + l + 1
+          do m = -l, l
+            write(iout,1000) l, m, x(ind+m,1)
+          end do
+        end do
 !
-!     m > 0
-      basloc(ind+m) = facs(ind+m)*plm*vcos(m+1)
+      else
+        noff = mod (ncol,5)
+        nprt = max(ncol - noff,0)
+        do ic = 1, nprt, 5
+          write(iout,1010) (j, j = ic, ic+4)
+          do l = 0, lmax
+            ind = l*l + l + 1
+            do m = -l, l
+              write(iout,1020) l, m, x(ind+m,ic:ic+4)
+            end do
+          end do
+        end do
+        write (iout,1010) (j, j = nprt+1, nprt+noff)
+        do l = 0, lmax
+          ind = l*l + l + 1
+          do m = -l, l
+            write(iout,1020) l, m, x(ind+m,nprt+1:nprt+noff)
+          end do
+        end do
+      end if
 !
-!     m < 0
-      basloc(ind-m) = facs(ind-m)*plm*vsin(m+1)
+      1000 format(1x,i3,i4,f14.8)
+      1010 format(8x,5i14)
+      1020 format(1x,i3,i4,5f14.8)
+!      
+      return
+!      
+!      
+endsubroutine prtsph
+!------------------------------------------------------------------------------------------------
 !
-    end do
-  end do
-  return
-  end subroutine ylmbas
-  !
-subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
+!
+!
+!
+!------------------------------------------------------------------------------------------------
+! Purpose : integrate against spherical harmonics
+!------------------------------------------------------------------------------------------------
+subroutine intrhs( isph, x, xlm )
+!        
+      implicit none
+      integer, intent(in) :: isph
+      real*8, dimension(ngrid),  intent(in)    :: x
+      real*8, dimension(nbasis), intent(inout) :: xlm
+!
+      integer :: ig
+!      
+!------------------------------------------------------------------------------------------------
+!
+!     initialize
+      xlm = zero
+!
+!     accumulate over integration points
+      do ig = 1, ngrid
+!      
+        xlm = xlm + basis(:,ig)*w(ig)*x(ig)
+!        
+      enddo
+! 
+!     printing
+      if ( iprint.ge.5 ) then
+!              
+        call ptcart('pot',1,isph,x)
+        call prtsph('vlm',1,isph,xlm)
+!        
+      endif
+!      
+      return
+!
+!
+endsubroutine intrhs
+!------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!------------------------------------------------------------------------------------------------
+! Purpose : compute spherical harmonics
+!------------------------------------------------------------------------------------------------
+subroutine ylmbas( x, basloc, vplm, vcos, vsin )
+!        
+      implicit none
+      real*8, dimension(3), intent(in) :: x
+      real*8, dimension(nbasis), intent(out) :: basloc, vplm
+      real*8, dimension(lmax+1), intent(out) :: vcos, vsin
+!
+      integer :: l, m, ind
+      real*8  :: cthe, sthe, cphi, sphi, plm
+!      
+!------------------------------------------------------------------------------------------------
+!
+!     initialize
+      basloc=zero ; vplm=zero ; vcos=zero ; vsin=zero
+!
+!     get cos(\theta), sin(\theta), cos(\phi) and sin(\phi) from the cartesian
+!     coordinates of x.
+!
+!     evaluate cos( theta ) ; sin( theta )  
+      cthe = x(3)
+      sthe = sqrt(one - cthe*cthe)
+!
+!     evalutate cos( phi ) ; sin( phi )
+      if (sthe.ne.zero) then
+        cphi = x(1)/sthe
+        sphi = x(2)/sthe
+      else
+        cphi = zero
+        sphi = zero
+      endif
+!
+!     evaluate cos(m*phi) and sin(m*phi) arrays. notice that this is 
+!     pointless if z = 1, as the only non vanishing terms will be the 
+!     ones with m=0.
+      if(sthe.ne.zero) then
+        call trgev(cphi,sphi,vcos,vsin)
+      else
+        vcos = one
+        vsin = zero
+      endif
+!
+!     evaluate the generalized legendre polynomials
+      call polleg(cthe,sthe,vplm)
+!
+!     now build the spherical harmonics. we will distinguish m=0,
+!     m>0 and m<0:
+      do l = 0, lmax
+        ind = l**2 + l + 1
+!
+!       m = 0
+        basloc(ind) = facs(ind)*vplm(ind)
+!
+        do m = 1, l
+!        
+          plm = vplm(ind+m)
+!
+!         m > 0
+          basloc(ind+m) = facs(ind+m)*plm*vcos(m+1)
+!
+!         m < 0
+          basloc(ind-m) = facs(ind-m)*plm*vsin(m+1)
+!
+        enddo
+      enddo
+!      
+      return
+!      
+!      
+endsubroutine ylmbas
+!------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!------------------------------------------------------------------------------------------------
+! Purpose : compute first derivatives of spherical harmonics
+!------------------------------------------------------------------------------------------------
+subroutine dbasis( x, basloc, dbsloc, vplm, vcos, vsin )
 !
       implicit none
       real*8, dimension(3),        intent(in)    :: x
@@ -1127,7 +1210,7 @@ subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
       real*8  :: cthe, sthe, cphi, sphi, plm, fln, pp1, pm1, pp
       real*8  :: et(3), ep(3)
 !
-!------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------------------------
 !
 !     get cos(\theta), sin(\theta), cos(\phi) and sin(\phi) from the cartesian
 !     coordinates of x.
@@ -1252,82 +1335,108 @@ subroutine dbasis(x,basloc,dbsloc,vplm,vcos,vsin)
 !            
           endif
 !  
-        end do
-      end do
+        enddo
+      enddo
+!
       return
 !
 !
 endsubroutine dbasis
-  !
-  subroutine polleg(x,y,plm)
-  implicit none
-  real*8,                    intent(in)    :: x, y
-  real*8, dimension(nbasis), intent(inout) :: plm
-  !
-  ! computes the l,m associated legendre polynomial for -1 <= x <= 1
-  ! using the recurrence formula
-  !
-  !   (l-m)p(l,m) = x(2l-1)p(l-1,m) - (l+m-1)p(l-2,m)
-  !
-  integer :: m, ind, l, ind2
-  real*8  :: fact, pmm, somx2, pmm1, pmmo, pll, fm, fl
-  !
-  fact  = one
-  pmm   = one
-  somx2 = y
-  do m = 0, lmax 
-    ind      = (m + 1)*(m + 1)
-    plm(ind) = pmm
-    if(m.eq.lmax) return
-    fm = dble(m)
-    pmm1 = x*(two*fm + one)*pmm
-    ind2 = ind + 2*m + 2
-    plm(ind2) = pmm1
-    pmmo = pmm
-    do l = m+2, lmax
-      fl = dble(l)
-      pll   = (x*(two*fl - one)*pmm1 - (fl + fm - one)*pmm)/(fl - fm)
-      ind = l*l + l + 1 
-      plm(ind+m) = pll
-      pmm  = pmm1
-      pmm1 = pll
-    end do
-    pmm  = -pmmo*fact*somx2
-    fact = fact + two
-  end do
-  !
-  return
-  end subroutine polleg
-  !
-  subroutine trgev(x,y,cx,sx)
-  implicit none
-  real*8, intent(in) :: x, y
-  real*8, dimension( max((lmax+1),2) ), intent(inout) :: cx, sx
-  !
-  integer :: m
-  !
-  cx(1) = one
-  sx(1) = zero
-  cx(2) = x
-  sx(2) = y
-  do m = 3, lmax+1
-    cx(m) = two*x*cx(m-1) - cx(m-2)
-    sx(m) = two*x*sx(m-1) - sx(m-2)
-  end do
-  return
-  end subroutine trgev
+!------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!------------------------------------------------------------------------------------------------
+! Purpose : compute the l,m associated legendre polynomial for -1 <= x <= 1 using the recurrence
+!           formula
+!
+!             (l-m)p(l,m) = x(2l-1)p(l-1,m) - (l+m-1)p(l-2,m)
+!
+!------------------------------------------------------------------------------------------------
+subroutine polleg( x, y, plm )
+!          
+      implicit none
+      real*8,                    intent(in)    :: x, y
+      real*8, dimension(nbasis), intent(inout) :: plm
+!
+      integer :: m, ind, l, ind2
+      real*8  :: fact, pmm, somx2, pmm1, pmmo, pll, fm, fl
+!------------------------------------------------------------------------------------------------
+!
+      fact  = one
+      pmm   = one
+      somx2 = y
+!      
+      do m = 0, lmax 
+        ind      = (m + 1)*(m + 1)
+        plm(ind) = pmm
+        if(m.eq.lmax) return
+        fm = dble(m)
+        pmm1 = x*(two*fm + one)*pmm
+        ind2 = ind + 2*m + 2
+        plm(ind2) = pmm1
+        pmmo = pmm
+        do l = m+2, lmax
+          fl = dble(l)
+          pll   = (x*(two*fl - one)*pmm1 - (fl + fm - one)*pmm)/(fl - fm)
+          ind = l*l + l + 1 
+          plm(ind+m) = pll
+          pmm  = pmm1
+          pmm1 = pll
+        end do
+        pmm  = -pmmo*fact*somx2
+        fact = fact + two
+      end do
+!
+!
+      return
+!
+endsubroutine polleg
+!------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!------------------------------------------------------------------------------------------------
+! Purpose : service routine for computation of spherical harmonics
+!------------------------------------------------------------------------------------------------
+subroutine trgev( x, y, cx, sx )
+        
+      implicit none
+      real*8, intent(in) :: x, y
+      real*8, dimension( max((lmax+1),2) ), intent(inout) :: cx, sx
+!
+      integer :: m
+!
+!------------------------------------------------------------------------------------------------
+!
+      cx(1) = one
+      sx(1) = zero
+      cx(2) = x
+      sx(2) = y
+      do m = 3, lmax+1
+        cx(m) = two*x*cx(m-1) - cx(m-2)
+        sx(m) = two*x*sx(m-1) - sx(m-2)
+      end do
+!      
+      return
+!      
+!      
+endsubroutine trgev
+!------------------------------------------------------------------------------------------------
 !
 !
 ! 
-!---------------------------------------------------------------------
+!------------------------------------------------------------------------------------------------
 ! Purpose : compute
 !
-!                       l
-!     sum   4pi/(2l+1) t  * Y_l^m( s ) * sigma_l^m
-!     l,m                                           
+!                               l
+!             sum   4pi/(2l+1) t  * Y_l^m( s ) * sigma_l^m
+!             l,m                                           
 !
-! which is need to compute action of COSMO matrix L.
-!---------------------------------------------------------------------
+!           which is need to compute action of COSMO matrix L.
+!------------------------------------------------------------------------------------------------
 !
 real*8 function intmlp( t, sigma, basloc )
 !  
@@ -1338,7 +1447,7 @@ real*8 function intmlp( t, sigma, basloc )
       integer :: l, ind
       real*8  :: tt, ss, fac
 !
-!---------------------------------------------------------------------
+!------------------------------------------------------------------------------------------------
 !
 !     initialize t^l
       tt = one
@@ -1356,7 +1465,7 @@ real*8 function intmlp( t, sigma, basloc )
 !
 !       contract over l,m and accumulate
         ss = ss + fac * dot_product( basloc(ind-l:ind+l), &
-                                     sigma(ind-l:ind+l)   )
+                                     sigma( ind-l:ind+l)   )
 !
 !       update t^l
         tt = tt*t
@@ -1368,11 +1477,14 @@ real*8 function intmlp( t, sigma, basloc )
 !
 !
 endfunction intmlp
-!---------------------------------------------------------------------
+!------------------------------------------------------------------------------------------------
 !
 !
 !
 !
+!------------------------------------------------------------------------------------------------
+! Purpose : weigh potential at cavity points by characteristic function "ui"
+!------------------------------------------------------------------------------------------------
 subroutine wghpot( phi, g )
 !
       implicit none
@@ -1382,43 +1494,85 @@ subroutine wghpot( phi, g )
 !
       integer isph, ig, ic
 !
+!------------------------------------------------------------------------------------------------
+!
+!     initialize
       ic = 0 ; g(:,:)=0.d0
+!      
+!     loop over spheres
       do isph = 1, nsph
+!
+!       loop over points
         do ig = 1, ngrid
-          if (ui(ig,isph).ne.zero) then
+!
+!         nonzero contribution from point
+          if ( ui(ig,isph).ne.zero ) then
+!
+!           advance cavity point counter
             ic = ic + 1
-            g(ig,isph) = - ui(ig,isph)*phi(ic)
-          end if
-        end do
-      end do
+!            
+!           weigh by (negative) characteristic function
+            g(ig,isph) = -ui(ig,isph) * phi(ic)
+!            
+          endif
+!          
+        enddo
+      enddo
 !
       return
 !
 !
 endsubroutine wghpot
-  !
-  subroutine hsnorm(u,unorm)
-  implicit none
-  real*8, dimension(nbasis), intent(in)    :: u
-  real*8,                    intent(inout) :: unorm
-  !
-  integer :: l, m, ind
-  real*8  :: fac
-  !
-  ! compute the energy norm of a vector
-  !
-  unorm = zero
-  do l = 0, lmax
-    ind = l*l + l + 1
-    fac = one/(one + dble(l))
-    do m = -l, l
-      unorm = unorm + fac*u(ind+m)*u(ind+m)
-    end do
-  end do
-  unorm = sqrt(unorm)
-  !
-  return
-  end subroutine hsnorm
+!------------------------------------------------------------------------------------------------
+!
+!
+!
+!
+!------------------------------------------------------------------------------------------------
+! Purpose : compute H-norm
+!------------------------------------------------------------------------------------------------
+subroutine hsnorm( u, unorm )
+!          
+      implicit none
+      real*8, dimension(nbasis), intent(in)    :: u
+      real*8,                    intent(inout) :: unorm
+!
+      integer :: l, m, ind
+      real*8  :: fac
+!
+!------------------------------------------------------------------------------------------------
+!
+!     initialize
+      unorm = zero
+!      
+!     loop over l
+      do l = 0, lmax
+!      
+!       first index associated to l
+        ind = l*l + l + 1
+!
+!       scaling factor
+        fac = one/(one + dble(l))
+!
+!       loop over m
+        do m = -l, l
+!
+!         accumulate
+          unorm = unorm + fac*u(ind+m)*u(ind+m)
+!          
+        enddo
+      enddo
+!
+!     the much neglected square root
+      unorm = sqrt(unorm)
+!
+      return
+!
+!
+endsubroutine hsnorm
+!------------------------------------------------------------------------------------------------
+!
+!
 !
 !
 !
@@ -1530,249 +1684,296 @@ subroutine adjrhs1( isph, xi, vlm, basloc, vplm, vcos, vsin )
 !
 endsubroutine adjrhs1
 !-----------------------------------------------------------------------------------
-
 !
-  subroutine header
+!
+!
+!
+!-----------------------------------------------------------------------------------
+subroutine header
+!        
   implicit none
-  !
-  1000 format( /,&
-               '      888      888  .d8888b.   .d88888b.   .d8888b.  888b     d888  .d88888b. ',/,  &
-               '      888      888 d88P  Y88b d88P" "Y88b d88P  Y88b 8888b   d8888 d88P" "Y88b',/,  &
-               '      888      888 888    888 888     888 Y88b.      88888b.d88888 888     888',/,  &
-               '  .d88888  .d88888 888        888     888  "Y888b.   888Y88888P888 888     888',/,  &
-               ' d88" 888 d88" 888 888        888     888     "Y88b. 888 Y888P 888 888     888',/,  &
-               ' 888  888 888  888 888    888 888     888       "888 888  Y8P  888 888     888',/,  &
-               ' Y88b 888 Y88b 888 Y88b  d88P Y88b. .d88P Y88b  d88P 888   "   888 Y88b. .d88P',/,  &
-               '  "Y88888  "Y88888  "Y8888P"   "Y88888P"   "Y8888P"  888       888  "Y88888P" ',/,  &
-               '                                                                              ',/,  &
-               ' An implementation of COSMO using a domain decomposition linear scaling strategy.',/)
-  1010 format( ' Parameters:',/, &
-               '   number of grid points:                  '8x,i8,/,   &
-               '   number of spheres:                      '8x,i8,/,   &
-               '   lmax for the spherical harmonics basis: '8x,i8,/,   &
-               '   convergence threshold:                  '8x,d8.1,/, &
-               '   regularization parameters (eta,s):      ',f8.3,f8.3,/,&
-               '   dielectric constant:                   ',e12.5/)
+!  
+!-----------------------------------------------------------------------------------
+!
+ 1000 format( /,&
+              '      888      888  .d8888b.   .d88888b.   .d8888b.  888b     d888  .d88888b. ',/,  &
+              '      888      888 d88P  Y88b d88P" "Y88b d88P  Y88b 8888b   d8888 d88P" "Y88b',/,  &
+              '      888      888 888    888 888     888 Y88b.      88888b.d88888 888     888',/,  &
+              '  .d88888  .d88888 888        888     888  "Y888b.   888Y88888P888 888     888',/,  &
+              ' d88" 888 d88" 888 888        888     888     "Y88b. 888 Y888P 888 888     888',/,  &
+              ' 888  888 888  888 888    888 888     888       "888 888  Y8P  888 888     888',/,  &
+              ' Y88b 888 Y88b 888 Y88b  d88P Y88b. .d88P Y88b  d88P 888   "   888 Y88b. .d88P',/,  &
+              '  "Y88888  "Y88888  "Y8888P"   "Y88888P"   "Y8888P"  888       888  "Y88888P" ',/,  &
+              '                                                                              ',/,  &
+              ' An implementation of COSMO using a domain decomposition linear scaling strategy.',/)
+ 1010 format( ' Parameters:',/, &
+              '   number of grid points:                  '8x,i8,/,   &
+              '   number of spheres:                      '8x,i8,/,   &
+              '   lmax for the spherical harmonics basis: '8x,i8,/,   &
+              '   convergence threshold:                  '8x,d8.1,/, &
+              '   regularization parameters (eta,s):      ',f8.3,f8.3,/,&
+              '   dielectric constant:                   ',e12.5/)
 !               
-  if ( iprint.gt.0 ) then
-!          
-    write(iout,1000)
-    write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, se,eps
-!    
-    if ( iscrf.eq.0 ) then 
-      write(iout,1011) 
- 1011 format( ' Use COSMO. '/ )      
-    else
-      write(iout,1012) 
- 1012 format( ' Use PCM. '/ )      
-    endif
-!
-    if ( igrad.eq.1 )  write(iout,1013)
- 1013 format( ' Compute forces.'// )   
-!
-  endif
-  return
-  end subroutine header
-  !
-  subroutine fdoka(isph,sigma,xi,basloc,dbsloc,vplm,vcos,vsin,fx)
-  implicit none
-  integer,                         intent(in)    :: isph
-  real*8,  dimension(nbasis,nsph), intent(in)    :: sigma
-  real*8,  dimension(ngrid),       intent(in)    :: xi
-  real*8,  dimension(nbasis),      intent(inout) :: basloc, vplm
-  real*8,  dimension(3,nbasis),    intent(inout) :: dbsloc
-  real*8,  dimension(lmax+1),      intent(inout) :: vcos, vsin
-  real*8,  dimension(3),           intent(inout) :: fx
-  !
-  integer :: ig, ij, jsph, l, ind, m
-  real*8  :: vvij, tij, xij, oij, t, fac, fl, f1, f2, f3, beta, tlow, thigh
-  real*8  :: vij(3), sij(3), alp(3), va(3)
-!
-  tlow  = one - pt5*(one - se)*eta
-  thigh = one + pt5*(one + se)*eta
-!
-  do ig = 1, ngrid
-    va = zero
-    do ij = inl(isph), inl(isph+1) - 1
-      jsph = nl(ij)
-      vij  = csph(:,isph) + rsph(isph)*grid(:,ig) - csph(:,jsph)
-      vvij = sqrt(dot_product(vij,vij))
-      tij  = vvij/rsph(jsph)
-!
-      if (tij.ge.thigh) cycle
-!
-      sij  = vij/vvij
-      call dbasis(sij,basloc,dbsloc,vplm,vcos,vsin)
-      alp  = zero
-      t    = one
-      do l = 1, lmax
-        ind = l*l + l + 1
-        fl  = dble(l)
-        fac = t/facl(ind)
-        do m = -l, l
-          f2 = fac*sigma(ind+m,jsph)
-          f1 = f2*fl*basloc(ind+m)
-          alp(:) = alp(:) + f1*sij(:) + f2*dbsloc(:,ind+m)
-        end do
-        t = t*tij
-      end do
-      beta = intmlp(tij,sigma(:,jsph),basloc)
-      xij = fsw(tij,se,eta)
-      if (fi(ig,isph).gt.one) then
-        oij = xij/fi(ig,isph)
-        f2  = -oij/fi(ig,isph)
-      else
-        oij = xij
-        f2  = zero
-      end if
-      f1 = oij/rsph(jsph)
-      va(:) = va(:) + f1*alp(:) + beta*f2*zi(:,ig,isph)
-      if (tij .gt. tlow) then
-!!!      if (tij .gt. (one-eta*rsph(jsph))) then
-!!!        f3 = beta*dfsw(tij,eta*rsph(jsph))/rsph(jsph)
-        f3 = beta*dfsw(tij,se,eta)/rsph(jsph)
-        if (fi(ig,isph).gt.one) f3 = f3/fi(ig,isph)
-        va(:) = va(:) + f3*sij(:)
-      end if
-    end do
-    fx = fx - w(ig)*xi(ig)*va(:)
-  end do
-  return
-  end subroutine fdoka
-  !
-  subroutine fdokb(isph,sigma,xi,basloc,dbsloc,vplm,vcos,vsin,fx)
-  implicit none
-  integer,                         intent(in)    :: isph
-  real*8,  dimension(nbasis,nsph), intent(in)    :: sigma
-  real*8,  dimension(ngrid,nsph),  intent(in)    :: xi
-  real*8,  dimension(nbasis),      intent(inout) :: basloc, vplm
-  real*8,  dimension(3,nbasis),    intent(inout) :: dbsloc
-  real*8,  dimension(lmax+1),      intent(inout) :: vcos, vsin
-  real*8,  dimension(3),           intent(inout) :: fx
-  !
-  integer :: ig, ji, jsph, l, ind, m, jk, ksph
-  logical :: proc
-  real*8  :: vvji, tji, xji, oji, t, fac, fl, f1, f2, beta, di, tlow, thigh
-  real*8  :: b, g1, g2, vvjk, tjk, f, xjk
-  real*8  :: vji(3), sji(3), alp(3), vb(3), vjk(3), sjk(3), vc(3)
-!
-  tlow  = one - pt5*(one - se)*eta
-  thigh = one + pt5*(one + se)*eta
-!
-  do ig = 1, ngrid
-    vb = zero
-    vc = zero
-    do ji = inl(isph), inl(isph+1) - 1
-      jsph = nl(ji)
-      vji  = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
-      vvji = sqrt(dot_product(vji,vji))
-      tji  = vvji/rsph(isph)
-!
-      if (tji.gt.thigh) cycle
-!
-      sji  = vji/vvji
-      call dbasis(sji,basloc,dbsloc,vplm,vcos,vsin)
-!
-      alp = zero
-      t   = one
-      do l = 1, lmax
-        ind = l*l + l + 1
-        fl  = dble(l)
-        fac = t/facl(ind)
-        do m = -l, l
-          f2 = fac*sigma(ind+m,isph)
-          f1 = f2*fl*basloc(ind+m)
-          alp = alp + f1*sji + f2*dbsloc(:,ind+m)
-        end do
-        t = t*tji
-      end do
-      xji = fsw(tji,se,eta)
-      if (fi(ig,jsph).gt.one) then
-        oji = xji/fi(ig,jsph)
-      else
-        oji = xji
-      end if
-      f1 = oji/rsph(isph)
-      vb = vb + f1*alp*xi(ig,jsph)
-      if (tji .gt. tlow) then
-        beta = intmlp(tji,sigma(:,isph),basloc)
-        if (fi(ig,jsph) .gt. one) then
-          di  = one/fi(ig,jsph)
-          fac = di*xji
-          proc = .false.
-          b    = zero
-          do jk = inl(jsph), inl(jsph+1) - 1
-            ksph = nl(jk)
-            vjk  = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,ksph)
-            vvjk = sqrt(dot_product(vjk,vjk))
-            tjk  = vvjk/rsph(ksph)
-            if (ksph.ne.isph) then
-              if (tjk .le. thigh) then
-                proc = .true.
-                sjk  = vjk/vvjk
-                call ylmbas(sjk,basloc,vplm,vcos,vsin)
-                g1  = intmlp(tjk,sigma(:,ksph),basloc)
-                xjk = fsw(tjk,se,eta)
-                b   = b + g1*xjk
-              end if
-            end if
-          end do
-          if (proc) then
-!!!            g1 = di*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
-            g1 = di*di*dfsw(tji,se,eta)/rsph(isph)
-            g2 = g1*xi(ig,jsph)*b
-            vc = vc + g2*sji
-          end if
+      if ( iprint.gt.0 ) then
+!              
+        write(iout,1000)
+        write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, se,eps
+!        
+        if ( iscrf.eq.0 ) then 
+!                
+          write(iout,1011) 
+ 1011     format( ' Use COSMO. '/ )      
+! 
         else
-          di  = one
-          fac = zero
-        end if
-!!!        f2 = (one-fac)*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
-        f2 = (one-fac)*di*dfsw(tji,se,eta)/rsph(isph)
-        vb = vb + f2*xi(ig,jsph)*beta*sji
-      end if 
-    end do
-    fx = fx + w(ig)*(vb - vc)
-  ! fx = fx - w(ig)*vc
-  end do
-  return
+!                
+          write(iout,1012) 
+ 1012     format( ' Use PCM. '/ )      
+! 
+        endif
+!    
+        if ( igrad.eq.1 )  write(iout,1013)
+ 1013   format( ' Compute forces.'// )   
+!    
+      endif
+!      
+      return
+!      
+!      
+endsubroutine header
+!-----------------------------------------------------------------------------------
+!
+!
+!
+!
+!-----------------------------------------------------------------------------------
+! Purpose : Fil, please add info and comments
+!-----------------------------------------------------------------------------------
+subroutine fdoka( isph, sigma, xi, basloc, dbsloc, vplm, vcos, vsin, fx )
+!        
+      implicit none
+      integer,                         intent(in)    :: isph
+      real*8,  dimension(nbasis,nsph), intent(in)    :: sigma
+      real*8,  dimension(ngrid),       intent(in)    :: xi
+      real*8,  dimension(nbasis),      intent(inout) :: basloc, vplm
+      real*8,  dimension(3,nbasis),    intent(inout) :: dbsloc
+      real*8,  dimension(lmax+1),      intent(inout) :: vcos, vsin
+      real*8,  dimension(3),           intent(inout) :: fx
+!
+      integer :: ig, ij, jsph, l, ind, m
+      real*8  :: vvij, tij, xij, oij, t, fac, fl, f1, f2, f3, beta, tlow, thigh
+      real*8  :: vij(3), sij(3), alp(3), va(3)
+!      
+!-----------------------------------------------------------------------------------
+!    
+      tlow  = one - pt5*(one - se)*eta
+      thigh = one + pt5*(one + se)*eta
+!    
+      do ig = 1, ngrid
+        va = zero
+        do ij = inl(isph), inl(isph+1) - 1
+          jsph = nl(ij)
+          vij  = csph(:,isph) + rsph(isph)*grid(:,ig) - csph(:,jsph)
+          vvij = sqrt(dot_product(vij,vij))
+          tij  = vvij/rsph(jsph)
+!    
+          if (tij.ge.thigh) cycle
+!    
+          sij  = vij/vvij
+          call dbasis(sij,basloc,dbsloc,vplm,vcos,vsin)
+          alp  = zero
+          t    = one
+          do l = 1, lmax
+            ind = l*l + l + 1
+            fl  = dble(l)
+            fac = t/facl(ind)
+            do m = -l, l
+              f2 = fac*sigma(ind+m,jsph)
+              f1 = f2*fl*basloc(ind+m)
+              alp(:) = alp(:) + f1*sij(:) + f2*dbsloc(:,ind+m)
+            end do
+            t = t*tij
+          end do
+          beta = intmlp(tij,sigma(:,jsph),basloc)
+          xij = fsw(tij,se,eta)
+          if (fi(ig,isph).gt.one) then
+            oij = xij/fi(ig,isph)
+            f2  = -oij/fi(ig,isph)
+          else
+            oij = xij
+            f2  = zero
+          end if
+          f1 = oij/rsph(jsph)
+          va(:) = va(:) + f1*alp(:) + beta*f2*zi(:,ig,isph)
+          if (tij .gt. tlow) then
+!!!          if (tij .gt. (one-eta*rsph(jsph))) then
+!!!            f3 = beta*dfsw(tij,eta*rsph(jsph))/rsph(jsph)
+            f3 = beta*dfsw(tij,se,eta)/rsph(jsph)
+            if (fi(ig,isph).gt.one) f3 = f3/fi(ig,isph)
+            va(:) = va(:) + f3*sij(:)
+          end if
+        end do
+        fx = fx - w(ig)*xi(ig)*va(:)
+      end do
+!      
+      return
+!      
+!      
+endsubroutine fdoka
+!-----------------------------------------------------------------------------------
+!
+!      
+!      
+!      
+!-----------------------------------------------------------------------------------
+! Purpose : Fil, please add info and comments
+!-----------------------------------------------------------------------------------
+subroutine fdokb( isph, sigma, xi, basloc, dbsloc, vplm, vcos, vsin, fx )
+!        
+      implicit none
+      integer,                         intent(in)    :: isph
+      real*8,  dimension(nbasis,nsph), intent(in)    :: sigma
+      real*8,  dimension(ngrid,nsph),  intent(in)    :: xi
+      real*8,  dimension(nbasis),      intent(inout) :: basloc, vplm
+      real*8,  dimension(3,nbasis),    intent(inout) :: dbsloc
+      real*8,  dimension(lmax+1),      intent(inout) :: vcos, vsin
+      real*8,  dimension(3),           intent(inout) :: fx
+!
+      integer :: ig, ji, jsph, l, ind, m, jk, ksph
+      logical :: proc
+      real*8  :: vvji, tji, xji, oji, t, fac, fl, f1, f2, beta, di, tlow, thigh
+      real*8  :: b, g1, g2, vvjk, tjk, f, xjk
+      real*8  :: vji(3), sji(3), alp(3), vb(3), vjk(3), sjk(3), vc(3)
+!
+!-----------------------------------------------------------------------------------
+!
+      tlow  = one - pt5*(one - se)*eta
+      thigh = one + pt5*(one + se)*eta
+!
+      do ig = 1, ngrid
+        vb = zero
+        vc = zero
+        do ji = inl(isph), inl(isph+1) - 1
+          jsph = nl(ji)
+          vji  = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
+          vvji = sqrt(dot_product(vji,vji))
+          tji  = vvji/rsph(isph)
+!
+          if (tji.gt.thigh) cycle
+!
+          sji  = vji/vvji
+          call dbasis(sji,basloc,dbsloc,vplm,vcos,vsin)
+!
+          alp = zero
+          t   = one
+          do l = 1, lmax
+            ind = l*l + l + 1
+            fl  = dble(l)
+            fac = t/facl(ind)
+            do m = -l, l
+              f2 = fac*sigma(ind+m,isph)
+              f1 = f2*fl*basloc(ind+m)
+              alp = alp + f1*sji + f2*dbsloc(:,ind+m)
+            end do
+            t = t*tji
+          end do
+          xji = fsw(tji,se,eta)
+          if (fi(ig,jsph).gt.one) then
+            oji = xji/fi(ig,jsph)
+          else
+            oji = xji
+          end if
+          f1 = oji/rsph(isph)
+          vb = vb + f1*alp*xi(ig,jsph)
+          if (tji .gt. tlow) then
+            beta = intmlp(tji,sigma(:,isph),basloc)
+            if (fi(ig,jsph) .gt. one) then
+              di  = one/fi(ig,jsph)
+              fac = di*xji
+              proc = .false.
+              b    = zero
+              do jk = inl(jsph), inl(jsph+1) - 1
+                ksph = nl(jk)
+                vjk  = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,ksph)
+                vvjk = sqrt(dot_product(vjk,vjk))
+                tjk  = vvjk/rsph(ksph)
+                if (ksph.ne.isph) then
+                  if (tjk .le. thigh) then
+                    proc = .true.
+                    sjk  = vjk/vvjk
+                    call ylmbas(sjk,basloc,vplm,vcos,vsin)
+                    g1  = intmlp(tjk,sigma(:,ksph),basloc)
+                    xjk = fsw(tjk,se,eta)
+                    b   = b + g1*xjk
+                  end if
+                end if
+              end do
+              if (proc) then
+!!    !            g1 = di*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
+                g1 = di*di*dfsw(tji,se,eta)/rsph(isph)
+                g2 = g1*xi(ig,jsph)*b
+                vc = vc + g2*sji
+              end if
+            else
+              di  = one
+              fac = zero
+            end if
+!!    !        f2 = (one-fac)*di*dfsw(tji,eta*rsph(isph))/rsph(isph)
+            f2 = (one-fac)*di*dfsw(tji,se,eta)/rsph(isph)
+            vb = vb + f2*xi(ig,jsph)*beta*sji
+          end if 
+        end do
+        fx = fx + w(ig)*(vb - vc)
+      ! fx = fx - w(ig)*vc
+      end do
+      return
   end subroutine fdokb
-  !
-  subroutine fdoga(isph,xi,phi,fx)
-  implicit none
-  integer,                        intent(in)    :: isph
-  real*8,  dimension(ngrid,nsph), intent(in)    :: xi, phi
-  real*8,  dimension(3),          intent(inout) :: fx
-  !
-  integer :: ig, ji, jsph
-  real*8  :: vvji, tji, fac, swthr
-  real*8  :: alp(3), vji(3), sji(3)
-  !
-  do ig = 1, ngrid
-    alp = zero
-    if (ui(ig,isph) .gt. zero .and. ui(ig,isph).lt.one) then
-      alp = alp + phi(ig,isph)*xi(ig,isph)*zi(:,ig,isph)
-    end if
-    do ji = inl(isph), inl(isph+1) - 1
-      jsph  = nl(ji)
-      vji   = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
-      vvji  = sqrt(dot_product(vji,vji))
-      tji   = vvji/rsph(isph)
-      swthr = one + (se + 1.d0)*eta / 2.d0
-      if (tji.lt.swthr .and. tji.gt.swthr-eta .and. ui(ig,jsph).gt.zero) then
-        sji = vji/vvji
-!!!        fac = - dfsw(tji,eta*rsph(isph))/rsph(isph)
-        fac = - dfsw(tji,se,eta)/rsph(isph)
-        alp = alp + fac*phi(ig,jsph)*xi(ig,jsph)*sji
-      end if
-    end do
-    fx = fx - w(ig)*alp
-  end do
-  return 
-  end subroutine fdoga
+!-----------------------------------------------------------------------------------
 !
 !
-!-------------------------------------------------------------------------------
+!
+!
+!-----------------------------------------------------------------------------------
+! Purpose : Fil, please add info and comments
+!-----------------------------------------------------------------------------------
+subroutine fdoga( isph, xi, phi, fx )
+!        
+      implicit none
+      integer,                        intent(in)    :: isph
+      real*8,  dimension(ngrid,nsph), intent(in)    :: xi, phi
+      real*8,  dimension(3),          intent(inout) :: fx
+!
+      integer :: ig, ji, jsph
+      real*8  :: vvji, tji, fac, swthr
+      real*8  :: alp(3), vji(3), sji(3)
+!
+!-----------------------------------------------------------------------------------
+!
+      do ig = 1, ngrid
+        alp = zero
+        if (ui(ig,isph) .gt. zero .and. ui(ig,isph).lt.one) then
+          alp = alp + phi(ig,isph)*xi(ig,isph)*zi(:,ig,isph)
+        end if
+        do ji = inl(isph), inl(isph+1) - 1
+          jsph  = nl(ji)
+          vji   = csph(:,jsph) + rsph(jsph)*grid(:,ig) - csph(:,isph)
+          vvji  = sqrt(dot_product(vji,vji))
+          tji   = vvji/rsph(isph)
+          swthr = one + (se + 1.d0)*eta / 2.d0
+          if (tji.lt.swthr .and. tji.gt.swthr-eta .and. ui(ig,jsph).gt.zero) then
+            sji = vji/vvji
+!!!            fac = - dfsw(tji,eta*rsph(isph))/rsph(isph)
+            fac = - dfsw(tji,se,eta)/rsph(isph)
+            alp = alp + fac*phi(ig,jsph)*xi(ig,jsph)*sji
+          end if
+        end do
+        fx = fx - w(ig)*alp
+      end do
+!
+      return 
+!
+!
+endsubroutine fdoga
+!-----------------------------------------------------------------------------------
 !
 !
 !
@@ -1780,8 +1981,8 @@ endsubroutine adjrhs1
 !---------------------------------------------------------------------
 ! Purpose : compute
 !                                       
-!     sum   4pi/(2l'+1) * Y_l'^m'(s_n) * sigma_l'^m'
-!    l',m'                             
+!     sum   4pi/(2l+1) * Y_l^m(s_n) * sigma_l^m
+!     l,m                             
 !
 !---------------------------------------------------------------------
 real*8 function cstmlp( sigma, basloc )
@@ -1800,6 +2001,7 @@ real*8 function cstmlp( sigma, basloc )
 !      
 endfunction cstmlp
 !---------------------------------------------------------------------
+!
 !
 !
 !
