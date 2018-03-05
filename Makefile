@@ -9,7 +9,8 @@ FFLAGS = -O3 -xHost -qopenmp
 #FFLAGS = -O3 -mp
 
 MODS   = ddcosmo.o
-OBJS   = mkrhs.o llgnew.o main.o ddcosmo.o forces.o efld.o
+OBJS   = mkrhs.o llgnew.o main.o ddcosmo.o forces.o efld.o\
+	matvec.o cosmo.o jacobi_diis.o
 #
 all:    $(MODS) $(OBJS)
 	$(RunF77) $(FFLAGS) -o main.exe $(OBJS)

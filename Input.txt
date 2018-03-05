@@ -1,11 +1,11 @@
-2                ! print flag. the larger, the more verbose the output
-2                ! number of OpenMP cores to be used
+1                ! print flag. the larger, the more verbose the output
+1                ! number of OpenMP cores to be used
 6                ! maximum angular momentum for the spherical harmonics expansion
 110              ! (approximate) number of grid points to be used for numerical quadratures
 7                ! convergence threshold for the iterative solver (in this case, 10^-6)
 0                ! whether to compute (1) or not (0) the forces
 78.3553          ! dielectric constant
-0.1              ! regularization parameter
+0.2              ! regularization parameter
 642              ! number of spheres/atoms. For each atom, the charge, x, y, z coordinates and VdW radius follow.
      -0.3000     16.8850     14.0780      3.4270      2.0130
       0.2100     16.9380     12.8340      4.2340      2.1181

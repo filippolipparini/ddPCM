@@ -1,4 +1,4 @@
-subroutine mkrhs(n,charge,x,y,z,ncav,ccav,phi,nbasis,psi)
+subroutine mkrhs(n,charge,x,y,z,ncav,ccav,phi,nylm,psi)
 implicit none
 ! 
 !      888      888  .d8888b.   .d88888b.   .d8888b.  888b     d888  .d88888b.  
@@ -82,11 +82,11 @@ implicit none
 !                                                                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-integer,                      intent(in)    :: n, ncav, nbasis
+integer,                      intent(in)    :: n, ncav, nylm
 real*8,  dimension(n),        intent(in)    :: x, y, z, charge
 real*8,  dimension(3,ncav),   intent(in)    :: ccav
 real*8,  dimension(ncav),     intent(inout) :: phi
-real*8,  dimension(nbasis,n), intent(inout) :: psi
+real*8,  dimension(nylm,n), intent(inout) :: psi
 !
 integer :: isph, ic, j
 real*8  :: v

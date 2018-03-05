@@ -74,7 +74,8 @@ use ddcosmo
 !      algebraic order of accuracy"
 !     Doklady Mathematics, Vol. 59, No. 3, 1999, pp. 477-481.
 !
-! Written by Filippo Lipparini, October 2015.
+! Written by Filippo Lipparini, October 2015 and
+!            Paolo Gatto,       December 2017
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !                                                                              !
@@ -92,7 +93,7 @@ use ddcosmo
 implicit none
 !
 integer :: i, n
-real*8  :: tobohr, esolv
+real*8  :: tobohr, esolv, xx(1)
 real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
 ! quantities to be allocated by the user.
@@ -102,11 +103,11 @@ real*8, parameter :: toang=0.52917721092d0, tokcal=627.509469d0
 !
 real*8, allocatable :: x(:), y(:), z(:), rvdw(:), charge(:)
 !
-! - electrostatic potential phi(ncav) and psi vector psi(nbasis,n)
+! - electrostatic potential phi(ncav) and psi vector psi(nylm,n)
 !
 real*8, allocatable :: phi(:), psi(:,:)
 !
-! - ddcosmo solution sigma (nbasis,n) and adjoint solution s(nbasis,n)
+! - ddcosmo solution sigma (nylm,n) and adjoint solution s(nylm,n)
 !
 real*8, allocatable :: sigma(:,:), s(:,:)
 !
@@ -117,9 +118,6 @@ real*8, allocatable :: fx(:,:)
 ! - for qm solutes, fock matrix contribution.
 !
 ! here, we read all the ddcosmo parameters from a file named Input.txt
-!
-memuse = 0
-memmax = 0
 !
 open (unit=100,file='Input.txt',form='formatted',access='sequential')
 !
@@ -139,9 +137,6 @@ read(100,*) n           ! number of atoms
 !
 allocate (x(n),y(n),z(n),rvdw(n),charge(n))
 !
-memuse = memuse + 5*n
-memmax = max(memmax,memuse)
-!
 ! we also read from the same file the charges, coordinates and vdw radii.
 ! in this example, the coordinates and radii are read in angstrom and
 ! converted in bohr before calling ddinit.
@@ -160,14 +155,13 @@ close (100)
 ! call the initialization routine. this routine allocates memory, computes some
 ! quantities for internal use and creates and fills an array ccav(3,ncav) with
 ! the coordinates of the grid points at which the user needs to compute the potential.
-! ncav is the number of external grid points and nbasis the number of spherical
+! ncav is the number of external grid points and nylm the number of spherical
 ! harmonics functions used for the expansion of the various ddcosmo quantities;
 ! both are computed by ddinit and defined as common variables in ddcosmo.mod.
 !
 call ddinit(n,x,y,z,rvdw)
-allocate (phi(ncav),psi(nbasis,n))
-memuse = memuse + ncav + nbasis*n
-memmax = max(memmax,memuse)
+!
+allocate (phi(ncav),psi(nylm,n))
 !
 ! --------------------------   modify here  --------------------------  
 !
@@ -179,18 +173,16 @@ memmax = max(memmax,memuse)
 ! here, we compute the potential and the psi vector using the supplied routine mkrhs,
 ! which needs to be replaced by your routine.
 !
-call mkrhs(n,charge,x,y,z,ncav,ccav,phi,nbasis,psi)
+call mkrhs(n,charge,x,y,z,ncav,ccav,phi,nylm,psi)
 !
 ! --------------------------   end modify   --------------------------  
 !
 ! now, call the ddcosmo solver
 !
-allocate (sigma(nbasis,n))
+allocate (sigma(nylm,n))
 !
-memuse = memuse + nbasis*n
-memmax = max(memmax,memuse)
+call cosmo(.false., .true., phi, xx, psi, sigma, esolv)
 !
-call itsolv(.false.,phi,psi,sigma,esolv)
 write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
 ! this is all for the energy. if the forces are also required, call the solver for
@@ -200,11 +192,9 @@ write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', e
 !
 if (igrad.eq.1) then
   write(6,*)
-  allocate (s(nbasis,n))
+  allocate (s(nylm,n))
   allocate (fx(3,n))
-  memuse = memuse + nbasis*n + 3*n
-  memmax = max(memmax,memuse)
-  call itsolv(.true.,phi,psi,s,esolv)
+  call cosmo(.true., .false., xx, xx, psi, s, esolv)
 !
 ! now call the routine that computes the forces. such a routine requires the potential 
 ! derivatives at the cavity points and the electric field at the cavity points: it has
@@ -217,12 +207,8 @@ end if
 ! clean up:
 !
 deallocate (x,y,z,rvdw,charge,phi,psi,sigma)
-memuse = memuse - 5*n - ncav - 2*n*nbasis
-memmax = max(memmax,memuse)
 !
 if (igrad.eq.1) deallocate (s,fx)
 call memfree
-!
-write(6,*) 'maximum quantity of memory allocated:', memmax
 !
 end program main
