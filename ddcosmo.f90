@@ -1370,17 +1370,17 @@ subroutine header
               '                                                                              ',/,  &
               ' An implementation of COSMO using a domain decomposition linear scaling strategy.',/)
  1010 format( ' Parameters:',/, &
-              '   number of grid points:                  '8x,i8,/,   &
-              '   number of spheres:                      '8x,i8,/,   &
-              '   lmax for the spherical harmonics basis: '8x,i8,/,   &
-              '   convergence threshold:                  '8x,d8.1,/, &
-              '   regularization parameters (eta,s):      ',f8.3,f8.3,/,&
-              '   dielectric constant:                   ',e12.5/)
+              '   number of grid points:                  ',8x,i8,/,   &
+              '   number of spheres:                      ',8x,i8,/,   &
+              '   lmax for the spherical harmonics basis: ',8x,i8,/,   &
+              '   convergence threshold:                  ',8x,d8.1,/, &
+              '   regularization parameter (eta):         ',8x,f8.3,/,&
+              '   dielectric constant:                    ',8x,f8.4/)
 !               
       if ( iprint.gt.0 ) then
 !              
         write(iout,1000)
-        write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, se,eps
+        write(iout,1010) ngrid, nsph, lmax, 10.0d0**(-iconv), eta, eps
 !        
         if ( igrad.eq.1 )  write(iout,1013)
  1013   format( ' Compute forces.'// )   

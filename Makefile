@@ -2,7 +2,7 @@
 #   Makefile for ddCOSMO
 #
 RunF77 = ifort
-FFLAGS = -O3 -xHost 
+FFLAGS = -O3 -xHost -qopenmp
 #RunF77 = gfortran
 #FFLAGS = -O3 -march=native -fopenmp
 #RunF77 = pgfortran

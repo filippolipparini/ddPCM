@@ -203,14 +203,6 @@ if (igrad.eq.1) then
 !
 ! form the "zeta" intermediate
 !
-stop
-!fl
-    write(6,*) 'pre efld'
-    write(iout,2000)
-    do isph = 1, nsph
-      write(6,'(1x,i5,3f16.8)') isph, fx(:,isph)
-    end do
-  write(6,*) '@ zeta'
   allocate (zeta(ncav))
   call ddmkzeta(s,zeta)
 !
@@ -239,7 +231,6 @@ stop
 !
 !   compute the electric field
 !
-  write(6,*) '@ efld1'
   call efld(n,charge,csph,ncav,ccav,ef)
 !
 !   contract it with the zeta intermediate
@@ -258,7 +249,6 @@ stop
 !
 !   compute the "electric field"
 !
-  write(6,*) '@ efld2'
   call efld(ncav,zeta,ccav,n,csph,ef)
 !
 !   contract it with the solute's charges.

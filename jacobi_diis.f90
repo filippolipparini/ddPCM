@@ -158,8 +158,20 @@ subroutine jacobi_diis( n, lprint, diis_max, norm, tol, rhs, x, n_iter, ok, matv
         endif
 !
 !       printing
-        if ( lprint.gt.0 )  write(*,100) it, rms_norm, max_norm
+        if ( lprint.gt.0 ) then
+           if (norm.eq.1) then
+             write(*,110) it, 'max', max_norm
+           else if (norm.eq.2) then
+             write(*,110) it, 'rms', rms_norm
+           else if (norm.eq.3) then
+             write(*,100) it, rms_norm, max_norm
+           else if (norm.eq.4) then
+             write(*,120) it, rms_norm
+           end if
+         end if
   100   format(t3,'iter=',i4,' residual norm (rms,max): ', 2d14.4 )
+  110   format(t3,'iter=',i4,' residual norm (',a,'): ', d14.4 )
+  120   format(t3,'iter=',i4,' residual norm: ', d14.4 )
 !
 !       update
         x = x_new
