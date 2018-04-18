@@ -90,19 +90,24 @@ real*8,  dimension(3,ntrg), intent(in)    :: ctrg
 real*8,  dimension(3,ntrg), intent(inout) :: ef
 !
 integer :: i, j
-real*8  :: r(3), r2, rr, r3, fac, e(3)
+real*8  :: dx, dy, dz, r2, rr, r3, f, e(3)
 real*8, parameter :: zero=0.0d0
 !
 ef = zero
-!$omp parallel do default(shared) private(j,i,r,r2,rr,r3,e)
+!$omp parallel do default(shared) private(j,i,dx,dy,dz,r2,rr,r3,e)
 do j = 1, ntrg
   e = zero
   do i = 1, nsrc
-    r   = csrc(:,i) - ctrg(:,j)
-    r2  = dot_product(r,r)
-    rr  = sqrt(r2)
-    r3  = r2*rr
-    e  = e + src(i)*r/r3
+    dx   = ctrg(1,j) - csrc(1,i)
+    dy   = ctrg(2,j) - csrc(2,i)
+    dz   = ctrg(3,j) - csrc(3,i)
+    r2   = dx*dx + dy*dy + dz*dz
+    rr   = sqrt(r2)
+    r3   = r2*rr
+    f    = src(i)/r3
+    e(1) = e(1) + f*dx
+    e(2) = e(2) + f*dy
+    e(3) = e(3) + f*dz
   end do
   ef(:,j) = e
 end do

@@ -100,10 +100,9 @@ implicit none
 !     iconv      - threshold for iterative solver ( 10^-iconv )
 !     igrad      - 1) compute forces ; 0) do not compute forces
 !     eps        - dielectric constant of the solvent
-!     iunit      - 0) convert to bohr ; 1) do not convert to bohr
 !     eta        - regularization parameters
 !
-      integer :: iprint, nproc, lmax, ngrid, iconv, igrad, iunit
+      integer :: iprint, nproc, lmax, ngrid, iconv, igrad
       real*8  :: eps, eta
 !
 !     - other quantities
@@ -150,6 +149,7 @@ implicit none
 !     fdokb              - compute the the second part of <S,L^(x)X>
 !     fdoga              - compute the U^(x)\Phi contribution to <S,g^(x)>
 !     calcv              - auxiliary routine for COSMO action
+!     ddmkxi             - compute the xi intermediate
 !
       contains
 !
@@ -484,7 +484,7 @@ subroutine memfree
         stop
       endif
 !
-endsubroutine memfree
+end subroutine memfree
 !---------------------------------------------------------------------------------
 !
 !
@@ -518,7 +518,7 @@ real*8 function sprod(n,u,v)
       return
 !
 !
-endfunction sprod
+end function sprod
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -568,7 +568,7 @@ real*8 function fsw( t, s, eta )
       endif
 !
 !
-endfunction fsw
+end function fsw
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -616,7 +616,7 @@ real*8 function dfsw( t, s, eta )
       endif
 !
 !
-endfunction dfsw
+end function dfsw
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -675,7 +675,7 @@ subroutine ptcart( label, ncol, icol, x )
       return
 !
 !
-endsubroutine ptcart
+end subroutine ptcart
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -741,7 +741,7 @@ subroutine prtsph(label,ncol,icol,x)
       return
 !      
 !      
-endsubroutine prtsph
+end subroutine prtsph
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -782,7 +782,7 @@ subroutine intrhs( isph, x, xlm )
       return
 !
 !
-endsubroutine intrhs
+end subroutine intrhs
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -802,9 +802,6 @@ subroutine ylmbas( x, basloc, vplm, vcos, vsin )
       real*8  :: cthe, sthe, cphi, sphi, plm
 !      
 !------------------------------------------------------------------------------------------------
-!
-!     initialize
-!     basloc=zero ; vplm=zero ; vcos=zero ; vsin=zero
 !
 !     get cos(\theta), sin(\theta), cos(\phi) and sin(\phi) from the cartesian
 !     coordinates of x.
@@ -859,7 +856,7 @@ subroutine ylmbas( x, basloc, vplm, vcos, vsin )
       return
 !      
 !      
-endsubroutine ylmbas
+end subroutine ylmbas
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -1007,7 +1004,7 @@ subroutine dbasis( x, basloc, dbsloc, vplm, vcos, vsin )
       return
 !
 !
-endsubroutine dbasis
+end subroutine dbasis
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -1058,7 +1055,7 @@ subroutine polleg( x, y, plm )
 !
       return
 !
-endsubroutine polleg
+end subroutine polleg
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -1089,7 +1086,7 @@ subroutine trgev( x, y, cx, sx )
       return
 !      
 !      
-endsubroutine trgev
+end subroutine trgev
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -1142,7 +1139,7 @@ real*8 function intmlp( t, sigma, basloc )
       intmlp = ss
 !
 !
-endfunction intmlp
+end function intmlp
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -1188,7 +1185,7 @@ subroutine wghpot( phi, g )
       return
 !
 !
-endsubroutine wghpot
+end subroutine wghpot
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -1235,7 +1232,7 @@ subroutine hsnorm( u, unorm )
       return
 !
 !
-endsubroutine hsnorm
+end subroutine hsnorm
 !------------------------------------------------------------------------------------------------
 !
 !
@@ -1348,7 +1345,7 @@ subroutine adjrhs( isph, xi, vlm, basloc, vplm, vcos, vsin )
       enddo
 !
 !
-endsubroutine adjrhs
+end subroutine adjrhs
 !-----------------------------------------------------------------------------------
 !
 !
@@ -1393,7 +1390,7 @@ subroutine header
       return
 !      
 !      
-endsubroutine header
+end subroutine header
 !-----------------------------------------------------------------------------------
 !
 !
@@ -1468,7 +1465,7 @@ subroutine fdoka( isph, sigma, xi, basloc, dbsloc, vplm, vcos, vsin, fx )
       return
 !      
 !      
-endsubroutine fdoka
+end subroutine fdoka
 !-----------------------------------------------------------------------------------
 !
 !      
@@ -1614,7 +1611,7 @@ subroutine fdoga( isph, xi, phi, fx )
       return 
 !
 !
-endsubroutine fdoga
+end subroutine fdoga
 !-----------------------------------------------------------------------------------
 !
 !------------------------------------------------------------------------
@@ -1710,7 +1707,66 @@ subroutine calcv( first, isph, pot, sigma, basloc, vplm, vcos, vsin )
       return
 !      
 !      
-endsubroutine calcv
+end subroutine calcv
+!------------------------------------------------------------------------
 !
+!------------------------------------------------------------------------
+! Purpose : compute
+!
+! \xi(n,i) = 
+!
+!  sum w_n U_n^i Y_l^m(s_n) [S_i]_l^m
+!  l,m
+!
+!------------------------------------------------------------------------
+subroutine ddmkxi( s, xi)
+!
+       real*8, dimension(nylm,nsph), intent(in)    :: s
+       real*8, dimension(ncav),      intent(inout) :: xi
+!
+       integer :: its, isph, ii
+!
+       ii = 0
+       do isph = 1, nsph
+         do its = 1, ngrid
+           if (ui(its,isph) .gt. zero) then
+             ii     = ii + 1
+             xi(ii) = w(its)*ui(its,isph)*dot_product(basis(:,its),s(:,isph))
+           end if
+         end do
+       end do
+!
+       return
+end subroutine ddmkxi
+!
+!------------------------------------------------------------------------
+! Purpose : compute
+!
+! \zeta(n,i) = 
+!
+!  1/2 f(\eps) sum w_n U_n^i Y_l^m(s_n) [S_i]_l^m
+!              l,m
+!
+!------------------------------------------------------------------------
+subroutine ddmkzeta( s, zeta)
+!
+       real*8, dimension(nylm,nsph), intent(in)    :: s
+       real*8, dimension(ncav),      intent(inout) :: zeta
+!
+       integer :: its, isph, ii
+!
+       ii = 0
+       do isph = 1, nsph
+         do its = 1, ngrid
+           if (ui(its,isph) .gt. zero) then
+             ii     = ii + 1
+             zeta(ii) = w(its)*ui(its,isph)*dot_product(basis(:,its),s(:,isph))
+           end if
+         end do
+       end do
+!
+       zeta = pt5*((eps-one)/eps)*zeta
+       return
+end subroutine ddmkzeta
 !
 endmodule ddcosmo

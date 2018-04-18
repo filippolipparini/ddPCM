@@ -1,4 +1,4 @@
-subroutine forces(n,charge,phi,sigma,s,fx)
+subroutine forces_dd(n,phi,sigma,s,fx)
 use ddcosmo
 ! 
 !      888      888  .d8888b.   .d88888b.   .d8888b.  888b     d888  .d88888b.  
@@ -84,9 +84,8 @@ use ddcosmo
 implicit none
 !
 integer,                         intent(in)    :: n
-real*8,  dimension(n),           intent(in)    :: charge
 real*8,  dimension(ncav),        intent(in)    :: phi
-real*8,  dimension(nbasis,nsph), intent(in)    :: sigma, s
+real*8,  dimension(nylm,nsph),   intent(in)    :: sigma, s
 real*8,  dimension(3,n),         intent(inout) :: fx
 !
 integer :: isph, ig, ii, c1, c2, cr
@@ -96,7 +95,7 @@ real*8, allocatable :: xi(:,:), phiexp(:,:), zeta(:), ef(:,:)
 real*8, allocatable :: basloc(:), dbsloc(:,:), vplm(:), vcos(:), vsin(:)
 !
 allocate (xi(ngrid,nsph),phiexp(ngrid,nsph))
-allocate (basloc(nbasis),dbsloc(3,nbasis),vplm(nbasis),vcos(lmax+1),vsin(lmax+1))
+allocate (basloc(nylm),dbsloc(3,nylm),vplm(nylm),vcos(lmax+1),vsin(lmax+1))
 !
 ! initialize the timer:
 !
@@ -131,85 +130,24 @@ do isph = 1, nsph
   call fdoka(isph,sigma,xi(:,isph),basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 
   call fdokb(isph,sigma,xi,basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 
   call fdoga(isph,xi,phiexp,fx(:,isph)) 
+  write(6,'(i4,3f16.8)') isph, fx(:,isph)
 end do
+
 !
 deallocate (basloc,dbsloc,vplm,vcos,vsin)
 !
-allocate (zeta(ncav))
-ii = 0
-do isph = 1, nsph
-  do ig = 1, ngrid
-    if (ui(ig,isph).gt.zero) then
-      ii = ii + 1
-      zeta(ii) = xi(ig,isph)*w(ig)*ui(ig,isph)
-    end if
-  end do
-end do
 call system_clock(count=c2)
 if (iprint.gt.0) then
   write(iout,1010) dble(c2-c1)/dble(cr)
 1010 format(' the computation of the ddCOSMO part of the forces took ',f8.3,' seconds.')
 end if
 !
-! --------------------------   modify here  --------------------------  
-!
-! here come the two contributions that depend on the solute, i.e., the electric field
-! produced by the solute at the cavity points times the ddcosmo intermediate zeta 
-! and the solute's potential derivatives at the cavity points times zeta. 
-! the two terms are described in JCP, 141, 184108, eqs. 47, 48.
-!
-! for a solute represented by point charges, the two terms can be rearranged as zeta 
-! contracted with the electric field of the solute plus the electric field produced
-! by zeta, which have the physical dimension of a charge, at the nuclei times the 
-! charges. This rearrangement allows one to use fast summations methods, such as the
-! fast multipole method, for this task.
-!
-! a routine for point charges that follows the aformentioned strategy is provided as
-! an example (efld). notice that the array csph contains the coordinates of the nuclei.
-! the user will need to replace efld with his/her favorite routine.
-!
-allocate(ef(3,ncav))
-!
-! solute's electric field at the cav points times zeta:
-!
-call efld(n,charge,csph,ncav,ccav,ef)
-ii = 0
-do isph = 1, nsph
-  do ig = 1, ngrid
-    if (ui(ig,isph).gt.zero) then 
-      ii = ii + 1
-      fx(:,isph) = fx(:,isph) + zeta(ii)*ef(:,ii)
-    end if
-  end do
-end do
-!
-! "zeta's" electric field at the nuclei times the charges. notice that ncav is larger than n.
-!
-call efld(ncav,zeta,ccav,n,csph,ef)
-do isph = 1, nsph
-  fx(:,isph) = fx(:,isph) + ef(:,isph)*charge(isph)
-end do
-!
-! for point charges, there is no contribution from the derivatives of the psi vector.
-! for quantum mechanical solutes, such a contribution needs to be handled via a numerical
-! integration.
-!
-! --------------------------   end modify   --------------------------  
-! 
-deallocate (xi,phiexp,zeta,ef)
+deallocate (xi,phiexp)
 !
 ! scale the forces time the cosmo factor:
 !
 fep = pt5*(eps-one)/eps
 fx  = fep*fx
 !
-if (iprint.ge.2) then
-  write(iout,1000)
-1000 format(1x,'ddCOSMO forces (atomic units):',/, &
-            1x,' atom',15x,'x',15x,'y',15x,'z')
-  do isph = 1, nsph
-    write(6,'(1x,i5,3f16.8)') isph, fx(:,isph)
-  end do
-end if
 return
 end
