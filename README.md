@@ -3,8 +3,9 @@ A fast domain decomposition based implementation of the COSMO solvation model
 
 [![DOI](https://zenodo.org/badge/63929685.svg)](https://zenodo.org/badge/latestdoi/63929685)
 
-COPYRIGHT (C) 2016 by Filippo Lipparini, Benjamin Stamm, Eric Cancès,       
-Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and Benedetta Mennucci.   
+COPYRIGHT (C) 2016 by Filippo Lipparini, Benjamin Stamm, Eric Cancès,
+Yvon Maday, Paolo Gatto, Jean-Philip Piquemal, Louis Lagardère and 
+Benedetta Mennucci.   
                           ALL RIGHT RESERVED.      
 
 This code is governed by the LGPL license and abiding by the rules of 
