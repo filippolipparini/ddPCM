@@ -130,7 +130,6 @@ do isph = 1, nsph
   call fdoka(isph,sigma,xi(:,isph),basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 
   call fdokb(isph,sigma,xi,basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 
   call fdoga(isph,xi,phiexp,fx(:,isph)) 
-  write(6,'(i4,3f16.8)') isph, fx(:,isph)
 end do
 
 !

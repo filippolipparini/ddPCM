@@ -195,7 +195,6 @@ if (igrad.eq.1) then
   allocate (s(nylm,n))
   allocate (fx(3,n))
   call cosmo(.true., .false., xx, xx, psi, s, esolv)
-  call prtsph('s',nsph,0,s)
 !
 ! now call the routine that computes the ddcosmo specific contributions to the forces.
 !
@@ -265,7 +264,7 @@ if (igrad.eq.1) then
 ! 
   deallocate (zeta, ef)
 !
-  if (iprint.ge.2) then
+  if (iprint.ge.1) then
     write(iout,2000)
 2000 format(1x,'ddCOSMO forces (atomic units):',/, &
               1x,' atom',15x,'x',15x,'y',15x,'z')
