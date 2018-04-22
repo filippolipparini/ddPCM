@@ -12,8 +12,9 @@ implicit none
 !                                                                              
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Eric Cancès,       !
-!  Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and Benedetta Mennucci.   !
+!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Paolo Gatto        !
+!  Eric Cancès, Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and          !
+!  Benedetta Mennucci.                                                         !
 !                             ALL RIGHT RESERVED.                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
@@ -86,7 +87,7 @@ integer,                      intent(in)    :: n, ncav, nylm
 real*8,  dimension(n),        intent(in)    :: x, y, z, charge
 real*8,  dimension(3,ncav),   intent(in)    :: ccav
 real*8,  dimension(ncav),     intent(inout) :: phi
-real*8,  dimension(nylm,n), intent(inout) :: psi
+real*8,  dimension(nylm,n),   intent(inout) :: psi
 !
 integer :: isph, ic, j
 real*8  :: v

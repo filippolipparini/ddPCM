@@ -12,8 +12,9 @@ use ddcosmo
 !                                                                              
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Eric Cancès,       !
-!  Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and Benedetta Mennucci.   !
+!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Paolo Gatto        !
+!  Eric Cancès, Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and          !
+!  Benedetta Mennucci.                                                         !
 !                             ALL RIGHT RESERVED.                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
@@ -112,6 +113,8 @@ do isph = 1, nsph
 end do
 !$omp end parallel do
 !
+if (iprint.ge.4) call ptcart('xi',nsph,0,xi)
+!
 ! expand the potential on a sphere-by-sphere basis (needed for parallelism):
 !
 ii = 0
@@ -131,7 +134,16 @@ do isph = 1, nsph
   call fdokb(isph,sigma,xi,basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 
   call fdoga(isph,xi,phiexp,fx(:,isph)) 
 end do
-
+!
+2000 format(1x,'ddCOSMO-only contributions to the forces (atomic units):',/, &
+              1x,' atom',15x,'x',15x,'y',15x,'z')
+!
+if (iprint.ge.4) then
+  write(iout,2000)
+  do isph = 1, nsph
+    write(6,'(1x,i5,3f16.8)') isph, fx(:,isph)
+  end do
+end if
 !
 deallocate (basloc,dbsloc,vplm,vcos,vsin)
 !

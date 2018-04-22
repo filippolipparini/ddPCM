@@ -10,8 +10,9 @@
 !                                                                              
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Eric Cancès,       !
-!  Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and Benedetta Mennucci.   !
+!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Paolo Gatto        !
+!  Eric Cancès, Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and          !
+!  Benedetta Mennucci.                                                         !
 !                             ALL RIGHT RESERVED.                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
@@ -92,8 +93,8 @@
 !
 subroutine lx( n, x, y )
 !
-      use ddcosmo , only : nylm, nsph, ngrid, lmax, zero, calcv, intrhs, &
-                           facl
+      use ddcosmo , only : iprint, nylm, nsph, ngrid, lmax, zero, calcv, intrhs, &
+                           facl, prtsph
 !      
       implicit none 
       integer,                         intent(in)    :: n
@@ -113,6 +114,8 @@ subroutine lx( n, x, y )
         stop
       endif
 !
+      if (iprint.ge.5) call prtsph('X',nsph,0,x)
+!
 !     initialize
       y = zero
       !
@@ -130,8 +133,9 @@ subroutine lx( n, x, y )
 !       action of off-diagonal blocks
         y(:,isph) = - y(:,isph)
 !
-!       add action of diagonal block
       enddo
+!
+      if (iprint.ge.5) call prtsph('LX (off diagonal)',nsph,0,y)
 !
 !     deallocate workspaces
       deallocate( pot, basloc, vplm, vcos, vsin , stat=istatus )
@@ -156,11 +160,11 @@ end subroutine lx
 !
 subroutine lstarx( n, x, y )
 !
-      use ddcosmo , only : nylm, nsph, ngrid, lmax, zero, basis, &
-                           adjrhs, facl
+      use ddcosmo , only : iprint, nylm, nsph, ngrid, lmax, zero, basis, &
+                           adjrhs, facl, prtsph
 !      
       implicit none 
-      integer,                         intent(in)    :: n
+      integer,                       intent(in)    :: n
       real*8,  dimension(nylm,nsph), intent(in)    :: x
       real*8,  dimension(nylm,nsph), intent(inout) :: y
 !
@@ -176,6 +180,8 @@ subroutine lstarx( n, x, y )
         write(*,*) 'lstarx: allocation failed!'
         stop
       endif
+!
+      if (iprint.ge.5) call prtsph('X',nsph,0,x)
 !
 !     initilize
       y = zero
@@ -215,6 +221,8 @@ subroutine lstarx( n, x, y )
 !       add action of diagonal block
 !        
       enddo
+!
+      if (iprint.ge.5) call prtsph('L*X (off-diagonal)',nsph,0,y)
 !
 !     deallocate workspaces
       deallocate( xi, basloc, vplm, vcos, vsin , stat=istatus )

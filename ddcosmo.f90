@@ -14,8 +14,9 @@ implicit none
 !                                                                              
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Eric Cancès,       !
-!  Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and Benedetta Mennucci.   !
+!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Paolo Gatto        !
+!  Eric Cancès, Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and          !
+!  Benedetta Mennucci.                                                         !
 !                             ALL RIGHT RESERVED.                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
@@ -269,6 +270,14 @@ subroutine ddinit(n,x,y,z,rvdw)
         write(*,*)'ddinit : [1] deallocation failed!'
         stop
       endif
+!
+      if (iprint.ge.4) then
+        call prtsph('facs',1,0,facs)
+        call prtsph('facl',1,0,facs)
+        call prtsph('basis',ngrid,0,basis)
+        call ptcart('grid',3,0,grid)
+        call ptcart('weights',1,0,w)
+      end if
 !    
 !     build neighbors list (CSR format)
 !     =================================
@@ -313,6 +322,20 @@ subroutine ddinit(n,x,y,z,rvdw)
         end do
       end do
       inl(nsph+1) = lnl+1
+!
+ 1000 format(t3,'neighbours of sphere ',i6)
+ 1010 format(t5,12i6)
+!
+      if (iprint.ge.4) then
+        write(iout,*) '   inl:'
+        write(iout,'(10i6)') inl(1:nsph+1)
+        write(iout,*)
+        do isph = 1, nsph
+          write(iout,1000) isph
+          write(iout,1010) nl(inl(isph):inl(isph+1)-1)
+        end do
+        write(iout,*)
+      end if
 !
 !-----------------------------------------------------------------------
 ! Define :
@@ -385,9 +408,12 @@ subroutine ddinit(n,x,y,z,rvdw)
 !
         enddo
       enddo
-!      
 !$omp end parallel do
-!    
+!
+      if (iprint.ge.4) then
+        call ptcart('fi',nsph,0,fi)
+        call ptcart('ui',nsph,0,ui)
+      end if
 !    
 !     build cavity array
 !     ==================
@@ -440,6 +466,16 @@ subroutine ddinit(n,x,y,z,rvdw)
           endif
         enddo
       enddo
+!
+1100  format(t3,i8,3f14.6)
+!
+      if (iprint.ge.4) then
+        write(iout,*) '   external cavity points:'
+        do ii = 1, ncav
+          write(iout,1100) ii, ccav(:,ii)
+        end do
+        write(iout,*)
+      end if
 !
       return
 !

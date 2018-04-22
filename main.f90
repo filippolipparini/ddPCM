@@ -12,8 +12,9 @@ use ddcosmo
 !                                                                              
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Eric Cancès,       !
-!  Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and Benedetta Mennucci.   !
+!  COPYRIGHT (C) 2015 by Filippo Lipparini, Benjamin Stamm, Paolo Gatto        !
+!  Eric Cancès, Yvon Maday, Jean-Philip Piquemal, Louis Lagardère and          !
+!  Benedetta Mennucci.                                                         !
 !                             ALL RIGHT RESERVED.                              !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
@@ -74,8 +75,9 @@ use ddcosmo
 !      algebraic order of accuracy"
 !     Doklady Mathematics, Vol. 59, No. 3, 1999, pp. 477-481.
 !
-! Written by Filippo Lipparini, October 2015 and
+! Written by Filippo Lipparini, October 2015
 !            Paolo Gatto,       December 2017
+!            Filippo Lipparini, March 2018
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !                                                                              !
@@ -183,6 +185,8 @@ allocate (sigma(nylm,n))
 !
 call cosmo(.false., .true., phi, xx, psi, sigma, esolv)
 !
+if (iprint.ge.3) call prtsph('solution to the ddCOSMO equation',nsph,0,sigma)
+!
 write (6,'(1x,a,f14.6)') 'ddcosmo electrostatic solvation energy (kcal/mol):', esolv*tokcal
 !
 ! this is all for the energy. if the forces are also required, call the solver for
@@ -196,6 +200,8 @@ if (igrad.eq.1) then
   allocate (fx(3,n))
   call cosmo(.true., .false., xx, xx, psi, s, esolv)
 !
+  if (iprint.ge.3) call prtsph('solution to the ddCOSMO adjoint equation',nsph,0,s)
+!
 ! now call the routine that computes the ddcosmo specific contributions to the forces.
 !
   call forces_dd(n,phi,sigma,s,fx)
@@ -204,6 +210,8 @@ if (igrad.eq.1) then
 !
   allocate (zeta(ncav))
   call ddmkzeta(s,zeta)
+!
+  if (iprint.ge.4) call ptcart('zeta',nsph,0,zeta)
 !
 ! --------------------------   modify here  --------------------------  
 !

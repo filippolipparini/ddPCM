@@ -56,9 +56,8 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !   - if star is false, computes the solvation energy.
 !---------------------------------------------------------------------------------------
 !
-      use ddcosmo , only : ncav, nylm, nsph, iconv, zero, ngrid, &
-                           wghpot, intrhs, facl, pt5, eps, sprod, iout, iprint,      &
-                           ndiis, one
+      use ddcosmo , only : iprint, ncav, nylm, nsph, iconv, zero, ngrid, ndiis,      &
+                           wghpot, intrhs, facl, pt5, eps, sprod, iout, one, prtsph
 !      
       implicit none
       logical,                         intent(in)    :: star, cart
@@ -129,6 +128,8 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
         endif
 !
+        if (iprint.ge.4) call prtsph('rhs of the ddCOSMO equation',nsph,0,rhs)
+!
 !       2. INITIAL GUESS
 !       ----------------
 !
@@ -164,6 +165,8 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !     ==================================
 !
       else
+!
+        if (iprint.ge.4) call prtsph('rhs of the ddCOSMO adjoint equation',nsph,0,psi)
 !
 !       1. INITIAL GUESS
 !       ----------------
