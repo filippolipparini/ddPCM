@@ -2,7 +2,7 @@
 #   Makefile for ddCOSMO
 #
 RunF77 = ifort
-FFLAGS = -O3 -xHost -qopenmp
+FFLAGS = -O3 -xHost -qopenmp -mkl=sequential -g -traceback
 #RunF77 = gfortran
 #FFLAGS = -O3 -march=native -fopenmp
 #RunF77 = pgfortran
@@ -10,7 +10,7 @@ FFLAGS = -O3 -xHost -qopenmp
 
 MODS   = ddcosmo.o
 OBJS   = mkrhs.o llgnew.o main.o ddcosmo.o forces_dd.o efld.o\
-	matvec.o cosmo.o jacobi_diis.o
+	matvec.o cosmo.o jacobi_diis.o incore.o
 #
 all:    $(MODS) $(OBJS)
 	$(RunF77) $(FFLAGS) -o main.exe $(OBJS)

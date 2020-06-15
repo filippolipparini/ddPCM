@@ -129,6 +129,8 @@ do isph = 1, nsph
 end do
 !
 fx = zero
+!$omp parallel do default(shared) private(isph,basloc,dbsloc,vplm,vcos,vsin) &
+!$omp schedule(dynamic,10)
 do isph = 1, nsph
   call fdoka(isph,sigma,xi(:,isph),basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 
   call fdokb(isph,sigma,xi,basloc,dbsloc,vplm,vcos,vsin,fx(:,isph)) 

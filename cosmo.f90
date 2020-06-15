@@ -56,8 +56,9 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !   - if star is false, computes the solvation energy.
 !---------------------------------------------------------------------------------------
 !
-      use ddcosmo , only : iprint, ncav, nylm, nsph, iconv, zero, ngrid, ndiis,      &
-                           wghpot, intrhs, facl, pt5, eps, sprod, iout, one, prtsph
+      use ddcosmo , only : iprint, ncav, nylm, nsph, iconv, zero, ngrid, ndiis, ialg, &
+                           wghpot, intrhs, facl, pt5, eps, sprod, iout, one, prtsph,  &
+                           havemem
 !      
       implicit none
       logical,                         intent(in)    :: star, cart
@@ -66,13 +67,13 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
       real*8,  dimension(nylm,nsph), intent(inout)   :: sigma
       real*8,                          intent(inout) :: esolv
 !
-      integer              :: isph, istatus, n_iter, info, c1, c2, cr
+      integer              :: isph, istatus, n_iter, info, c1, c2, cr, lm
       real*8               :: tol, r_norm
       logical              :: ok
 !
-      real*8, allocatable  :: g(:,:), rhs(:,:), work(:,:)
+      real*8, allocatable  :: g(:,:), rhs(:,:), work(:,:), scratch(:,:,:)
 !
-      external             :: lx, ldm1x, hnorm, lstarx
+      external             :: lx, ldm1x, hnorm, lstarx, lx_ic, lstarx_ic
 !
 !---------------------------------------------------------------------------------------
 !
@@ -146,8 +147,15 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
 !         action of  diag^-1 :  ldm1x
 !         action of  offdiag :  lx
+          if (havemem) then
 !
-          call jacobi_diis( nsph*nylm, iprint, ndiis, 4, tol, rhs, sigma, n_iter, ok, lx, ldm1x, hnorm )
+            call jacobi_diis( nsph*nylm, iprint, ndiis, 4, tol, rhs, sigma, n_iter, ok, lx_ic, ldm1x, hnorm )
+!
+          else
+!
+            call jacobi_diis( nsph*nylm, iprint, ndiis, 4, tol, rhs, sigma, n_iter, ok, lx, ldm1x, hnorm )
+!
+          end if
 !
 !       4. SOLVATION ENERGY
 !       -------------------
@@ -180,7 +188,11 @@ subroutine cosmo( star, cart, phi, glm, psi, sigma, esolv )
 !
 !       Jacobi method : see above
 !
-        call jacobi_diis( nsph*nylm, iprint, ndiis, 4, tol, psi, sigma, n_iter, ok, lstarx, ldm1x, hnorm )
+        if (havemem) then
+          call jacobi_diis( nsph*nylm, iprint, ndiis, 4, tol, psi, sigma, n_iter, ok, lstarx_ic, ldm1x, hnorm )
+        else
+          call jacobi_diis( nsph*nylm, iprint, ndiis, 4, tol, psi, sigma, n_iter, ok, lstarx, ldm1x, hnorm )
+        end if
 !          
       endif
 !

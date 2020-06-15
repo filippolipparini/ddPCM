@@ -103,7 +103,7 @@ implicit none
 !     eps        - dielectric constant of the solvent
 !     eta        - regularization parameters
 !
-      integer :: iprint, nproc, lmax, ngrid, iconv, igrad
+      integer :: iprint, nproc, lmax, ngrid, iconv, igrad, ialg
       real*8  :: eps, eta
 !
 !     - other quantities
@@ -112,7 +112,7 @@ implicit none
 !     ncav   - number of integration points on cavity's boundary
 !     nylm - number of basis functions, i.e., spherical harmonics
 !
-      integer :: nsph, ncav, nylm
+      integer :: nsph, ncav, nylm, maxnl
 !
 !     - workspaces
 !
@@ -122,9 +122,12 @@ implicit none
       real*8,  allocatable :: fact(:), facl(:), facs(:)
       real*8,  allocatable :: fi(:,:), ui(:,:), zi(:,:,:)
 !
+      real*8,  allocatable :: lmat(:,:,:), sig_gather(:,:), lst_gather(:,:,:)
+      integer, allocatable :: iltrn(:)
+!
 !     - miscellanea
 !
-      logical :: grad
+      logical :: grad, havemem
 !
 !     - subroutines & functions
 !     =========================
@@ -323,6 +326,13 @@ subroutine ddinit(n,x,y,z,rvdw)
       end do
       inl(nsph+1) = lnl+1
 !
+!     compute the maximum number of neighbors for an arbitrary sphere for allocation purposes:
+!
+      maxnl = 0
+      do isph = 1, nsph
+        maxnl = max(maxnl,(inl(isph+1)-inl(isph)))
+      end do
+! 
  1000 format(t3,'neighbours of sphere ',i6)
  1010 format(t5,12i6)
 !
@@ -466,6 +476,9 @@ subroutine ddinit(n,x,y,z,rvdw)
           endif
         enddo
       enddo
+!
+      havemem = .false.
+      if (ialg.ne.0) call incore(havemem)
 !
 1100  format(t3,i8,3f14.6)
 !

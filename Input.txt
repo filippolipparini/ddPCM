@@ -1,13 +1,13 @@
-1                ! print flag. the larger, the more verbose the output
+0                ! print flag. the larger, the more verbose the output
 2                ! number of OpenMP cores to be used
-6                ! maximum angular momentum for the spherical harmonics expansion
+6                 ! maximum angular momentum for the spherical harmonics expansion
 110              ! (approximate) number of grid points to be used for numerical quadratures
 7                ! convergence threshold for the iterative solver (in this case, 10^-6)
-1                ! whether to compute (1) or not (0) the forces
+11               ! whether to compute (1) or not (0) the forces
 78.3553          ! dielectric constant
-0.2              ! regularization parameter
-10
-      0.0000     60.2457     46.3079    105.5962      1.5873
+0.1              ! regularization parameter
+642
+      0.4000     60.2457     46.3079    105.5962      1.5873
      -0.4041    109.1480     52.6060     60.2030      2.0130
       0.4305    109.3290     53.5110     60.6110      1.5873
       0.4305    108.8800     52.7000     59.2330      1.5873

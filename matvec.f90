@@ -97,7 +97,7 @@ subroutine lx( n, x, y )
                            facl, prtsph
 !      
       implicit none 
-      integer,                         intent(in)    :: n
+      integer,                       intent(in)    :: n
       real*8,  dimension(nylm,nsph), intent(in)    :: x
       real*8,  dimension(nylm,nsph), intent(inout) :: y
       !
@@ -322,3 +322,61 @@ real*8 function hnorm( n, x )
 !
 end function hnorm
 !-------------------------------------------------------------------------------
+!
+subroutine lx_ic(n, x, y)
+  use ddcosmo
+  implicit none
+  integer, intent(in) :: n
+  real*8,  dimension(nylm,nsph), intent(in)    :: x
+  real*8,  dimension(nylm,nsph), intent(inout) :: y
+!
+  integer :: isph, nneigh, ij, ind, jsph
+!
+  y = zero
+!$omp parallel do default(shared) private(isph,ij,jsph) &
+!$omp schedule(dynamic,10)
+  do isph = 1, nsph
+!
+!   gather all the relevant sigmas:
+!
+    do ij = inl(isph), inl(isph+1) - 1
+      jsph = nl(ij)
+      call dgemv('n',nylm,nylm,one,lmat(:,:,ij),nylm,x(:,jsph),1,one,y(:,isph),1)
+      
+    end do
+!
+  end do
+  y = -y
+!
+  return
+end subroutine lx_ic
+!
+subroutine lstarx_ic(n, x, y)
+  use ddcosmo
+  implicit none
+  integer, intent(in) :: n
+  real*8,  dimension(nylm,nsph), intent(in)    :: x
+  real*8,  dimension(nylm,nsph), intent(inout) :: y
+!
+  integer              :: isph, nneigh, ij, ind, jsph, indmat
+  real*8,  allocatable :: tmp(:)
+!
+  y = zero
+!
+!$omp parallel do default(shared) private(isph,ij,indmat,jsph) &
+!$omp schedule(dynamic,10)
+  do isph = 1, nsph
+!
+!   do the matrix/vector multiplication blockwise.
+!
+    do ij = inl(isph), inl(isph+1) - 1
+      jsph   = nl(ij)
+      indmat = iltrn(ij)
+      call dgemv('t',nylm,nylm,one,lmat(:,:,indmat),nylm,x(:,jsph),1,one,y(:,isph),1)
+    end do
+  end do
+!
+  y = -y
+!
+  return
+end subroutine lstarx_ic

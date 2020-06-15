@@ -132,10 +132,14 @@ read(100,*) lmax        ! max angular momentum of spherical harmonics basis
 read(100,*) ngrid       ! number of lebedev points
 read(100,*) iconv       ! 10^(-iconv) is the convergence threshold for the iterative solver
 read(100,*) igrad       ! whether to compute (1) or not (0) forces
+                        ! 1x: whether to store the L matrix incore (1) or not (0)
 read(100,*) eps         ! dielectric constant of the solvent
 read(100,*) eta         ! regularization parameter
 !
 read(100,*) n           ! number of atoms
+!
+ialg  = igrad/10
+igrad = mod(igrad,10)
 !
 allocate (x(n),y(n),z(n),rvdw(n),charge(n))
 !
